@@ -29,22 +29,43 @@ def get_stats_dict(eng: GameEngine) -> dict:
 
 
 def determine_ending(player) -> str:
-    ending = "IL SOPRAVVISSUTO"
+    endings = []
+
+    # Finali basati sulle fazioni (priorità alta)
+    if player.factions['Ribelli'] >= 70 and player.integrity >= 60:
+        endings.append(("IL WHISTLEBLOWER", 7))
+    if player.factions['Fedelissimi'] >= 70 and player.manager_rep >= 80:
+        endings.append(("IL BRACCIO DESTRO", 7))
+    if player.factions['Gruppo Silenzioso'] >= 70:
+        endings.append(("LO SPETTATORE", 6))
+    if all(v >= 50 for v in player.factions.values()):
+        endings.append(("IL CAMALEONTE", 5))
+
+    # Finali basati sullo stato
     if player.status == "Promosso":
-        ending = "IL POLITICO"
+        endings.append(("IL POLITICO", 4))
     elif player.status == "Promozione Tossica":
-        ending = "IL CINICO"
-    elif player.integrity >= 80 and player.manager_rep <= 30:
-        ending = "IL MARTIRE"
-    elif player.integrity <= 25:
-        ending = "IL CINICO"
-    elif player.employability >= 70 and player.is_alive:
-        ending = "IL FUGGITIVO"
-    elif player.manager_rep >= 70 and player.integrity >= 70:
-        ending = "IL RIFORMATORE"
-    elif "Burnout" in player.status:
-        ending = "IL CADUTO"
-    return ending
+        endings.append(("IL CINICO", 4))
+    elif player.status == "Licenziato":
+        endings.append(("IL CINESE", 3))
+
+    # Finali basati sulle statistiche
+    if player.integrity >= 80 and player.manager_rep <= 30:
+        endings.append(("IL MARTIRE", 3))
+    if player.integrity <= 25:
+        endings.append(("IL CINICO", 2))
+    if player.employability >= 70 and player.is_alive:
+        endings.append(("IL FUGGITIVO", 2))
+    if player.manager_rep >= 70 and player.integrity >= 70:
+        endings.append(("IL RIFORMATORE", 3))
+    if "Burnout" in player.status:
+        endings.append(("IL CADUTO", 4))
+
+    if not endings:
+        endings.append(("IL SOPRAVVISSUTO", 1))
+
+    endings.sort(key=lambda x: x[1], reverse=True)
+    return endings[0][0]
 
 
 # ── UI ──
@@ -114,14 +135,14 @@ def _render_game():
                     .props('outline').classes('text-gray-400')
             with ui.row().classes('items-center gap-1'):
                 ui.button('', icon='bar_chart', on_click=_show_stats_dialog) \
-                    .props('flat').classes('text-gray-400')
+                    .props('flat').classes('text-gray-400 lg:hidden')
                 ui.button('', icon='exit_to_app', on_click=_exit_game) \
                     .props('flat').classes('text-gray-400')
 
         # Main area
         with ui.row().classes('w-full gap-0'):
             # Stats sidebar
-            with ui.card().classes('w-full md:w-64 p-4 gap-2 md:mr-4 mb-4 md:mb-0 bg-gray-900') \
+            with ui.card().classes('w-full md:w-64 p-4 gap-2 md:mr-4 mb-4 md:mb-0 bg-gray-900 stats-sidebar') \
                     .props('flat'):
                 ui.label('STATISTICHE').classes('text-sm font-bold text-gray-400 mb-2')
                 stats = pdata['stats']
@@ -134,8 +155,10 @@ def _render_game():
 
                 ui.label('FAZIONI').classes('text-sm font-bold text-gray-400 mt-4 mb-1')
                 for fname, fscore in pdata['factions'].items():
+                    aligned = [n for n, f in engine.NPC_FACTION_MAP.items() if f == fname]
+                    aligned_str = f' ({", ".join(aligned)})' if aligned else ''
                     with ui.row().classes('w-full items-center justify-between'):
-                        ui.label(fname).classes('text-xs text-gray-400')
+                        ui.label(f'{fname}{aligned_str}').classes('text-xs text-gray-400')
                         ui.label(f'{fscore}%').classes('text-xs text-gray-300')
 
                 ui.label('RELAZIONI').classes('text-sm font-bold text-gray-400 mt-4 mb-1')
@@ -207,6 +230,21 @@ def _render_game():
 
             # Event + Choices
             with ui.column().classes('flex-1 gap-4 min-w-0'):
+                # Mini-evento giornaliero
+                if engine.current_mini_event:
+                    mini_text, mini_effects = engine.current_mini_event
+                    with ui.card().classes('w-full p-3 bg-gray-800/50 border-l-4 border-gray-600').props('flat'):
+                        with ui.row().classes('items-center gap-2'):
+                            ui.icon('wb_sunny', size='16px').classes('text-gray-500')
+                            ui.label('Routine').classes('text-xs font-bold text-gray-500 uppercase tracking-wide')
+                        ui.label(mini_text).classes('text-sm text-gray-400 italic')
+                        with ui.row().classes('gap-2 mt-1 flex-wrap'):
+                            for k, v in mini_effects.items():
+                                if v > 0:
+                                    ui.badge(f'{k}: +{v}', color='dark').props('outline')
+                                else:
+                                    ui.badge(f'{k}: {v}', color='dark').props('outline')
+
                 if event:
                     with ui.row().classes('items-center gap-2 flex-wrap'):
                         ui.badge(
@@ -445,6 +483,12 @@ ui.add_head_html("""
     body { background: #0a0a1a; }
     .choice-btn { text-transform: none; transition: all 0.15s ease; }
     .choice-btn:hover { transform: translateX(4px); }
+    @media (max-width: 767px) {
+        .stats-sidebar { display: none; }
+    }
+    @media (min-width: 768px) {
+        .mobile-stats-btn { display: none !important; }
+    }
 </style>
 """)
 

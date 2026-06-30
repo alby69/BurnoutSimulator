@@ -71,9 +71,9 @@ Nella sidebar, sotto le RELAZIONI, compare **ULTIME SCELTE** con le ultime 5 dec
 
 ## Prossimi miglioramenti
 
-### M2 — FAZIONI VISIBILI E REATTIVE
+### ✅ M2 — FAZIONI VISIBILI E REATTIVE
 
-Ogni NPC dovrebbe appartenere a una fazione:
+Ogni NPC appartiene a una fazione:
 
 | NPC | Fazione |
 |-----|----------|
@@ -84,7 +84,9 @@ Ogni NPC dovrebbe appartenere a una fazione:
 
 **Effetto:** se la tua affinità con una fazione sale, gli NPC di quella fazione migliorano rapporto con te. Se scende, potrebbero remarti contro.
 
-Esempio: `faction_Fedelissimi > 70` → Marco ti dà più bonus, ma Roberto ti perde rispetto (vedi in te un "yes man").
+Esempio: `faction_Fedelissimi > 70` → Marco ti dà più bonus, ma Roberto ti perde rispetto (vede in te un "yes man").
+
+Implementato con `_sync_factions_to_npcs()` in `engine.py`, chiamato dopo ogni scelta in `handle_choice()`.
 
 ### M3 — BARRA DELLE CONSEGUENZE PRIMA DELLA SCELTA
 
@@ -101,9 +103,9 @@ Prima di cliccare una scelta, mostrare un **anteprima degli effetti** al passagg
 - Le relazioni NPC dovrebbero influenzare gli eventi futuri (es. se Marco Trust < 20, eventi più ostili; se > 80, eventi più favorevoli)
 - Feedback testuale subito dopo la scelta: *"Marco annuisce soddisfatto"* / *"Giulia evita il tuo sguardo"*
 
-### M5 — PIÙ FINALI PESATI SULLE FAZIONI
+### ✅ M5 — PIÙ FINALI PESATI SULLE FAZIONI
 
-Attualmente 8 finali basati quasi solo sulle statistiche. Aggiungere finali basati sulle **fazioni**:
+Aggiunti 4 finali basati sulle **fazioni** in `determine_ending()` in `app.py`:
 
 | Condizione | Finale |
 |---|---|
@@ -111,6 +113,8 @@ Attualmente 8 finali basati quasi solo sulle statistiche. Aggiungere finali basa
 | Fedelissimi > 70 e Manager Rep > 80 | Il Braccio Destro |
 | Gruppo Silenzioso > 70 | Lo Spettatore |
 | Tutte le fazioni > 50 | Il Camaleonte |
+
+I finali fazione hanno priorità più alta dei finali classici nel sistema di punteggio.
 
 ### M6 — STORICO SCELTE VISUALE (DURANTE LA PARTITA)
 
@@ -131,13 +135,15 @@ Schermata "Statistiche Avanzate" con un grafo delle scelte fatte finora:
 
 Usabile con la libreria `pyvis` o un canvas HTML.
 
-### M8 — SCENARI GIORNALIERI (MORNING ROUTINE)
+### ✅ M8 — SCENARI GIORNALIERI (MORNING ROUTINE)
 
-Prima dell'evento principale, un **mini-evento** casuale che modifica le statistiche di base:
+Prima dell'evento principale, un **mini-evento** casuale (da 15 scenari in `engine.MINI_EVENTS`) che modifica le statistiche di base:
 
 - *"Trovi traffico, arrivi in ufficio già stressato"* → Stress +5
 - *"Un collega ti offre un caffè"* → Energia +3, Trust Collega +2
 - *"Ricevi una mail di un headhunter"* → Employability +5, Stress -2
+
+Eseguito all'inizio di `next_turn()`, mostrato in una card grigia prima dell'evento principale.
 
 ### M9 — PROFILO UTENTE GLOBALE (ANALYTICS DASHBOARD)
 
@@ -150,13 +156,13 @@ Usando i dati già raccolti in `database/analytics.db`:
   - Scenario più tossico (top 3)
   - Heatmap delle scelte
 
-### M10 — RESPONSIVE MOBILE MIGLIORATO
+### ✅ M10 — RESPONSIVE MOBILE MIGLIORATO
 
-La sidebar a sinistra va in overflow su mobile. Sostituire con:
+Mobile toggle per la sidebar:
 
-- Stats collassabili in un drawer (icona hamburger)
-- Schede navigabili: STATS | STORIA | FAZIONI
-- Bottoni delle scelte più grandi per touch
+- Sidebar nascosta su schermi <768px via CSS `stats-sidebar` class
+- Pulsante `bar_chart` visibile solo su mobile nella barra superiore, apre il dialog statistiche
+- Breakpoint responsive con classi Tailwind `lg:hidden` e `stats-sidebar`
 
 ### M11 — TUTORIAL / ONBOARDING INTERATTIVO
 
@@ -181,15 +187,15 @@ Alcuni eventi critici potrebbero avere un **timer** per la scelta (30 secondi):
 | # | Miglioramento | Impatto | Sforzo | Stato |
 |---|---------------|---------|--------|-------|
 | M1 | Feedback effetti dopo la scelta | Alto | Basso | ✅ Fatto |
-| M2 | Fazioni influenzano NPC | Alto | Medio | 🔴 Da fare |
+| M2 | Fazioni influenzano NPC | Alto | Medio | ✅ Fatto |
 | M3 | Anteprima effetti al passaggio mouse | Medio | Basso | ✅ Fatto |
 | M4 | Dialoghi scriptati e conseguenze NPC | Alto | Alto | 🟡 Da fare |
-| M5 | Più finali basati su fazioni | Alto | Medio | 🔴 Da fare |
+| M5 | Più finali basati su fazioni | Alto | Medio | ✅ Fatto |
 | M6 | Storico scelte visibile in partita | Medio | Basso | ✅ Fatto |
 | M7 | Grafo decisionale interattivo | Basso | Alto | 🟢 Da fare |
-| M8 | Mini-eventi giornalieri (routine) | Alto | Medio | 🟡 Da fare |
+| M8 | Mini-eventi giornalieri (routine) | Alto | Medio | ✅ Fatto |
 | M9 | Dashboard analytics globale | Medio | Medio | 🟢 Da fare |
-| M10 | Mobile responsive migliorato | Medio | Basso | 🟡 Da fare |
+| M10 | Mobile responsive migliorato | Medio | Basso | ✅ Fatto |
 | M11 | Tutorial / onboarding | Alto | Medio | 🟡 Da fare |
 | M12 | Eventi con timer | Medio | Basso | 🟢 Da fare |
 
@@ -197,8 +203,8 @@ Alcuni eventi critici potrebbero avere un **timer** per la scelta (30 secondi):
 
 ## Priorità consigliata
 
-1. **M2 + M5** (fazioni con peso reale) — dà senso a tutto il sistema fazioni
+1. ✅ ~~M2 + M5~~ (fazioni con peso reale) — completato
 2. **M4** (dialoghi) — trasforma il gioco da "menu di scelte" a "simulazione narrativa"
-3. **M8** (mini-eventi giornalieri) — più varietà tra un evento e l'altro
+3. ✅ ~~M8~~ (mini-eventi giornalieri) — completato
 4. **M11** (tutorial) — fondamentale per nuovi giocatori
-5. **M10** (mobile) — migliora l'esperienza su telefono
+5. ✅ ~~M10~~ (mobile) — completato
