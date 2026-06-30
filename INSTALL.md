@@ -4,6 +4,7 @@
 
 - Python 3.10 o superiore
 - pip
+- Connessione internet (per font Inter e JetBrains Mono via Google Fonts)
 
 ## Installazione locale
 
@@ -116,7 +117,7 @@ python app.py
 
 | Comando | Descrizione |
 |---------|-------------|
-| `python app.py` | Web UI su porta 8080 |
+| `python app.py` | Web UI su porta 8080 (NiceGUI) |
 | `python main.py --cli` | Interfaccia testuale |
 | `python main.py` | Tkinter GUI (fallback su CLI) |
 
@@ -126,12 +127,13 @@ python app.py
 
 1. Inserisci il tuo nome
 2. Scegli l'archetipo aziendale:
-   - **Startup Caotica** — overwork, ritmi frenetici
-   - **Corporate Tossica** — politica interna, micromanagement
-   - **Azienda Familiare** — nepotismo, favoritismi
-   - **Consulting** — KPI ossessivi, reperibilità continua
-3. Leggi gli scenari e scegli come reagire
-4. Al termine visualizzerai il report finale con profilo comportamentale
+   - **Startup Caotica** — overwork, ritmi frenetici (Manager: Micromanager)
+   - **Corporate Tossica** — politica interna, micromanagement (Manager: Narcisista)
+   - **Azienda Familiare** — nepotismo, favoritismi (Manager: Paternalista)
+   - **Consulting** — KPI ossessivi, reperibilità continua (Manager: Perfezionista)
+3. Leggi gli scenari e scegli come reagire (hai 15 secondi per le scelte critiche!)
+4. Ogni NPC ha un volto con espressione dinamica che cambia in base a trust/fear/stress
+5. Al termine visualizzerai il report finale con profilo comportamentale, grafico stress/tempo, e radar
 
 ---
 
@@ -145,3 +147,16 @@ sqlite3 database/analytics.db
 .tables
 SELECT * FROM choice_stats;
 ```
+
+La dashboard analytics è accessibile dal pulsante "📊 Analytics" nella schermata iniziale e mostra:
+- Finali più ottenuti (con barre)
+- Distribuzione scelte per categoria
+- Sopravvivenza media per archetipo
+- Ultime 10 partite giocate
+
+---
+
+## Note tecniche
+
+- **Font**: Inter (UI) e JetBrains Mono (dati) caricati da Google Fonts — richiedono internet alla prima visita. Se offline, NiceGUI usa i fallback di sistema.
+- **Collaudo**: `docker build -t burnout-sim . && docker run -d -p 8080:8080 burnout-sim && curl http://localhost:8080` deve restituire HTTP 200.

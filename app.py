@@ -136,8 +136,59 @@ def page():
         _render_analytics()
 
 
+def _npc_svg_face(nname: str, ndata: dict) -> str:
+    trust = ndata.get('trust', 50)
+    fear = ndata.get('fear', 0)
+    stress = getattr(engine, 'player', None) and engine.player.stress or 0
+
+    if fear > trust and fear > 40:
+        expr = 'scared'
+    elif trust < 30 and fear < 20:
+        expr = 'angry'
+    elif stress > 70:
+        expr = 'stressed'
+    elif trust < 40:
+        expr = 'worried'
+    elif trust >= 75:
+        expr = 'happy'
+    else:
+        expr = 'neutral'
+
+    eyes = {
+        'neutral': 'M8 18 Q10 16 12 18 M16 18 Q18 16 20 18',
+        'happy': 'M8 17 Q10 15 12 17 M16 17 Q18 15 20 17',
+        'worried': 'M8 18 Q10 17 12 18 M16 18 Q18 17 20 18',
+        'angry': 'M8 16 L12 18 M16 16 L20 18',
+        'stressed': 'M8 19 Q10 18 12 19 M16 19 Q18 18 20 19',
+        'scared': 'M8 19 Q10 20 12 19 M16 19 Q18 20 20 19',
+    }
+    mouth = {
+        'neutral': 'M10 25 Q14 23 18 25',
+        'happy': 'M10 25 Q14 28 18 25',
+        'worried': 'M10 25 Q14 26 18 25',
+        'angry': 'M10 25 L14 24 L18 25',
+        'stressed': 'M11 26 Q14 25 17 26',
+        'scared': 'M10 26 Q14 28 18 26',
+    }
+    brows = {
+        'neutral': 'M6 13 Q8 12 10 13 M18 13 Q20 12 22 13',
+        'happy': 'M6 13 Q8 12 10 13 M18 13 Q20 12 22 13',
+        'worried': 'M6 14 Q8 13 10 14 M18 14 Q20 13 22 14',
+        'angry': 'M6 11 L10 12 M18 11 L22 12',
+        'stressed': 'M6 15 Q8 14 10 15 M18 15 Q20 14 22 15',
+        'scared': 'M6 15 Q8 16 10 15 M18 15 Q20 16 22 15',
+    }
+
+    return f'''<svg viewBox="0 0 28 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="14" cy="16" r="12" fill="rgba(255,255,255,0.08)"/>
+        <path d="{eyes[expr]}" stroke="rgba(255,255,255,0.8)" stroke-width="1.4" stroke-linecap="round"/>
+        <path d="{mouth[expr]}" stroke="rgba(255,255,255,0.7)" stroke-width="1.3" stroke-linecap="round"/>
+        <path d="{brows[expr]}" stroke="rgba(255,255,255,0.5)" stroke-width="1.2" stroke-linecap="round"/>
+    </svg>'''
+
+
 def _render_start():
-    with ui.card().classes('w-full max-w-lg mx-auto p-8 text-center').props('flat'):
+    with ui.card().classes('w-full max-w-lg mx-auto p-8 text-center vn-card vn-card-highlight mt-10').props('flat'):
         theme = ARCHETYPE_THEMES['Corporate Tossica']
         ui.label('BURNOUT SIMULATOR').style(f'color: {theme["header"]}').classes('text-4xl font-bold')
         ui.label('Antropologia delle Organizzazioni').classes('text-lg text-gray-400 mb-6')
@@ -209,7 +260,7 @@ def _render_game():
         unique_seen = len(set(engine.history))
         is_repeat = event and event.id in engine.history[:-1]
 
-        with ui.row().classes('w-full items-center justify-between mb-4'):
+        with ui.row().classes('w-full items-center justify-between mb-4 pb-3 top-bar'):
             with ui.row().classes('items-center gap-2 flex-wrap'):
                 ui.icon('calendar_month').classes('text-gray-400')
                 ui.label(f'Giorno {player.days_survived}').style(f'color: {theme["header"]}').classes('text-xl font-bold')
@@ -227,9 +278,9 @@ def _render_game():
         # Main area
         with ui.row().classes('w-full gap-0'):
             # Stats sidebar
-            with ui.card().classes('w-full md:w-72 p-4 gap-2 md:mr-4 mb-4 md:mb-0 bg-gray-900 stats-sidebar') \
+            with ui.card().classes('w-full md:w-72 p-4 gap-2 md:mr-4 mb-4 md:mb-0 stats-sidebar-card stats-sidebar') \
                     .props('flat'):
-                ui.label('STATISTICHE').classes('text-sm font-bold text-gray-400 mb-2')
+                ui.label('STATISTICHE').classes('text-xs font-bold text-gray-500 uppercase tracking-wider mb-2')
                 stats = pdata['stats']
 
                 # Radar chart
@@ -273,7 +324,7 @@ def _render_game():
                     ui.linear_progress(value=stats[key] / 100, size='xs', color=bar_color)
 
                 # FAZIONI
-                ui.label('FAZIONI').classes('text-sm font-bold text-gray-400 mt-4 mb-1')
+                ui.label('FAZIONI').classes('text-xs font-bold text-gray-500 uppercase tracking-wider mt-4 mb-1')
                 for fname, fscore in pdata['factions'].items():
                     fcol = NPC_FACTION_COLORS.get(fname, '#6b7280')
                     aligned = [n for n, f in NPC_FACTION_MAP.items() if f == fname]
@@ -285,15 +336,14 @@ def _render_game():
                         ui.label(f'{fscore}%').classes('text-xs text-gray-300')
 
                 # RELAZIONI con avatar
-                ui.label('RELAZIONI').classes('text-sm font-bold text-gray-400 mt-4 mb-1')
+                ui.label('RELAZIONI').classes('text-xs font-bold text-gray-500 uppercase tracking-wider mt-4 mb-1')
                 for nname, ndata in pdata['npcs'].items():
                     nfaction = NPC_FACTION_MAP.get(nname, '')
                     avi_color = NPC_FACTION_COLORS.get(nfaction, '#6b7280')
-                    initial = nname[0]
                     trust = ndata['trust']
                     trust_color = '#4ade80' if trust >= 60 else '#f87171' if trust < 35 else '#eab308'
                     with ui.row().classes('w-full items-center gap-2'):
-                        ui.label(initial).style(f'background: {avi_color}').classes('npc-avatar')
+                        ui.html(_npc_svg_face(nname, ndata)).style(f'background: {avi_color}').classes('npc-avatar')
                         with ui.column().classes('gap-0 flex-1'):
                             ui.label(nname).classes('text-xs text-gray-300')
                             ui.label(
@@ -303,7 +353,7 @@ def _render_game():
                 # ULTIME SCELTE
                 if choice_history:
                     ui.separator().classes('my-3 bg-gray-700')
-                    ui.label('ULTIME SCELTE').classes('text-sm font-bold text-gray-400 mb-2')
+                    ui.label('ULTIME SCELTE').classes('text-xs font-bold text-gray-500 uppercase tracking-wider mb-2')
                     for h in choice_history[-5:]:
                         cat_color = cat_colors.get(h['category'], '#6b7280')
                         with ui.row().classes('items-center gap-1'):
@@ -325,7 +375,7 @@ def _render_game():
                 # Fase Carriera
                 phase = engine.get_career_phase()
                 ui.separator().classes('my-3 bg-gray-700')
-                ui.label('FASE').classes('text-sm font-bold text-gray-400 mb-1')
+                ui.label('FASE').classes('text-xs font-bold text-gray-500 uppercase tracking-wider mb-1')
                 with ui.row().classes('items-center gap-1'):
                     ui.icon('timeline', size='14px').classes('text-gray-500')
                     ui.label(phase[1]).classes('text-xs text-gray-300')
@@ -333,7 +383,7 @@ def _render_game():
 
                 # STATO
                 ui.separator().classes('my-3 bg-gray-700')
-                ui.label('STATO').classes('text-sm font-bold text-gray-400 mb-2')
+                ui.label('STATO').classes('text-xs font-bold text-gray-500 uppercase tracking-wider mb-2')
 
                 risk_critical = sum(1 for s in stats.values() if s <= 20) + (1 if stats['stress'] >= 80 else 0)
                 risk_warning = sum(1 for s in stats.values() if 20 < s <= 35 or 65 <= s < 80)
@@ -381,12 +431,12 @@ def _render_game():
                 # Mini-evento giornaliero
                 if engine.current_mini_event:
                     mini_text, mini_effects = engine.current_mini_event
-                    with ui.card().classes('w-full p-3 bg-gray-800/50 border-l-4 border-gray-600').props('flat'):
+                    with ui.card().classes('w-full p-3 border-l-4 border-gray-600 event-card').props('flat'):
                         with ui.row().classes('items-center gap-2'):
                             ui.icon('wb_sunny', size='16px').classes('text-gray-500')
                             ui.label('Routine').classes('text-xs font-bold text-gray-500 uppercase tracking-wide')
-                        ui.label(mini_text).classes('text-sm text-gray-400 italic')
-                        with ui.row().classes('gap-2 mt-1 flex-wrap'):
+                        ui.label(mini_text).classes('text-sm text-gray-400 italic mt-1')
+                        with ui.row().classes('gap-2 mt-2 flex-wrap'):
                             for k, v in mini_effects.items():
                                 if v > 0:
                                     ui.badge(f'{k}: +{v}', color='dark').props('outline')
@@ -406,20 +456,33 @@ def _render_game():
                         if engine.real_cases_mode:
                             ui.badge('Caso Reale', color='dark').props('outline').classes('text-orange-400')
 
-                    with ui.card().classes('w-full p-6 bg-gray-900').props('flat'):
-                        ui.markdown(event.text).classes(
-                            'text-base leading-relaxed text-gray-200 '
-                            'prose prose-invert max-w-none'
-                        )
+                    # NPC portrait + narrative card (Visual Novel style)
+                    npc_names = list(pdata['npcs'].keys())
+                    npc_idx = (len(engine.history)) % max(len(npc_names), 1) if npc_names else 0
+                    npc_trigger = npc_names[npc_idx] if npc_names else ''
+                    with ui.row().classes('w-full gap-4 items-start'):
+                        # NPC portrait that spoke this event
+                        with ui.column().classes('items-center gap-1 shrink-0'):
+                            nd = pdata['npcs'].get(npc_trigger, {})
+                            nf = NPC_FACTION_MAP.get(npc_trigger, '')
+                            nc = NPC_FACTION_COLORS.get(nf, '#6b7280')
+                            ui.html(_npc_svg_face(npc_trigger, nd)).style(f'border-color: {nc}').classes('npc-portrait')
+                            ui.label(npc_trigger).classes('text-[10px] text-gray-500')
+
+                        with ui.card().classes('flex-1 p-5 event-card vn-card-highlight').props('flat'):
+                            ui.markdown(event.text).classes(
+                                'narrative-text prose prose-invert max-w-none'
+                                ' [&_strong]:text-amber-300'
+                            )
 
                     n_choices = len(event.choices)
                     if n_choices == 1:
                         ui.label('Conseguenza — proseguì automaticamente').classes(
-                            'text-sm text-gray-500 italic mt-2'
+                            'text-xs text-gray-500 italic mt-3 mb-1'
                         )
                     else:
                         ui.label('Cosa fai?').classes(
-                            'text-sm font-semibold text-gray-400 mt-2'
+                            'text-xs font-semibold text-gray-500 uppercase tracking-wider mt-4 mb-2'
                         )
 
                     # Timer per scelte critiche (M12)
@@ -447,9 +510,9 @@ def _render_game():
                             label,
                             on_click=handle_choice_cb(i, event, choice),
                         ).classes(
-                            'w-full text-left choice-btn rounded-lg border '
-                            f'{"border-blue-700 hover:border-blue-500" if n_choices == 1 else "border-gray-700 hover:border-gray-500"} '
-                            'hover:bg-gray-800 transition-all'
+                            'w-full text-left choice-btn '
+                            f'{"border-blue-700 hover:border-blue-500" if n_choices == 1 else "border-gray-700/40 hover:border-gray-500"} '
+                            'transition-all'
                         ).props('flat no-caps'):
 
                             # Effetti sempre visibili (chip)
@@ -497,7 +560,7 @@ def _render_game_over():
     stats = get_stats_dict(engine)
 
     with ui.column().classes('w-full max-w-2xl mx-auto'):
-        with ui.card().classes('w-full p-8 text-center report-card').props('flat'):
+        with ui.card().classes('w-full p-8 text-center vn-card vn-card-highlight').props('flat'):
 
             ui.label('REPORT FINALE').classes('text-3xl font-bold text-red-400')
             ui.label(ending).classes('text-2xl font-bold text-yellow-400 mt-3')
@@ -580,7 +643,7 @@ def _render_game_over():
         tags = player.tags
         total_tags = sum(tags.values())
         if total_tags > 0:
-            with ui.card().classes('w-full p-6 mt-4').props('flat'):
+            with ui.card().classes('w-full p-6 mt-4 vn-card').props('flat'):
                 ui.label('PROFILO COMPORTAMENTALE').classes(
                     'text-lg font-bold text-gray-300 mb-4'
                 )
@@ -681,7 +744,7 @@ def _show_choice_feedback(deltas: dict, category: str):
         'employability': '#34d399', 'manager_rep': '#fb923c', 'team_rep': '#60a5fa',
     }
 
-    with ui.dialog() as dialog, ui.card().classes('p-6 min-w-[280px] bg-gray-900'):
+    with ui.dialog() as dialog, ui.card().classes('p-6 min-w-[280px] vn-card'):
         ui.label('Esito della scelta').classes('text-lg font-bold text-gray-200 mb-1')
         ui.badge(category, color='dark').classes('mb-4')
 
@@ -787,7 +850,7 @@ def _play_again():
 def _show_stats_dialog():
     stats = get_stats_dict(engine)
     pdata = engine.player.to_dict()
-    with ui.dialog() as dialog, ui.card().classes('p-6'):
+    with ui.dialog() as dialog, ui.card().classes('p-6 vn-card'):
         ui.label('Statistiche Dettagliate').classes('text-lg font-bold mb-4')
         for label, key, color in bars_def:
             with ui.row().classes('w-full items-center justify-between'):
@@ -923,7 +986,7 @@ def _show_decision_graph():
         'backgroundColor': 'transparent',
     }
 
-    with ui.dialog() as dialog, ui.card().classes('w-full max-w-4xl p-4 bg-gray-900'):
+    with ui.dialog() as dialog, ui.card().classes('w-full max-w-4xl p-4 vn-card'):
         with ui.row().classes('w-full items-center justify-between mb-2'):
             ui.label('Grafo Decisionale').classes('text-lg font-bold text-gray-200')
             ui.button('', icon='close', on_click=dialog.close).props('flat').classes('text-gray-400')
@@ -943,7 +1006,7 @@ def _go_analytics():
 def _render_analytics():
     db_path = os.path.join(os.path.dirname(__file__), 'database', 'analytics.db')
     with ui.column().classes('w-full max-w-4xl mx-auto'):
-        with ui.row().classes('w-full items-center justify-between mb-4'):
+        with ui.row().classes('w-full items-center justify-between mb-4 pb-3 top-bar'):
             ui.label('📊 Dashboard Analytics').classes('text-2xl font-bold text-white')
             ui.button('← Torna al Menu', on_click=lambda: _play_again()).props('flat').classes('text-gray-400')
 
@@ -989,7 +1052,7 @@ def _render_analytics():
             return
 
         with ui.grid(columns=2).classes('w-full gap-4'):
-            with ui.card().classes('p-4').props('flat tight'):
+            with ui.card().classes('p-4 vn-card').props('flat tight'):
                 ui.label('Finali più ottenuti').classes('text-sm font-bold text-gray-300 mb-2')
                 total = sum(r[1] for r in ending_data) or 1
                 for name, cnt in ending_data:
@@ -999,7 +1062,7 @@ def _render_analytics():
                         ui.label(f'{cnt}').classes('text-xs font-mono text-gray-300')
                         ui.linear_progress(value=perc / 100, size='xs', color='amber').classes('w-16')
 
-            with ui.card().classes('p-4').props('flat tight'):
+            with ui.card().classes('p-4 vn-card').props('flat tight'):
                 ui.label('Scelte per categoria').classes('text-sm font-bold text-gray-300 mb-2')
                 total_cat = sum(r[1] for r in cat_data) or 1
                 for name, cnt in cat_data:
@@ -1012,7 +1075,7 @@ def _render_analytics():
                         ui.linear_progress(value=perc / 100, size='xs', color='amber').classes('w-16')
 
         # Tabella sopravvivenza
-        with ui.card().classes('w-full p-4 mt-4').props('flat'):
+        with ui.card().classes('w-full p-4 mt-4 vn-card').props('flat'):
             ui.label(f'Sopravvivenza media per archetipo (totale: {total_sessions} partite)').classes(
                 'text-sm font-bold text-gray-300 mb-2'
             )
@@ -1039,7 +1102,7 @@ def _render_analytics():
             recent = []
 
         if recent:
-            with ui.card().classes('w-full p-4 mt-4').props('flat'):
+            with ui.card().classes('w-full p-4 mt-4 vn-card').props('flat'):
                 ui.label('Ultime partite').classes('text-sm font-bold text-gray-300 mb-2')
                 for name, arch, days, ending, status in recent:
                     with ui.row().classes('w-full items-center gap-2 border-b border-gray-800 pb-1'):
@@ -1059,16 +1122,109 @@ def _render_analytics():
 
 ui.add_head_html("""
 <style>
-    body { background: #0a0a1a; }
-    .choice-btn { text-transform: none; transition: all 0.15s ease; position: relative; }
-    .choice-btn:hover { transform: translateX(4px); }
-    .choice-btn .effect-chip {
-        font-size: 10px; padding: 1px 6px; border-radius: 8px;
-        background: rgba(255,255,255,0.08);
-    }
-    .choice-btn .effect-chip.pos { color: #4ade80; }
-    .choice-btn .effect-chip.neg { color: #f87171; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    .font-mono, code, pre { font-family: 'JetBrains Mono', monospace !important; }
+
+    body {
+        background: linear-gradient(160deg, #0a0a1a 0%, #0f0f2a 50%, #0a0a1a 100%);
+        min-height: 100vh;
+    }
+    body::before {
+        content: '';
+        position: fixed; inset: 0; z-index: 0;
+        background-image:
+            radial-gradient(ellipse at 20% 50%, rgba(59,130,246,0.03) 0%, transparent 50%),
+            radial-gradient(ellipse at 80% 50%, rgba(239,68,68,0.02) 0%, transparent 50%);
+        pointer-events: none;
+    }
+
+    /* Cards – stile finestra dialog */
+    .vn-card {
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 10px;
+        background: linear-gradient(180deg, #12122a 0%, #0e0e20 100%);
+        box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+    .vn-card-highlight {
+        border-top: 2px solid var(--theme-accent, #3b82f6);
+    }
+
+    /* Evento – card narrativa stile VN */
+    .event-card {
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 10px;
+        background: linear-gradient(180deg, #141430 0%, #0f0f24 100%);
+        box-shadow: 0 4px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .event-card .narrative-text {
+        font-size: 15px;
+        line-height: 1.7;
+        color: #d1d5db;
+    }
+    .event-card .narrative-text strong {
+        color: #fbbf24;
+    }
+
+    /* NPC portrait nella card evento */
+    .npc-portrait {
+        width: 64px; height: 64px;
+        border-radius: 50%;
+        border: 2px solid rgba(255,255,255,0.1);
+        flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(255,255,255,0.03);
+        transition: border-color 0.3s;
+    }
+    .npc-portrait svg { width: 44px; height: 44px; }
+
+    /* NPC avatar sidebar – più ricco */
+    .npc-avatar {
+        width: 32px; height: 32px; border-radius: 50%;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 12px; font-weight: 700; color: #fff;
+        flex-shrink: 0;
+        border: 1px solid rgba(255,255,255,0.12);
+        transition: transform 0.2s;
+    }
+    .npc-avatar:hover { transform: scale(1.15); }
+    .npc-avatar svg { width: 20px; height: 20px; }
+
+    /* Choice buttons – stile VN */
+    .choice-btn {
+        text-transform: none;
+        transition: all 0.15s ease;
+        position: relative;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+        background: linear-gradient(180deg, #1a1a34 0%, #15152a 100%) !important;
+        padding: 12px 16px !important;
+        font-size: 14px !important;
+        border-radius: 8px !important;
+        min-height: 52px;
+    }
+    .choice-btn:hover {
+        transform: translateX(6px);
+        border-color: var(--theme-accent, #3b82f6) !important;
+        background: linear-gradient(180deg, #1f1f3e 0%, #191934 100%) !important;
+        box-shadow: 0 0 20px rgba(59,130,246,0.08);
+    }
+    .choice-btn .effect-chip {
+        font-size: 10px; padding: 2px 8px; border-radius: 6px;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.06);
+    }
+    .choice-btn .effect-chip.pos { color: #4ade80; border-color: rgba(74,222,128,0.2); }
+    .choice-btn .effect-chip.neg { color: #f87171; border-color: rgba(248,113,113,0.2); }
+
+    /* Sidebar */
+    .stats-sidebar-card {
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 10px;
+        background: linear-gradient(180deg, #12122a 0%, #0e0e20 100%);
+    }
+
+    /* Pulse – danger */
     .pulse-danger {
         animation: pulse-danger 1.2s ease-in-out infinite;
     }
@@ -1077,21 +1233,17 @@ ui.add_head_html("""
         50% { opacity: 0.45; }
     }
 
-    .npc-avatar {
-        width: 26px; height: 26px; border-radius: 50%;
-        display: inline-flex; align-items: center; justify-content: center;
-        font-size: 11px; font-weight: 700; color: #fff;
-        flex-shrink: 0;
-    }
-
+    /* Tutorial overlay */
     .tutorial-overlay {
         position: fixed; inset: 0; z-index: 9999;
-        background: rgba(0,0,0,0.7);
+        background: rgba(0,0,0,0.75);
+        backdrop-filter: blur(4px);
         display: flex; align-items: center; justify-content: center;
     }
     .tutorial-card {
-        max-width: 420px; background: #1a1a2e; border: 1px solid #7c3aed;
-        border-radius: 16px; padding: 28px; text-align: center;
+        max-width: 420px; background: #15152e; border: 1px solid #7c3aed;
+        border-radius: 14px; padding: 28px; text-align: center;
+        box-shadow: 0 8px 40px rgba(124,58,237,0.15);
     }
 
     .timer-ring {
@@ -1099,8 +1251,25 @@ ui.add_head_html("""
         font-size: 12px; color: #fbbf24; font-weight: 600;
     }
 
+    /* Top bar */
+    .top-bar { border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+    /* Badge personalizzato */
+    .badge-archetype {
+        background: var(--theme-accent, #3b82f6) !important;
+        color: #fff !important;
+        font-weight: 600 !important;
+    }
+
+    /* Scrollbar personalizzata */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
     @media (max-width: 767px) {
         .stats-sidebar { display: none; }
+        .choice-btn { padding: 14px 16px !important; font-size: 15px !important; min-height: 56px; }
     }
     @media (min-width: 768px) {
         .mobile-stats-btn { display: none !important; }

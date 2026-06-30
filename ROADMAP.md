@@ -237,3 +237,82 @@ Tutti i 12 miglioramenti pianificati sono stati implementati. 🎉
 - **E6**: `_decision_start` timestamp al render evento, calcolato in `_make_choice`, salvato in `analytics.db` e mostrato nel report (media, rapide, lente).
 - **E7**: sbloccati a 8/15 occorrenze per truth_teller e boundary_setter, 20 per yes_man, 10 per burnout_risk e survivor, 30/60 giorni.
 - **E8**: checkbox nella schermata iniziale, mostra badge "Caso Reale" sugli eventi in partita.
+
+---
+
+## Overhaul grafico (Giugno 2026)
+
+| # | Fase | Descrizione | Stato |
+|---|------|-------------|-------|
+| **F1** | CSS Overhaul | Background gradiente, card `event-card` / `vn-card` con bordo accentato (`--theme-accent`), palette per archetipo, font Inter + JetBrains Mono, scrollbar personalizzata, responsive raffinato | ✅ |
+| **F2** | Facce SVG dinamiche | Funzione `_npc_svg_face()` in app.py: 6 espressioni (neutral/happy/worried/angry/stressed/scared) calcolate da trust/fear/stress, sostituiti avatar testuali (cerchi con iniziali) con SVG inline | ✅ |
+| **F3** | Layout Visual Novel | Ritratto NPC 64px + nome affiancato alla card narrativa, NPC ruota per turno (`history length % 4`), scelte stile dialog VN (tracking uppercase, border accentato, hover glow) | ✅ |
+
+### Dettaglio F1 — CSS Overhaul
+
+- `body::before` con gradienti radiali laterali per profondità
+- `vn-card`: bordo `rgba(255,255,255,0.06)`, gradiente interno `#12122a → #0e0e20`, box-shadow
+- `event-card`: gradiente `#141430 → #0f0f24`, narrativa font-size 15px, line-height 1.7
+- `vn-card-highlight`: `border-top: 2px solid var(--theme-accent, #3b82f6)`
+- Sidebar: `stats-sidebar-card` con lo stesso stile delle altre card
+- Pulsanti scelta: `choice-btn` con hover translateX(6px), border-color accentato, min-height 52px
+- Label sezioni tutte `text-xs uppercase tracking-wider` coerenti
+- Scrollbar personalizzata (6px, trasparente, thumb rgba)
+
+### Dettaglio F2 — Facce SVG dinamiche
+
+```python
+def _npc_svg_face(nname, ndata) -> str:
+    # Determina espressione da trust/fear/stress
+    # 6 espressioni → SVG con 3 path (occhi, bocca, sopracciglia)
+    # Restituisce <svg> inline 28×32 viewBox
+```
+
+Espressioni:
+| Condizione | Espressione |
+|---|---|
+| fear > trust e fear > 40 | `scared` |
+| trust < 30 e fear < 20 | `angry` |
+| stress > 70 | `stressed` |
+| trust < 40 | `worried` |
+| trust ≥ 75 | `happy` |
+| default | `neutral` |
+
+### Dettaglio F3 — Layout Visual Novel
+
+- Colonna sinistra: ritratto NPC (64px, bordo colorato per fazione, SVG face) + nome
+- Colonna destra: card evento (`event-card vn-card-highlight`) con testo narrativo
+- NPC portrait ruota tra i 4 NPC (Marco, Giulia, Roberto, Elena) in base a `len(history) % 4`
+- "Cosa fai?" in uppercase tracking-wider
+- Scelte con effetto hover glow (box-shadow + border-color transition)
+- Mini-evento giornaliero adotta stesso stile `event-card`
+
+### Tabella riepilogativa completa
+
+| # | Miglioramento | Impatto | Sforzo | Stato |
+|---|---------------|---------|--------|-------|
+| M1 | Feedback effetti dopo la scelta | Alto | Basso | ✅ Fatto |
+| M2 | Fazioni influenzano NPC | Alto | Medio | ✅ Fatto |
+| M3 | Anteprima effetti al passaggio mouse | Medio | Basso | ✅ Fatto |
+| M4 | Conseguenze narrativi differite | Alto | Alto | ✅ Fatto |
+| M5 | Più finali basati su fazioni | Alto | Medio | ✅ Fatto |
+| M6 | Storico scelte visibile in partita | Medio | Basso | ✅ Fatto |
+| M7 | Grafo decisionale interattivo | Basso | Alto | ✅ Fatto |
+| M8 | Mini-eventi giornalieri (routine) | Alto | Medio | ✅ Fatto |
+| M9 | Dashboard analytics globale | Medio | Medio | ✅ Fatto |
+| M10 | Mobile responsive migliorato | Medio | Basso | ✅ Fatto |
+| M11 | Tutorial / onboarding | Alto | Medio | ✅ Fatto |
+| M12 | Eventi con timer | Medio | Basso | ✅ Fatto |
+| E1 | Personalità Manager per archetipo | Alto | Medio | ✅ Fatto |
+| E2 | Eventi su soglia | Alto | Basso | ✅ Fatto |
+| E3 | Grafico stress/tempo nel report | Alto | Basso | ✅ Fatto |
+| E4 | Fasi di carriera | Medio | Basso | ✅ Fatto |
+| E5 | 5 nuovi finali incrociati | Alto | Medio | ✅ Fatto |
+| E6 | Tracking tempo decisione | Medio | Basso | ✅ Fatto |
+| E7 | 10 nuovi achievement | Basso | Basso | ✅ Fatto |
+| E8 | Modalità Casi Reali | Basso | Basso | ✅ Fatto |
+| **F1** | **CSS Overhaul** | Alto | Medio | ✅ Fatto |
+| **F2** | **Facce SVG dinamiche** | Alto | Medio | ✅ Fatto |
+| **F3** | **Layout Visual Novel** | Alto | Medio | ✅ Fatto |
+
+**Totale: 23 miglioramenti implementati.**
