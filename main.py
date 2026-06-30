@@ -7,13 +7,14 @@ def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 def print_header(player):
-    print("=" * 60)
+    print("=" * 70)
     print(f" BURNOUT SIMULATOR - Giorno {player.days_survived}")
-    print("=" * 60)
+    print("=" * 70)
     stats = player.to_dict()['stats']
-    print(f" Energ: {stats['energy']}% | Rep: {stats['reputation']}% | Integ: {stats['integrity']}%")
-    print(f" Stress: {stats['stress']}% | Occup: {stats['employability']}%")
-    print("-" * 60)
+    print(f" Energ: {stats['energy']}% | Stress: {stats['stress']}% | Salute: {stats['health']}%")
+    print(f" Integ: {stats['integrity']}% | Autost: {stats['self_esteem']}% | Occup: {stats['employability']}%")
+    print(f" Rep. Manager: {stats['manager_rep']}% | Rep. Team: {stats['team_rep']}%")
+    print("-" * 70)
 
 def main():
     clear_screen()
@@ -59,12 +60,12 @@ def main():
                 print("Inserisci un numero.")
 
     clear_screen()
-    print("=" * 60)
+    print("=" * 70)
     print("   PARTITA CONCLUSA   ")
-    print("=" * 60)
+    print("=" * 70)
     print(f"Risultato: {engine.player.status}")
     print(f"Giorni sopravvissuti: {engine.player.days_survived}")
-    print("-" * 60)
+    print("-" * 70)
 
     # Analyze behavioral profile from TAGS
     tags = engine.player.tags
@@ -77,7 +78,7 @@ def main():
         for tag, count in sorted_tags:
             perc = (count / total_tags) * 100
             print(f"- {tag:<15}: {perc:>3.1f}% ({count})")
-        print("-" * 60)
+        print("-" * 70)
 
     # Analyze behavioral profile from CATEGORIES
     history = engine.graph.history
@@ -99,21 +100,21 @@ def main():
             perc = (count / total_cat) * 100
             print(f"- {cat:<12}: {perc:>3.1f}%")
 
-        print("-" * 60)
+        print("-" * 70)
         print("ANALISI TOSSICITÀ AFFRONTATA:")
         toxic_counts = Counter(toxic_types)
         for ttype, count in toxic_counts.items():
             print(f"- {ttype.replace('_', ' ').capitalize():<25}: {count} eventi")
 
-    print("-" * 60)
+    print("-" * 70)
     final_stats = engine.player.to_dict()['stats']
     for stat, val in final_stats.items():
         print(f"{stat.capitalize():<15}: {val}")
 
-    print("-" * 60)
+    print("-" * 70)
     save_path = engine.save_game()
     print(f"Sessione salvata in: {save_path}")
-    print("=" * 60)
+    print("=" * 70)
 
 if __name__ == "__main__":
     main()
