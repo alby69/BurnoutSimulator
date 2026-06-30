@@ -55,7 +55,7 @@ class BurnoutGUI:
         tk.Label(self.left_panel, text="STATISTICHE", font=("Helvetica", 14, "bold"), fg="#ecf0f1", bg="#34495e").pack(pady=10)
 
         self.stat_bars = {}
-        # New stats from origin/main
+        # Advanced stats from current engine
         stats_to_show = ["energy", "stress", "health", "integrity", "self_esteem", "employability", "manager_rep", "team_rep"]
         for stat in stats_to_show:
             frame = tk.Frame(self.left_panel, bg="#34495e")
