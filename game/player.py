@@ -49,6 +49,8 @@ class Player:
     days_survived: int = 0
     is_alive: bool = True
     status: str = "Active"
+    career_phase: str = "Periodo di Prova"
+    decision_times: List[float] = field(default_factory=list)
 
     def update_stats(self, effects: dict):
         for stat, value in effects.items():
@@ -84,10 +86,31 @@ class Player:
                 self.tags[tag] = 1
 
         # Check for tag-based achievements
-        if self.tags.get("yes_man", 0) >= 10:
+        t = self.tags
+        if t.get("yes_man", 0) >= 10:
             self.achievements.add("Sempre Disponibile")
-        if self.tags.get("burnout_risk", 0) >= 5:
+        if t.get("yes_man", 0) >= 20:
+            self.achievements.add("Zerbino Ufficiale")
+        if t.get("burnout_risk", 0) >= 5:
             self.achievements.add("Vivere al Limite")
+        if t.get("burnout_risk", 0) >= 10:
+            self.achievements.add("Combustione Lenta")
+        if t.get("truth_teller", 0) >= 8:
+            self.achievements.add("La Voce della Coscienza")
+        if t.get("truth_teller", 0) >= 15:
+            self.achievements.add("Senza Filtro")
+        if t.get("boundary_setter", 0) >= 8:
+            self.achievements.add("Confini Sani")
+        if t.get("boundary_setter", 0) >= 15:
+            self.achievements.add("Muro di Berlino")
+        if t.get("survivor", 0) >= 10:
+            self.achievements.add("Sopravvissuto")
+        if t.get("survivor", 0) >= 20:
+            self.achievements.add("Indistruttibile")
+        if self.days_survived >= 30:
+            self.achievements.add("Veterano")
+        if self.days_survived >= 60:
+            self.achievements.add("Leggenda Vivente")
 
     def check_conditions(self):
         if self.health <= 0:

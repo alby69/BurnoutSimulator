@@ -1,7 +1,7 @@
 import uuid, random, json, sqlite3, os
 from io import BytesIO
 from nicegui import ui
-from game.engine import GameEngine, NPC_FACTION_MAP
+from game.engine import GameEngine, NPC_FACTION_MAP, MANAGER_PERSONALITIES, CAREER_PHASES
 from database.analytics import (
     init_db, create_session, end_session, record_choice, record_tags,
 )
@@ -16,6 +16,7 @@ choice_history: list = []
 _tutorial_active: bool = False
 _tutorial_step: int = 0
 _timer_active: bool = False
+_decision_start: float = 0.0
 
 bars_def = [
     ('Energia', 'energy', '#4ade80'),
@@ -77,6 +78,20 @@ def determine_ending(player) -> str:
         endings.append(("LO SPETTATORE", 6))
     if all(v >= 50 for v in player.factions.values()):
         endings.append(("IL CAMALEONTE", 5))
+
+    # Nuovi finali combinati (incrociano archetipo + profilo comportamentale)
+    arch = player.company_type
+    t = player.tags
+    if arch == "Startup Caotica" and t.get("burnout_risk", 0) >= 5:
+        endings.append(("IL FONDATORE ESAURITO", 6))
+    if arch == "Azienda Familiare" and t.get("truth_teller", 0) >= 5 and player.manager_rep <= 30:
+        endings.append(("IL PECORA NERA", 6))
+    if arch == "Consulting" and t.get("yes_man", 0) >= 10:
+        endings.append(("L'INGRANAGGIO PERFETTO", 5))
+    if player.energy <= 10 and player.days_survived >= 20:
+        endings.append(("IL RESISTENTE", 4))
+    if player.self_esteem >= 80 and player.is_alive:
+        endings.append(("L'INDIOMABILE", 3))
 
     # Finali basati sullo stato
     if player.status == "Promosso":
@@ -148,6 +163,8 @@ def _render_start():
         ui.label('Il tuo nome:').classes('text-gray-300 mt-4')
         name_input = ui.input(value='Impiegato Anonimo').classes('w-full max-w-md')
 
+        real_cases_toggle = ui.checkbox('Modalità "Casi Reali" — eventi ispirati a storie vere di cultura tossica').classes('text-xs text-gray-400 mt-3')
+
         def start_game_cb():
             global engine, session_id, stats_before, screen, choice_history, _tutorial_active, _tutorial_step
             session_id = uuid.uuid4().hex[:12]
@@ -156,6 +173,7 @@ def _render_start():
                 name_input.value, 'game/data/events.json',
                 company_type=arch_select.value,
             )
+            engine.real_cases_mode = real_cases_toggle.value
             stats_before = get_stats_dict(engine)
             create_session(session_id, engine.player.name, engine.player.company_type)
             engine.next_turn()
@@ -294,6 +312,25 @@ def _render_game():
                                 'text-xs text-gray-400 truncate'
                             )
 
+                # Personalità Manager
+                mp = getattr(engine, 'manager_personality', {})
+                if mp:
+                    ui.separator().classes('my-3 bg-gray-700')
+                    ui.label('MANAGER').classes('text-sm font-bold text-gray-400 mb-1')
+                    with ui.row().classes('items-center gap-1'):
+                        ui.icon('person', size='14px').classes('text-gray-500')
+                        ui.label(mp.get('type', '')).classes('text-xs text-gray-300')
+                    ui.label(mp.get('description', '')).classes('text-[10px] text-gray-500 italic')
+
+                # Fase Carriera
+                phase = engine.get_career_phase()
+                ui.separator().classes('my-3 bg-gray-700')
+                ui.label('FASE').classes('text-sm font-bold text-gray-400 mb-1')
+                with ui.row().classes('items-center gap-1'):
+                    ui.icon('timeline', size='14px').classes('text-gray-500')
+                    ui.label(phase[1]).classes('text-xs text-gray-300')
+                ui.label(phase[2]).classes('text-[10px] text-gray-500 italic')
+
                 # STATO
                 ui.separator().classes('my-3 bg-gray-700')
                 ui.label('STATO').classes('text-sm font-bold text-gray-400 mb-2')
@@ -366,6 +403,8 @@ def _render_game():
                             ui.badge('Già visto', color='dark').props('outline')
                         if engine.deferred_events:
                             ui.badge(f'{len(engine.deferred_events)} in sospeso', color='dark').props('outline')
+                        if engine.real_cases_mode:
+                            ui.badge('Caso Reale', color='dark').props('outline').classes('text-orange-400')
 
                     with ui.card().classes('w-full p-6 bg-gray-900').props('flat'):
                         ui.markdown(event.text).classes(
@@ -387,6 +426,10 @@ def _render_game():
                     _timer_choice_idx = -1
                     if n_choices > 1:
                         _timer_choice_idx = random.randint(0, n_choices - 1)
+
+                    # Track decision time (start counting from event render)
+                    global _decision_start
+                    _decision_start = __import__('time').time()
 
                     for i, choice in enumerate(event.choices):
                         def handle_choice_cb(idx=0, evt=None, ch=None):
@@ -463,6 +506,26 @@ def _render_game_over():
                 f'Hai resistito {player.days_survived} giorni in {player.company_type}.'
             ).classes('text-gray-300 mt-4')
 
+            # Grafico storico stress/tempo
+            hist = getattr(engine, 'stats_history', [])
+            if len(hist) >= 3:
+                stress_series = [s.get('stress', 0) for s in hist]
+                energy_series = [s.get('energy', 0) for s in hist]
+                days_labels = list(range(len(hist)))
+                stress_chart = {
+                    'tooltip': {'trigger': 'axis'},
+                    'legend': {'data': ['Stress', 'Energia'], 'textStyle': {'color': '#999'}},
+                    'xAxis': {'type': 'category', 'data': days_labels, 'axisLabel': {'color': '#666', 'fontSize': 9}},
+                    'yAxis': {'type': 'value', 'max': 100, 'axisLabel': {'color': '#666'}, 'splitLine': {'lineStyle': {'color': 'rgba(255,255,255,0.05)'}}},
+                    'series': [
+                        {'name': 'Stress', 'type': 'line', 'data': stress_series, 'smooth': True, 'lineStyle': {'color': '#f87171', 'width': 2}, 'areaStyle': {'color': 'rgba(248,113,113,0.1)'}, 'symbol': 'none'},
+                        {'name': 'Energia', 'type': 'line', 'data': energy_series, 'smooth': True, 'lineStyle': {'color': '#4ade80', 'width': 2}, 'areaStyle': {'color': 'rgba(74,222,128,0.1)'}, 'symbol': 'none'},
+                    ],
+                    'backgroundColor': 'transparent',
+                    'grid': {'left': '10%', 'right': '5%', 'top': '15%', 'bottom': '10%'},
+                }
+                ui.echart(stress_chart).classes('w-full h-36 mt-4')
+
             # Radar finale
             radar_data = [
                 {'name': 'Energia', 'value': stats['energy']},
@@ -490,6 +553,16 @@ def _render_game_over():
                 'backgroundColor': 'transparent',
             }
             ui.echart(radar_option).classes('w-full h-48 mt-4')
+
+            # Tempi di decisione
+            dt = getattr(player, 'decision_times', [])
+            if dt:
+                avg_dt = sum(dt) / len(dt) / 1000
+                fast = sum(1 for t in dt if t < 5000)
+                slow = sum(1 for t in dt if t >= 15000)
+                ui.label(f'Tempo medio decisione: {avg_dt:.1f}s · Rapide: {fast} · Lente (>15s): {slow}').classes(
+                    'text-xs text-gray-500 mt-2'
+                )
 
             with ui.row().classes('w-full justify-center gap-6 mt-6'):
                 for key, label, color in [
@@ -560,21 +633,31 @@ def _render_game_over():
 # ── Actions ──
 
 def _make_choice(idx: int, event, choice):
-    global stats_before, choice_history
+    global stats_before, choice_history, _decision_start
+    decision_time = int((__import__('time').time() - _decision_start) * 1000) if _decision_start > 0 else 0
+
     stats_before = get_stats_dict(engine)
     engine.handle_choice(idx)
     stats_after = get_stats_dict(engine)
+
+    if decision_time > 0:
+        engine.player.decision_times.append(decision_time)
 
     record_choice(
         session_id, engine.player.days_survived,
         event.id, choice.id, choice.text, choice.category,
         stats_before, stats_after,
+        decision_time=decision_time,
     )
 
     choice_history.append({
         'text': choice.text,
         'category': choice.category,
     })
+
+    # Update career phase
+    phase = engine.get_career_phase()
+    engine.player.career_phase = phase[1]
 
     deltas = {}
     for key in stats_before:

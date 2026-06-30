@@ -38,6 +38,7 @@ def init_db():
             timestamp TEXT,
             stats_before TEXT,
             stats_after TEXT,
+            decision_time INTEGER DEFAULT 0,
             FOREIGN KEY (session_id) REFERENCES sessions(id)
         );
 
@@ -82,13 +83,14 @@ def record_choice(
     choice_category: str,
     stats_before: dict,
     stats_after: dict,
+    decision_time: int = 0,
 ):
     conn = get_connection()
     conn.execute(
         """INSERT INTO choices
            (session_id, turn_number, event_id, choice_id, choice_text, choice_category,
-            timestamp, stats_before, stats_after)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            timestamp, stats_before, stats_after, decision_time)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             session_id,
             turn_number,
@@ -99,6 +101,7 @@ def record_choice(
             datetime.now(timezone.utc).isoformat(),
             json.dumps(stats_before),
             json.dumps(stats_after),
+            decision_time,
         ),
     )
     conn.commit()

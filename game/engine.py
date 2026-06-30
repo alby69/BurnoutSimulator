@@ -29,36 +29,93 @@ NPC_FACTION_MAP = {
     "Elena": "Gruppo Silenzioso",
 }
 
+MANAGER_PERSONALITIES = {
+    "Micromanager Iperattivo": {
+        "type": "Micromanager Iperattivo",
+        "description": "Risponde ai messaggi alle 2 di notte, vuole update ogni ora, confonde urgenza con produttività.",
+        "tone": "frenetico",
+        "stress_bonus": 2,
+        "rep_bonus_compliance": 3,
+        "crisis_threshold": 70,
+    },
+    "Narcisista Burocratico": {
+        "type": "Narcisista Burocratico",
+        "description": "Prende merito per il lavoro altrui, adora le riunioni inutili, ti valuta sulla visibilità politica.",
+        "tone": "manipolativo",
+        "stress_bonus": 1,
+        "rep_bonus_compliance": 2,
+        "crisis_threshold": 50,
+    },
+    "Padre/Padrone Paternalista": {
+        "type": "Padre/Padrone Paternalista",
+        "description": "Ti tratta come 'uno di famiglia' finché non contraddici il parente del capo.",
+        "tone": "paternalista",
+        "stress_bonus": 0,
+        "rep_bonus_compliance": 4,
+        "crisis_threshold": 40,
+    },
+    "Perfezionista Senza Tregua": {
+        "type": "Perfezionista Senza Tregua",
+        "description": "Niente è mai abbastanza buono. I KPI si alzano ogni trimestre. Le 60h settimanali sono la norma.",
+        "tone": "implacabile",
+        "stress_bonus": 3,
+        "rep_bonus_compliance": 1,
+        "crisis_threshold": 80,
+    },
+}
+
+CAREER_PHASES = [
+    (0, "Periodo di Prova", "Sei sotto osservazione. Ogni mossa è analizzata."),
+    (5, "Primo Progetto", "Ti è stato affidato il primo incarico significativo."),
+    (15, "Fase Operativa", "La routine si stabilizza. I giochi politici si intensificano."),
+    (30, "Ristrutturazione", "L'azienda annuncia cambiamenti. Tensione alle stelle."),
+    (60, "Sopravvivenza", "Sei arrivato fin qui. Ogni giorno è una vittoria."),
+]
+
+THRESHOLD_EVENTS = [
+    (lambda p: p.stress >= 80 and not p.status.startswith("Burnout"), "Sei sopraffatto dallo stress. Le mani tremano davanti alla tastiera.", {"health": -3, "self_esteem": -2}),
+    (lambda p: p.energy <= 20, "La stanchezza è tale che fai fatica a tenere gli occhi aperti sul monitor.", {"stress": 3, "health": -2}),
+    (lambda p: p.manager_rep <= 20, "Senti parlare di te nell'open space. Si vocifera che il manager stia preparando un dossier su di te.", {"stress": 4, "self_esteem": -3}),
+    (lambda p: p.self_esteem <= 20, "Ti guardi allo specchio e non riconosci la persona che sei diventato in questo posto.", {"stress": 3, "health": -2, "employability": -2}),
+    (lambda p: p.health <= 25, "Il tuo corpo sta cedendo. Mal di testa costante, tensione cervicale, notti insonni.", {"energy": -3, "stress": 2}),
+    (lambda p: p.factions["Ribelli"] >= 70, "Un collega di un altro reparto ti cerca: 'Ho saputo cosa hai fatto. Anch'io la penso così. Parliamo?'", {"faction_Ribelli": 5, "npc_Roberto_trust": 3}),
+    (lambda p: p.factions["Fedelissimi"] >= 70, "Marco ti convoca per un 'caffè informale'. Vuole proporti un ruolo di maggiore responsabilità... e controllo.", {"npc_Marco_trust": 5, "faction_Fedelissimi": 3}),
+]
+
 
 class GameEngine:
     COMPANY_ARCHETYPES = {
         "Startup Caotica": {
             "energy": 80,
             "stress": 20,
-            "manager_rep": 60,
+             "manager_rep": 60,
             "description": "Overwork, nessun processo, ritmi frenetici.",
-            "hidden_vars": {"agility": 80, "stability": 20}
+            "hidden_vars": {"agility": 80, "stability": 20},
+            "manager_personality": "Micromanager Iperattivo",
         },
         "Corporate Tossica": {
             "energy": 100,
             "stress": 10,
             "manager_rep": 50,
             "description": "Politica interna, micromanagement, burocrazia.",
-            "hidden_vars": {"agility": 20, "stability": 80}
+            "hidden_vars": {"agility": 20, "stability": 80},
+            "manager_personality": "Narcisista Burocratico",
         },
         "Azienda Familiare": {
             "energy": 100,
             "stress": 5,
             "manager_rep": 40,
             "description": "Nepotismo, favoritismi, dinamiche 'da famiglia'.",
-            "hidden_vars": {"loyalty": 90, "merit": 10}
+            "hidden_vars": {"loyalty": 90, "merit": 10},
+            "manager_personality": "Padre/Padrone Paternalista",
         },
         "Consulting": {
             "energy": 70,
             "stress": 30,
             "manager_rep": 70,
             "description": "KPI ossessivi, disponibilità continua, orientamento al cliente.",
-            "hidden_vars": {"pressure": 90, "prestige": 70}
+            "hidden_vars": {"pressure": 90, "prestige": 70},
+            "manager_personality": "Perfezionista Senza Tregua",
         }
     }
 
@@ -78,6 +135,11 @@ class GameEngine:
         self._last_factions = dict(self.player.factions)
         self.deferred_events = []
         self._tutorial_step = 0
+        arch = self.COMPANY_ARCHETYPES.get(company_type, self.COMPANY_ARCHETYPES["Corporate Tossica"])
+        self.manager_personality = MANAGER_PERSONALITIES.get(arch.get("manager_personality", ""), {})
+        self.stats_history = [dict(self.player.to_dict()['stats'])]
+        self.real_cases_mode = False
+        self._last_threshold_triggers = set()
 
     def apply_archetype(self, archetype_name):
         if archetype_name in self.COMPANY_ARCHETYPES:
@@ -88,10 +150,19 @@ class GameEngine:
 
     def next_turn(self):
         self.player.days_survived += 1
+        p = self.player
 
         # Mini-evento giornaliero
         self.current_mini_event = random.choice(MINI_EVENTS)
-        self.player.update_stats(self.current_mini_event[1])
+        p.update_stats(self.current_mini_event[1])
+
+        # Threshold-triggered events
+        self.process_threshold_events()
+
+        # Manager personality passive effect
+        mp = self.manager_personality
+        if mp and mp.get('stress_bonus', 0) > 0:
+            p.stress = max(0, min(100, p.stress + mp['stress_bonus']))
 
         # Process deferred events
         deferred_override = None
@@ -111,7 +182,33 @@ class GameEngine:
 
         if self.current_event:
             self.history.append(self.current_event.id)
+
+        # Stats history snapshot
+        self.stats_history.append(dict(p.to_dict()['stats']))
+
         return self.current_event
+
+    def process_threshold_events(self):
+        p = self.player
+        trigger_key = None
+        for condition, text, effects in THRESHOLD_EVENTS:
+            if condition(p):
+                trigger_key = (text, str(effects))
+                if trigger_key not in self._last_threshold_triggers:
+                    self._last_threshold_triggers.add(trigger_key)
+                    self.current_mini_event = (text, effects)
+                    p.update_stats(effects)
+                    return
+        self._last_threshold_triggers.clear()
+
+    def get_career_phase(self):
+        d = self.player.days_survived
+        phase = CAREER_PHASES[0]
+        for day, name, desc in reversed(CAREER_PHASES):
+            if d >= day:
+                phase = (day, name, desc)
+                break
+        return phase
 
     def _sync_factions_to_npcs(self):
         p = self.player
@@ -160,10 +257,12 @@ class GameEngine:
         self.graph.add_decision(self.current_event.id, choice.id, choice.next_event_id)
 
         if "manager_patience" in self.hidden_vars:
+            resistance_penalty = 5 + (mp.get('stress_bonus', 0) * 2 if mp else 0)
+            compliance_bonus = 2 + (mp.get('rep_bonus_compliance', 0) if mp else 0)
             if choice.category == "RESISTANCE":
-                self.hidden_vars["manager_patience"] -= 5
+                self.hidden_vars["manager_patience"] -= resistance_penalty
             elif choice.category == "COMPLIANCE":
-                self.hidden_vars["manager_patience"] += 2
+                self.hidden_vars["manager_patience"] += compliance_bonus
 
         if random.random() < 0.1:
             self.hidden_vars["company_crisis"] += 5
