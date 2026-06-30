@@ -97,11 +97,11 @@ Prima di cliccare una scelta, mostrare un **anteprima degli effetti** al passagg
     ⚡ Energia: -2  |  🔥 Stress: +2  |  📊 Rep: +2
 ```
 
-### M4 — SISTEMA DI DIALOGO E CONSEGUENZE NPC
+### ✅ M4 — SISTEMA DI CONSEGUENZE DIFFERITE
 
-- Aggiungere **dialoghi scriptati** dopo certe scelte (es. Marco ti chiama in privato)
-- Le relazioni NPC dovrebbero influenzare gli eventi futuri (es. se Marco Trust < 20, eventi più ostili; se > 80, eventi più favorevoli)
-- Feedback testuale subito dopo la scelta: *"Marco annuisce soddisfatto"* / *"Giulia evita il tuo sguardo"*
+- Le scelte con `consequences` in `events.json` innescano eventi narrativi dopo N turni (es. difendi un collega → 2 turni dopo arriva l'evento `collega_ringrazia`)
+- 3 scelte esistenti triggerano eventi differiti, più 5 nuovi eventi narrativi (`collega_ringrazia`, `richiamo_formale`, `progetto_premio`, `burnout_startup`, `passaggio_generazionale`)
+- Eventi differiti mostrati come badge "N in sospeso" nella UI
 
 ### ✅ M5 — PIÙ FINALI PESATI SULLE FAZIONI
 
@@ -145,16 +145,16 @@ Prima dell'evento principale, un **mini-evento** casuale (da 15 scenari in `engi
 
 Eseguito all'inizio di `next_turn()`, mostrato in una card grigia prima dell'evento principale.
 
-### M9 — PROFILO UTENTE GLOBALE (ANALYTICS DASHBOARD)
+### ✅ M9 — PROFILO UTENTE GLOBALE (ANALYTICS DASHBOARD)
 
 Usando i dati già raccolti in `database/analytics.db`:
 
-- Dashboard `/analytics` con:
-  - Classifica finali più ottenuti
-  - Percentuale scelte per categoria
-  - Tempo medio sopravvivenza per archetipo aziendale
-  - Scenario più tossico (top 3)
-  - Heatmap delle scelte
+- Dashboard `analytics` screen in `app.py` con:
+  - Classifica finali più ottenuti (con barre)
+  - Percentuale scelte per categoria (colorate)
+  - Sopravvivenza media per archetipo aziendale (con barre proporzionali)
+  - Ultime 10 partite giocate
+  - Accessibile dal pulsante "📊 Analytics" nella schermata iniziale
 
 ### ✅ M10 — RESPONSIVE MOBILE MIGLIORATO
 
@@ -164,21 +164,24 @@ Mobile toggle per la sidebar:
 - Pulsante `bar_chart` visibile solo su mobile nella barra superiore, apre il dialog statistiche
 - Breakpoint responsive con classi Tailwind `lg:hidden` e `stats-sidebar`
 
-### M11 — TUTORIAL / ONBOARDING INTERATTIVO
+### ✅ M11 — TUTORIAL / ONBOARDING INTERATTIVO
 
-Prima partita guidata con tooltip esplicativi:
+Prima partita guidata con overlay modale a 5 step:
 
-- *"Questa barra mostra il tuo livello di stress. Se arriva a 100% perdi."*
-- *"Le tue scelte influenzano le fazioni. Vedrai il feedback qui."*
-- *"Ogni NPC ha fiducia, rispetto e paura verso di te."*
+- *"Benvenuto"* — introduzione al gioco
+- *"Le Statistiche"* — radar e barre, pulsazione in zona critica
+- *"Fazioni e NPC"* — avatar colorati per fazione
+- *"Le Scelte"* — effetti visibili + timer su scelte critiche
+- Ready step finale con "Inizia a giocare"
+- Navigabile avanti/indietro
 
-### M12 — EVENTI A TEMPO (DECISIONI CON TIMER)
+### ✅ M12 — EVENTI A TEMPO (DECISIONI CON TIMER)
 
-Alcuni eventi critici potrebbero avere un **timer** per la scelta (30 secondi):
+1 scelta casuale per evento ha un **timer di 15 secondi**:
 
-- Simula la pressione di dover decidere velocemente
-- Se scade il timer: scelta di default (COMPLIANCE passiva) o scelta casuale
-- Aggiunge tensione e realismo
+- Contatore visivo ⏱ accanto alla scelta
+- Auto-click della scelta quando il timer scade
+- Integrato via `ui.run_javascript()` con setInterval lato client
 
 ---
 
@@ -189,22 +192,25 @@ Alcuni eventi critici potrebbero avere un **timer** per la scelta (30 secondi):
 | M1 | Feedback effetti dopo la scelta | Alto | Basso | ✅ Fatto |
 | M2 | Fazioni influenzano NPC | Alto | Medio | ✅ Fatto |
 | M3 | Anteprima effetti al passaggio mouse | Medio | Basso | ✅ Fatto |
-| M4 | Dialoghi scriptati e conseguenze NPC | Alto | Alto | 🟡 Da fare |
+| M4 | Conseguenze narrativi differite | Alto | Alto | ✅ Fatto |
 | M5 | Più finali basati su fazioni | Alto | Medio | ✅ Fatto |
 | M6 | Storico scelte visibile in partita | Medio | Basso | ✅ Fatto |
 | M7 | Grafo decisionale interattivo | Basso | Alto | 🟢 Da fare |
 | M8 | Mini-eventi giornalieri (routine) | Alto | Medio | ✅ Fatto |
-| M9 | Dashboard analytics globale | Medio | Medio | 🟢 Da fare |
+| M9 | Dashboard analytics globale | Medio | Medio | ✅ Fatto |
 | M10 | Mobile responsive migliorato | Medio | Basso | ✅ Fatto |
-| M11 | Tutorial / onboarding | Alto | Medio | 🟡 Da fare |
-| M12 | Eventi con timer | Medio | Basso | 🟢 Da fare |
+| M11 | Tutorial / onboarding | Alto | Medio | ✅ Fatto |
+| M12 | Eventi con timer | Medio | Basso | ✅ Fatto |
 
 ---
 
 ## Priorità consigliata
 
 1. ✅ ~~M2 + M5~~ (fazioni con peso reale) — completato
-2. **M4** (dialoghi) — trasforma il gioco da "menu di scelte" a "simulazione narrativa"
+2. ✅ ~~M4~~ (conseguenze differite) — completato
 3. ✅ ~~M8~~ (mini-eventi giornalieri) — completato
-4. **M11** (tutorial) — fondamentale per nuovi giocatori
+4. ✅ ~~M11~~ (tutorial) — completato
 5. ✅ ~~M10~~ (mobile) — completato
+6. ✅ ~~M12~~ (timer) — completato
+7. ✅ ~~M9~~ (dashboard analytics) — completato
+8. **M7** (grafo decisionale) — unico miglioramento pianificato ancora da fare
