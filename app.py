@@ -1,7 +1,7 @@
-import uuid, random, json, sqlite3, os, base64
+import uuid, random, json, sqlite3, os
 from io import BytesIO
 from nicegui import ui
-from game.engine import GameEngine
+from game.engine import GameEngine, NPC_FACTION_MAP
 from database.analytics import (
     init_db, create_session, end_session, record_choice, record_tags,
 )
@@ -256,7 +256,7 @@ def _render_game():
                 ui.label('FAZIONI').classes('text-sm font-bold text-gray-400 mt-4 mb-1')
                 for fname, fscore in pdata['factions'].items():
                     fcol = NPC_FACTION_COLORS.get(fname, '#6b7280')
-                    aligned = [n for n, f in engine.NPC_FACTION_MAP.items() if f == fname]
+                    aligned = [n for n, f in NPC_FACTION_MAP.items() if f == fname]
                     aligned_str = f' ({", ".join(aligned)})' if aligned else ''
                     with ui.row().classes('w-full items-center justify-between'):
                         with ui.row().classes('items-center gap-1'):
@@ -267,7 +267,7 @@ def _render_game():
                 # RELAZIONI con avatar
                 ui.label('RELAZIONI').classes('text-sm font-bold text-gray-400 mt-4 mb-1')
                 for nname, ndata in pdata['npcs'].items():
-                    nfaction = engine.NPC_FACTION_MAP.get(nname, '')
+                    nfaction = NPC_FACTION_MAP.get(nname, '')
                     avi_color = NPC_FACTION_COLORS.get(nfaction, '#6b7280')
                     initial = nname[0]
                     trust = ndata['trust']
