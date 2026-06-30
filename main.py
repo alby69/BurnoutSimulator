@@ -1,6 +1,7 @@
 import sys
 import os
 from game.engine import GameEngine
+from collections import Counter
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -26,7 +27,7 @@ def main():
         event = engine.next_turn()
         clear_screen()
         print_header(engine.player)
-        print(f"EVENTO: {event.category.upper()}")
+        print(f"CATEGORIA TOSSICA: {event.category.replace('_', ' ').upper()}")
         print(f"\n{event.text}\n")
 
         for i, choice in enumerate(event.choices):
@@ -35,7 +36,10 @@ def main():
         valid_choice = False
         while not valid_choice:
             try:
-                choice_idx = int(input("\nScegli un'opzione (o 0 per uscire): ")) - 1
+                choice_input = input("\nScegli un'opzione (o 0 per uscire): ")
+                if not choice_input:
+                    continue
+                choice_idx = int(choice_input) - 1
                 if choice_idx == -1:
                     print("Uscita in corso...")
                     engine.save_game()
@@ -57,6 +61,32 @@ def main():
     print(f"Giorni sopravvissuti: {engine.player.days_survived}")
     print("-" * 60)
 
+    # Analyze behavioral profile
+    history = engine.graph.history
+    if history:
+        categories = []
+        toxic_types = []
+        for entry in history:
+            event = engine.event_manager.get_event(entry['event_id'])
+            toxic_types.append(event.category)
+            for c in event.choices:
+                if c.id == entry['choice_id']:
+                    categories.append(c.category)
+
+        prof_counts = Counter(categories)
+        total = len(categories)
+        print("PROFILO COMPORTAMENTALE:")
+        for cat, count in prof_counts.items():
+            perc = (count / total) * 100
+            print(f"- {cat:<12}: {perc:>3.1f}%")
+
+        print("-" * 60)
+        print("ANALISI TOSSICITÀ AFFRONTATA:")
+        toxic_counts = Counter(toxic_types)
+        for ttype, count in toxic_counts.items():
+            print(f"- {ttype.replace('_', ' ').capitalize():<25}: {count} eventi")
+
+    print("-" * 60)
     final_stats = engine.player.to_dict()['stats']
     for stat, val in final_stats.items():
         print(f"{stat.capitalize():<15}: {val}")

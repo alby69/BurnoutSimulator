@@ -11,14 +11,16 @@ class GameEngine:
         self.graph = DecisionGraph()
         self.save_manager = SaveManager()
         self.current_event = None
+        self.next_event_id_override = None
         self.history = []
 
     def next_turn(self):
         self.player.days_survived += 1
-        if not self.current_event or not hasattr(self.current_event, 'next_event_id') or not self.current_event.next_event_id:
-             self.current_event = self.event_manager.get_random_event(exclude_ids=self.history[-5:])
+        if self.next_event_id_override:
+            self.current_event = self.event_manager.get_event(self.next_event_id_override)
+            self.next_event_id_override = None
         else:
-            self.current_event = self.event_manager.get_event(self.current_event.next_event_id)
+             self.current_event = self.event_manager.get_random_event(exclude_ids=self.history[-5:])
 
         self.history.append(self.current_event.id)
         return self.current_event
@@ -31,9 +33,8 @@ class GameEngine:
         self.player.update_stats(choice.effects)
         self.graph.add_decision(self.current_event.id, choice.id, choice.next_event_id)
 
-        # In a real graph, we might want to set the next event explicitly
-        # But for now let's just use it if it exists in the next_turn logic
-        self.current_event.next_event_id = choice.next_event_id
+        if choice.next_event_id:
+            self.next_event_id_override = choice.next_event_id
 
         return True
 
