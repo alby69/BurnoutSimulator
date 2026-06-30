@@ -23,7 +23,7 @@ class BurnoutGUI:
         tk.Label(frame, text="Scegli il tipo di azienda:", font=("Helvetica", 12), fg="#bdc3c7", bg="#2c3e50").pack()
         self.arch_var = tk.StringVar(value="Corporate Tossica")
         archetypes = list(GameEngine.COMPANY_ARCHETYPES.keys())
-        self.arch_menu = ttk.Combobox(frame, textvariable=self.arch_var, values=archetypes, state="readonly", width=30)
+        self.arch_menu = ttk.Combobox(frame, textvariable=self.arch_var, values=archetypes, state="readonly", width=40)
         self.arch_menu.pack(pady=10)
 
         tk.Label(frame, text="Inserisci il tuo nome:", font=("Helvetica", 12), fg="#bdc3c7", bg="#2c3e50").pack()
@@ -55,6 +55,7 @@ class BurnoutGUI:
         tk.Label(self.left_panel, text="STATISTICHE", font=("Helvetica", 14, "bold"), fg="#ecf0f1", bg="#34495e").pack(pady=10)
 
         self.stat_bars = {}
+        # New stats from origin/main
         stats_to_show = ["energy", "stress", "health", "integrity", "self_esteem", "employability", "manager_rep", "team_rep"]
         for stat in stats_to_show:
             frame = tk.Frame(self.left_panel, bg="#34495e")

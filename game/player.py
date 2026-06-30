@@ -73,6 +73,19 @@ class Player:
                 faction_name = stat.replace("faction_", "").replace("_", " ")
                 if faction_name in self.factions:
                     self.factions[faction_name] = max(0, min(100, self.factions[faction_name] + value))
+            elif stat.startswith("rel_"):
+                # Backwards compatibility for early prototype stat names
+                mapping = {
+                    "manager": "manager_rep",
+                    "colleagues": "team_rep"
+                }
+                parts = stat.split("_")
+                if len(parts) >= 2:
+                    target = parts[1]
+                    real_stat = mapping.get(target)
+                    if real_stat and hasattr(self, real_stat):
+                        current_val = getattr(self, real_stat)
+                        setattr(self, real_stat, max(0, min(100, current_val + value)))
 
         self.check_conditions()
 

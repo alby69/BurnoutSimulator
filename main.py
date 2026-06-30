@@ -142,8 +142,9 @@ def run_cli():
     if total_tags > 0:
         print("PROFILO COMPORTAMENTALE:")
         for tag, count in sorted(tags.items(), key=lambda x: x[1], reverse=True):
-            perc = (count / total_tags) * 100
-            print(f"- {tag:<15}: {perc:>3.1f}%")
+            if count > 0:
+                perc = (count / total_tags) * 100
+                print(f"- {tag:<15}: {perc:>3.1f}%")
         print("-" * 70)
 
     # Achievements
