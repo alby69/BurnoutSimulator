@@ -336,5 +336,600 @@
         }
       }
     ]
+  },
+  {
+    "id": "appropriazione_idea",
+    "text": "Durante una riunione, il collega Luca presenta con sicurezza un'idea che avevi proposto in privato al manager Marco due settimane fa. Marco si complimenta con Luca e inizia ad assegnargli la lead del progetto.",
+    "category": "favoritismo",
+    "choices": [
+      {
+        "id": "lascia_perdere",
+        "text": "Lasci perdere per non creare conflitto",
+        "category": "COMPLIANCE",
+        "tags": ["survivor"],
+        "effects": {
+          "stress": 4,
+          "self_esteem": -5,
+          "manager_rep": -1,
+          "integrity": -2
+        }
+      },
+      {
+        "id": "rivendica_idea",
+        "text": "Intervieni: 'Mi fa piacere che la mia proposta sia piaciuta, possiamo svilupparla insieme'",
+        "category": "NEGOTIATION",
+        "tags": ["truth_teller"],
+        "effects": {
+          "integrity": 3,
+          "manager_rep": -1,
+          "npc_Marco_respect": 3,
+          "faction_Ribelli": 3
+        }
+      },
+      {
+        "id": "parla_con_hr",
+        "text": "Dopo la riunione chiedi un colloquio con Elena delle risorse umane",
+        "category": "RESISTANCE",
+        "tags": ["truth_teller"],
+        "effects": {
+          "integrity": 2,
+          "manager_rep": -5,
+          "stress": -2,
+          "npc_Elena_trust": 5,
+          "faction_Ribelli": 5
+        },
+        "next_event_id": "hr_risposta_elusiva"
+      }
+    ]
+  },
+  {
+    "id": "hr_risposta_elusiva",
+    "text": "Elena ti ascolta con attenzione, annuisce, prende appunti. Ti ringrazia per la segnalazione. 'Farò presente al manager le tue preoccupazioni'. Passano due settimane e non succede nulla.",
+    "category": "scapegoating",
+    "choices": [
+      {
+        "id": "accetta_silenzio",
+        "text": "Accetti il silenzio e torni alla routine",
+        "category": "COMPLIANCE",
+        "tags": ["survivor"],
+        "effects": {
+          "stress": 3,
+          "manager_rep": 1,
+          "npc_Elena_trust": -3
+        }
+      },
+      {
+        "id": "insisti_con_hr",
+        "text": "Insisti con Elena chiedendo un follow-up formale",
+        "category": "RESISTANCE",
+        "tags": ["truth_teller"],
+        "effects": {
+          "stress": 2,
+          "integrity": 2,
+          "npc_Elena_trust": -2,
+          "faction_Ribelli": 3
+        },
+        "next_event_id": "ritorsione_manager"
+      }
+    ]
+  },
+  {
+    "id": "ritorsione_manager",
+    "text": "Il giorno dopo Marco ti convoca. 'Ho saputo che hai parlato con HR. Se hai problemi, vieni prima da me. La trasparenza è fondamentale in questo team.' Il tono è glaciale.",
+    "category": "mobbing",
+    "choices": [
+      {
+        "id": "scusati_ritorsione",
+        "text": "Ti scusi e dici che era solo un confronto informale",
+        "category": "COMPLIANCE",
+        "tags": ["yes_man"],
+        "effects": {
+          "manager_rep": -3,
+          "stress": 5,
+          "integrity": -4,
+          "self_esteem": -5
+        }
+      },
+      {
+        "id": "difendi_scelta",
+        "text": "Spieghi che HR è il canale appropriato per certe questioni",
+        "category": "RESISTANCE",
+        "tags": ["boundary_setter"],
+        "effects": {
+          "integrity": 4,
+          "manager_rep": -5,
+          "stress": 3,
+          "faction_Ribelli": 5
+        }
+      }
+    ]
+  },
+  {
+    "id": "pettegolezzi_ufficio",
+    "text": "Durante una pausa caffè, entri in cucina e senti Giulia e un altro collega parlare sottovoce. Appena ti vedono, tacciono. Più tardi, un collega di un altro team ti scrive in privato: 'Circolano voci su di te, dicono che stai cercando altro e che sei demotivato'.",
+    "category": "scapegoating",
+    "choices": [
+      {
+        "id": "ignora_pettegolezzi",
+        "text": "Ignori la cosa e continui a lavorare",
+        "category": "ESCAPE",
+        "tags": ["survivor"],
+        "effects": {
+          "stress": 2,
+          "faction_Gruppo Silenzioso": 3
+        }
+      },
+      {
+        "id": "affronta_giulia",
+        "text": "Parli direttamente con Giulia in privato",
+        "category": "NEGOTIATION",
+        "tags": ["truth_teller"],
+        "effects": {
+          "integrity": 2,
+          "npc_Giulia_trust": -5,
+          "npc_Giulia_fear": 5,
+          "stress": -1
+        }
+      },
+      {
+        "id": "chiarisci_con_tutti",
+        "text": "Mandando una mail al team: 'Se qualcuno ha domande sul mio futuro, preferisco parlarne apertamente'",
+        "category": "RESISTANCE",
+        "tags": ["boundary_setter"],
+        "effects": {
+          "integrity": 3,
+          "manager_rep": -3,
+          "faction_Ribelli": 4,
+          "stress": -2
+        }
+      }
+    ]
+  },
+  {
+    "id": "compito_extra_non_pagato",
+    "text": "Il direttore annuncia un 'progetto speciale trasversale' che richiederà 10 ore settimanali aggiuntive per due mesi. Non è previsto compenso extra né straordinari. 'Chi è disposto a mettersi in gioco?' chiede guardando te.",
+    "category": "burnout",
+    "choices": [
+      {
+        "id": "accetta_entusiasta",
+        "text": "Accetti con entusiasmo per fare bella figura",
+        "category": "COMPLIANCE",
+        "tags": ["yes_man", "burnout_risk"],
+        "effects": {
+          "manager_rep": 5,
+          "energy": -10,
+          "stress": 6,
+          "health": -3
+        }
+      },
+      {
+        "id": "accetta_con_condizioni",
+        "text": "Accetti ma chiedi una riduzione del carico ordinario",
+        "category": "NEGOTIATION",
+        "tags": ["boundary_setter"],
+        "effects": {
+          "manager_rep": 1,
+          "integrity": 2,
+          "stress": 2
+        }
+      },
+      {
+        "id": "rifiuta",
+        "text": "Rifiuti gentilmente: 'Non ho la capacità in questo momento'",
+        "category": "RESISTANCE",
+        "tags": ["boundary_setter"],
+        "effects": {
+          "integrity": 3,
+          "manager_rep": -4,
+          "stress": -2,
+          "npc_Marco_trust": -5
+        },
+        "next_event_id": "commento_scarso_impegno"
+      }
+    ]
+  },
+  {
+    "id": "commento_scarso_impegno",
+    "text": "Nei giorni successivi, Marco inizia a fare commenti durante le riunioni su 'chi è veramente impegnato' e 'chi ha a cuore il futuro dell'azienda'. Il messaggio è chiaro.",
+    "category": "mobbing",
+    "choices": [
+      {
+        "id": "subisci_pressione",
+        "text": "Subisci in silenzio la pressione psicologica",
+        "category": "COMPLIANCE",
+        "tags": ["survivor"],
+        "effects": {
+          "stress": 4,
+          "self_esteem": -3,
+          "health": -2
+        }
+      },
+      {
+        "id": "confronta_marco",
+        "text": "Chiedi a Marco un confronto diretto sul tuo contributo",
+        "category": "RESISTANCE",
+        "tags": ["boundary_setter"],
+        "effects": {
+          "integrity": 2,
+          "manager_rep": -2,
+          "stress": 2
+        }
+      }
+    ]
+  },
+  {
+    "id": "cultura_presenza",
+    "text": "Sono le 18:01. Hai finito il tuo lavoro e ti stai preparando per uscire. Noti che nessuno si muove. Marco è ancora in riunione e tutti aspettano che esca prima di andarsene. La scrivania di Giulia è piena di carte 'per fare vedere' che sta lavorando.",
+    "category": "micromanagement",
+    "choices": [
+      {
+        "id": "resta_ancora",
+        "text": "Resti ancora 30 minuti per non destare sospetti",
+        "category": "COMPLIANCE",
+        "tags": ["yes_man"],
+        "effects": {
+          "manager_rep": 1,
+          "energy": -2,
+          "stress": 2,
+          "integrity": -1
+        }
+      },
+      {
+        "id": "esci_in_orario",
+        "text": "Esci in orario: il tuo lavoro è finito",
+        "category": "RESISTANCE",
+        "tags": ["boundary_setter"],
+        "effects": {
+          "integrity": 2,
+          "manager_rep": -2,
+          "faction_Ribelli": 3
+        }
+      },
+      {
+        "id": "lavora_da_casa",
+        "text": "Da domani chiedi di lavorare da casa il giovedì per ridurre la pressione",
+        "category": "ESCAPE",
+        "tags": ["survivor"],
+        "effects": {
+          "stress": -3,
+          "energy": 3,
+          "manager_rep": -1,
+          "employability": 2
+        }
+      }
+    ]
+  },
+  {
+    "id": "valutazione_ingiusta",
+    "text": "È il giorno della performance review. Marco ti valuta positivamente sul 'raggiungimento obiettivi' ma ti dà il minimo su 'collaborazione' e 'proattività'. Il voto finale è 'In linea con le aspettative' — né promozione né aumento. Sappi che i colleghi che escono sempre tardi hanno preso 'Supera le aspettative'.",
+    "category": "favoritismo",
+    "choices": [
+      {
+        "id": "accetta_valutazione",
+        "text": "Accetti la valutazione senza discutere",
+        "category": "COMPLIANCE",
+        "tags": ["yes_man", "burnout_risk"],
+        "effects": {
+          "stress": 4,
+          "self_esteem": -8,
+          "employability": -3
+        }
+      },
+      {
+        "id": "contestazione_formale",
+        "text": "Presenti una contestazione formale con dati alla mano",
+        "category": "RESISTANCE",
+        "tags": ["truth_teller"],
+        "effects": {
+          "integrity": 4,
+          "manager_rep": -5,
+          "stress": 3,
+          "faction_Ribelli": 5,
+          "npc_Marco_fear": 8
+        },
+        "next_event_id": "ritorsione_manager"
+      },
+      {
+        "id": "chiedi_feedback",
+        "text": "Chiedi feedback specifici per migliorare il prossimo anno",
+        "category": "NEGOTIATION",
+        "tags": ["survivor"],
+        "effects": {
+          "manager_rep": 1,
+          "stress": -1,
+          "integrity": 1
+        }
+      }
+    ]
+  },
+  {
+    "id": "esclusione_riunione",
+    "text": "Scopri per caso che c'è una riunione sull'assegnazione dei progetti del prossimo trimestre. Non sei stato invitato. I colleghi del tuo stesso livello partecipano tutti.",
+    "category": "scapegoating",
+    "choices": [
+      {
+        "id": "fai_finta_nulla",
+        "text": "Fai finta di nulla e speri che sia una svista",
+        "category": "COMPLIANCE",
+        "tags": ["survivor"],
+        "effects": {
+          "stress": 3,
+          "manager_rep": -1,
+          "self_esteem": -3
+        }
+      },
+      {
+        "id": "chiedi_accesso",
+        "text": "Scrivi a Marco chiedendo se puoi partecipare",
+        "category": "NEGOTIATION",
+        "tags": ["truth_teller"],
+        "effects": {
+          "integrity": 2,
+          "npc_Marco_trust": -3,
+          "npc_Marco_respect": 3,
+          "stress": 1
+        }
+      },
+      {
+        "id": "parla_con_roberto",
+        "text": "Chiedi consiglio a Roberto, il mentor disilluso",
+        "category": "ESCAPE",
+        "tags": ["survivor"],
+        "effects": {
+          "stress": -2,
+          "npc_Roberto_trust": 5,
+          "faction_Gruppo Silenzioso": 5
+        }
+      }
+    ]
+  },
+  {
+    "id": "commento_inappropriate",
+    "text": "Durante un pranzo di team, Marco fa una battuta sul tuo aspetto che mette a disagio tutti. 'Ma guarda come sei elegante oggi, hai un colloquio?' ride. Giulia sorride di riflesso. Nessuno interviene.",
+    "category": "scapegoating",
+    "choices": [
+      {
+        "id": "ridi_per_non",
+        "text": "Ridi forzatamente per non creare tensione",
+        "category": "COMPLIANCE",
+        "tags": ["survivor"],
+        "effects": {
+          "stress": 3,
+          "integrity": -2,
+          "self_esteem": -5
+        }
+      },
+      {
+        "id": "rispondi_educato",
+        "text": "Rispondi educatamente: 'Preferirei non commentassimo il mio aspetto'",
+        "category": "RESISTANCE",
+        "tags": ["boundary_setter"],
+        "effects": {
+          "integrity": 4,
+          "manager_rep": -3,
+          "npc_Marco_fear": 5,
+          "faction_Ribelli": 4
+        }
+      },
+      {
+        "id": "cambia_discorso",
+        "text": "Cambi discorso con una domanda sul progetto in corso",
+        "category": "ESCAPE",
+        "tags": ["survivor"],
+        "effects": {
+          "stress": 1,
+          "npc_Giulia_trust": 1
+        }
+      }
+    ]
+  },
+  {
+    "id": "reperibilita_forzata",
+    "text": "Marco annuncia una nuova policy: 'Per garantire massima reattività, chiedo a tutti di tenere le notifiche attive e rispondere entro 30 minuti anche la sera e nei weekend. È temporaneo, solo per questo periodo di lancio.' Il 'periodo' dura da 8 mesi.",
+    "category": "burnout",
+    "choices": [
+      {
+        "id": "accetta_tacitamente",
+        "text": "Accetti senza obiettare come tutti gli altri",
+        "category": "COMPLIANCE",
+        "tags": ["yes_man", "burnout_risk"],
+        "effects": {
+          "manager_rep": 2,
+          "stress": 5,
+          "energy": -5,
+          "health": -3
+        }
+      },
+      {
+        "id": "negozia_limiti",
+        "text": "Chiedi a Marco di definire 'urgenza reale' e limitare le notifiche notturne",
+        "category": "NEGOTIATION",
+        "tags": ["boundary_setter"],
+        "effects": {
+          "integrity": 3,
+          "manager_rep": -2,
+          "stress": -1,
+          "npc_Marco_trust": -3,
+          "faction_Ribelli": 4
+        }
+      },
+      {
+        "id": "silenzioso_disaccordo",
+        "text": "Accetti verbalmente ma silenzi le notifiche dopo le 20",
+        "category": "ESCAPE",
+        "tags": ["survivor"],
+        "effects": {
+          "energy": 2,
+          "stress": -1,
+          "integrity": -1,
+          "manager_rep": -3
+        }
+      }
+    ]
+  },
+  {
+    "id": "taglio_benefit",
+    "text": "Arriva una mail da HR: 'Revisione dei pacchetti benefit'. Il buono pasto passa da 8€ a 6€, il welfare aziendale viene sospeso 'temporaneamente'. Nessuna comunicazione preventiva. La mail è firmata da Elena.",
+    "category": "burnout",
+    "choices": [
+      {
+        "id": "accetta_rassegnato",
+        "text": "Accetti rassegnato come tutti",
+        "category": "COMPLIANCE",
+        "tags": ["survivor"],
+        "effects": {
+          "stress": 2,
+          "employability": -2,
+          "self_esteem": -2
+        }
+      },
+      {
+        "id": "organizza_firma",
+        "text": "Inizi a raccogliere firme per una richiesta collettiva",
+        "category": "RESISTANCE",
+        "tags": ["truth_teller"],
+        "effects": {
+          "integrity": 4,
+          "manager_rep": -5,
+          "stress": 3,
+          "faction_Ribelli": 7,
+          "faction_Fedelissimi": -5
+        },
+        "next_event_id": "commento_agitazione_sindacale"
+      },
+      {
+        "id": "cerca_altro",
+        "text": "Attivi silenziosamente la ricerca di un nuovo lavoro",
+        "category": "ESCAPE",
+        "tags": ["survivor"],
+        "effects": {
+          "employability": 5,
+          "stress": -1,
+          "manager_rep": -3
+        }
+      }
+    ]
+  },
+  {
+    "id": "commento_agitazione_sindacale",
+    "text": "Marco ti chiama: 'Ho sentito che stai creando malcontento. In questo momento delicato abbiamo bisogno di coesione, non di agitazione sindacale'. Il clima in ufficio diventa teso.",
+    "category": "mobbing",
+    "choices": [
+      {
+        "id": "fai_marcia_indietro",
+        "text": "Fai marcia indietro e lasci perdere la petizione",
+        "category": "COMPLIANCE",
+        "tags": ["yes_man"],
+        "effects": {
+          "manager_rep": -2,
+          "integrity": -4,
+          "stress": 3,
+          "self_esteem": -5
+        }
+      },
+      {
+        "id": "continua_silenziosamente",
+        "text": "Continui a raccogliere firme ma con più discrezione",
+        "category": "RESISTANCE",
+        "tags": ["boundary_setter"],
+        "effects": {
+          "integrity": 3,
+          "stress": 3,
+          "manager_rep": -4,
+          "faction_Ribelli": 5,
+          "faction_Gruppo Silenzioso": 3
+        }
+      }
+    ]
+  },
+  {
+    "id": "doppio_incarico",
+    "text": "Un collega delle operations si dimette. Marco ti convoca: 'So che sei già carico, ma nessuno conosce i processi come te. Ti chiedo di coprire temporaneamente anche quel ruolo. È un'opportunità di crescita.' Il 'temporaneo' dura 6 mesi.",
+    "category": "micromanagement",
+    "choices": [
+      {
+        "id": "accetta_carico",
+        "text": "Accetti per non deludere il manager",
+        "category": "COMPLIANCE",
+        "tags": ["yes_man", "burnout_risk"],
+        "effects": {
+          "manager_rep": 4,
+          "energy": -10,
+          "stress": 8,
+          "health": -4,
+          "employability": 3
+        }
+      },
+      {
+        "id": "accetta_con_priorita",
+        "text": "Accetti ma chiedi di definire le priorità: cosa cade se non ce la fai?",
+        "category": "NEGOTIATION",
+        "tags": ["boundary_setter"],
+        "effects": {
+          "integrity": 2,
+          "manager_rep": 1,
+          "stress": 3,
+          "energy": -4
+        }
+      },
+      {
+        "id": "rifiuta_chiaramente",
+        "text": "Rifiuti: 'Non posso garantire qualità su entrambi i ruoli'",
+        "category": "RESISTANCE",
+        "tags": ["boundary_setter"],
+        "effects": {
+          "integrity": 4,
+          "manager_rep": -5,
+          "stress": -1,
+          "npc_Marco_trust": -8,
+          "faction_Ribelli": 3
+        },
+        "next_event_id": "commento_scarso_impegno"
+      }
+    ]
+  },
+  {
+    "id": "sabotaggio_progetto",
+    "text": "Stai lavorando a una presentazione importante quando il file 'sparisce'. L'ultima versione non si apre. Marco dice: 'Peccato, era una consegna importante. Spero tu abbia un backup.' Giulia evita il tuo sguardo.",
+    "category": "scapegoating",
+    "choices": [
+      {
+        "id": "ricostruisci_tutto",
+        "text": "Ricostruisci tutto in nottata e consegni",
+        "category": "COMPLIANCE",
+        "tags": ["survivor"],
+        "effects": {
+          "manager_rep": 2,
+          "stress": 6,
+          "energy": -8,
+          "health": -4
+        }
+      },
+      {
+        "id": "segnala_incidente",
+        "text": "Segnali l'incidente a IT e HR per un audit",
+        "category": "RESISTANCE",
+        "tags": ["truth_teller"],
+        "effects": {
+          "integrity": 4,
+          "stress": 3,
+          "manager_rep": -3,
+          "faction_Ribelli": 5
+        },
+        "next_event_id": "ritorsione_manager"
+      },
+      {
+        "id": "recupera_parziale",
+        "text": "Recuperi quel che puoi e consegni una versione ridotta spiegando l'accaduto",
+        "category": "NEGOTIATION",
+        "tags": ["survivor"],
+        "effects": {
+          "integrity": 2,
+          "manager_rep": -1,
+          "stress": 2,
+          "energy": -3
+        }
+      }
+    ]
   }
 ]
