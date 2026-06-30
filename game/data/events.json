@@ -300,7 +300,14 @@
           "integrity": -10,
           "stress": 10
         }
-      },
+      }
+    ]
+  },
+  {
+    "id": "manager_annoyed",
+    "text": "Il manager ti guarda freddamente: 'Non c'è bisogno di essere così competitivi, lavoriamo come una squadra qui'.",
+    "category": "communication_discrepancy",
+    "choices": [
       {
         "id": "difesa_dati",
         "text": "[Resistance] Difenditi con i dati",
