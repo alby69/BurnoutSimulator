@@ -38,19 +38,19 @@ NPC_FACTION_COLORS = {
 ARCHETYPE_THEMES = {
     "Startup Caotica": {
         "accent": "#f97316", "header": "#ea580c", "badge": "warning",
-        "glow": "0 0 20px rgba(249,115,22,0.2)",
+        "glow": "0 0 25px rgba(249,115,22,0.3)",
     },
     "Corporate Tossica": {
         "accent": "#3b82f6", "header": "#2563eb", "badge": "primary",
-        "glow": "0 0 20px rgba(59,130,246,0.2)",
+        "glow": "0 0 25px rgba(59,130,246,0.3)",
     },
     "Azienda Familiare": {
         "accent": "#22c55e", "header": "#16a34a", "badge": "positive",
-        "glow": "0 0 20px rgba(34,197,94,0.2)",
+        "glow": "0 0 25px rgba(34,197,94,0.3)",
     },
     "Consulting": {
         "accent": "#a855f7", "header": "#9333ea", "badge": "secondary",
-        "glow": "0 0 20px rgba(168,85,247,0.2)",
+        "glow": "0 0 25px rgba(168,85,247,0.3)",
     },
 }
 
@@ -122,6 +122,52 @@ def determine_ending(player) -> str:
 
 # ── UI ──
 
+def _render_stats_section(stats: dict):
+    with ui.column().classes('w-full gap-3 mt-2'):
+        for label, key, color in bars_def:
+            is_critical = stats[key] <= 20 or (key == 'stress' and stats[key] >= 80)
+            pulse_class = ' pulse-danger rounded-lg' if is_critical else ''
+
+            with ui.column().classes(f'w-full gap-1 p-2 {pulse_class}'):
+                with ui.row().classes('w-full items-center justify-between'):
+                    ui.label(label.upper()).classes('text-[10px] font-bold text-gray-400 tracking-tighter')
+                    val = stats[key]
+                    val_color = '#f87171' if (val <= 20 or (key == 'stress' and val >= 80)) else '#e2e8f0'
+                    ui.label(f'{val}%').style(f'color: {val_color}').classes('text-[10px] font-black font-mono')
+
+                bar_color = '#ef4444' if is_critical else color
+                ui.linear_progress(value=stats[key] / 100, size='4px', color=bar_color).classes('rounded-full bg-white/5')
+
+
+def _render_factions_section(factions: dict):
+    ui.label('FAZIONI').classes('text-xs font-bold text-gray-500 uppercase tracking-wider mt-4 mb-1')
+    for fname, fscore in factions.items():
+        fcol = NPC_FACTION_COLORS.get(fname, '#6b7280')
+        aligned = [n for n, f in NPC_FACTION_MAP.items() if f == fname]
+        aligned_str = f' ({", ".join(aligned)})' if aligned else ''
+        with ui.row().classes('w-full items-center justify-between'):
+            with ui.row().classes('items-center gap-1'):
+                ui.icon('circle', size='8px').style(f'color: {fcol}')
+                ui.label(f'{fname}{aligned_str}').classes('text-xs text-gray-400')
+            ui.label(f'{fscore}%').classes('text-xs text-gray-300')
+
+
+def _render_relationships_section(npcs: dict):
+    ui.label('RELAZIONI').classes('text-xs font-bold text-gray-500 uppercase tracking-wider mt-4 mb-1')
+    for nname, ndata in npcs.items():
+        nfaction = NPC_FACTION_MAP.get(nname, '')
+        avi_color = NPC_FACTION_COLORS.get(nfaction, '#6b7280')
+        trust = ndata['trust']
+        trust_color = '#4ade80' if trust >= 60 else '#f87171' if trust < 35 else '#eab308'
+        with ui.row().classes('w-full items-center gap-2'):
+            ui.html(_npc_svg_face(nname, ndata)).style(f'background: {avi_color}').classes('npc-avatar')
+            with ui.column().classes('gap-0 flex-1'):
+                ui.label(nname).classes('text-xs text-gray-300')
+                ui.label(
+                    f'Fiducia {trust}%  Rispetto {ndata["respect"]}%  Paura {ndata["fear"]}%'
+                ).style(f'color: {trust_color}').classes('text-[10px]')
+
+
 @ui.refreshable
 def page():
     if screen == 'start':
@@ -188,64 +234,77 @@ def _npc_svg_face(nname: str, ndata: dict) -> str:
 
 
 def _render_start():
-    with ui.card().classes('w-full max-w-lg mx-auto p-8 text-center vn-card vn-card-highlight mt-10').props('flat'):
-        theme = ARCHETYPE_THEMES['Corporate Tossica']
-        ui.label('BURNOUT SIMULATOR').style(f'color: {theme["header"]}').classes('text-4xl font-bold')
-        ui.label('Antropologia delle Organizzazioni').classes('text-lg text-gray-400 mb-6')
+    with ui.column().classes('w-full items-center justify-center min-h-[80vh] fade-in'):
+        with ui.card().classes('w-full max-w-xl p-12 text-center vn-card vn-card-highlight mt-10').props('flat'):
+            theme = ARCHETYPE_THEMES['Corporate Tossica']
+            ui.label('BURNOUT SIMULATOR').classes('text-5xl font-black tracking-tighter mb-2').style(f'color: {theme["header"]}; text-shadow: 0 0 30px {theme["accent"]}60')
+            ui.label('Simulatore di Antropologia delle Organizzazioni').classes('text-lg text-gray-400 mb-10 italic')
 
-        ui.label('Scegli il tipo di azienda:').classes('text-gray-300')
-        arch_options = {
-            k: f"{k} — {v['description']}"
-            for k, v in GameEngine.COMPANY_ARCHETYPES.items()
-        }
-        arch_select = ui.select(
-            arch_options, value='Corporate Tossica',
-        ).classes('w-full max-w-md')
+            with ui.column().classes('w-full gap-6 items-center'):
+                with ui.column().classes('w-full items-start'):
+                    ui.label('ARCHETIPO AZIENDALE').classes('text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1 ml-1')
+                    arch_options = {
+                        k: f"{k} — {v['description']}"
+                        for k, v in GameEngine.COMPANY_ARCHETYPES.items()
+                    }
+                    arch_select = ui.select(
+                        arch_options, value='Corporate Tossica',
+                    ).classes('w-full').props('outlined standout dark color=blue')
 
-        def on_arch_change():
-            t = ARCHETYPE_THEMES.get(arch_select.value, ARCHETYPE_THEMES['Corporate Tossica'])
-            ui.run_javascript(f'''
-                document.documentElement.style.setProperty('--theme-accent', '{t["accent"]}');
-                document.querySelector("h1").style.color = '{t["header"]}';
-            ''')
+                def on_arch_change():
+                    t = ARCHETYPE_THEMES.get(arch_select.value, ARCHETYPE_THEMES['Corporate Tossica'])
+                    ui.run_javascript(f'''
+                        document.documentElement.style.setProperty('--theme-accent', '{t["accent"]}');
+                        document.documentElement.style.setProperty('--theme-header', '{t["header"]}');
+                        document.documentElement.style.setProperty('--theme-glow', '{t["glow"]}');
+                    ''')
 
-        arch_select.on('change', on_arch_change)
+                arch_select.on('change', on_arch_change)
 
-        ui.label('Il tuo nome:').classes('text-gray-300 mt-4')
-        name_input = ui.input(value='Impiegato Anonimo').classes('w-full max-w-md')
+                with ui.column().classes('w-full items-start'):
+                    ui.label('IL TUO NOME').classes('text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1 ml-1')
+                    name_input = ui.input(placeholder='E.g. Mario Rossi').classes('w-full').props('outlined standout dark color=blue')
+                    name_input.value = 'Impiegato Anonimo'
 
-        real_cases_toggle = ui.checkbox('Modalità "Casi Reali" — eventi ispirati a storie vere di cultura tossica').classes('text-xs text-gray-400 mt-3')
+                with ui.row().classes('w-full items-center justify-between bg-white/5 p-4 rounded-xl border border-white/10 mt-2'):
+                    with ui.column().classes('gap-0'):
+                        ui.label('Modalità "Casi Reali"').classes('text-sm font-bold text-gray-200')
+                        ui.label('Eventi ispirati a storie vere').classes('text-[10px] text-gray-400')
+                    real_cases_toggle = ui.switch().props('color=blue-4')
 
-        def start_game_cb():
-            global engine, session_id, stats_before, screen, choice_history, _tutorial_active, _tutorial_step
-            session_id = uuid.uuid4().hex[:12]
-            choice_history = []
-            engine = GameEngine(
-                name_input.value, 'game/data/events.json',
-                company_type=arch_select.value,
-            )
-            engine.real_cases_mode = real_cases_toggle.value
-            stats_before = get_stats_dict(engine)
-            create_session(session_id, engine.player.name, engine.player.company_type)
-            engine.next_turn()
+            def start_game_cb():
+                global engine, session_id, stats_before, screen, choice_history, _tutorial_active, _tutorial_step
+                session_id = uuid.uuid4().hex[:12]
+                choice_history = []
+                engine = GameEngine(
+                    name_input.value or "Impiegato Anonimo", 'game/data/events.json',
+                    company_type=arch_select.value,
+                )
+                engine.real_cases_mode = real_cases_toggle.value
+                stats_before = get_stats_dict(engine)
+                create_session(session_id, engine.player.name, engine.player.company_type)
+                engine.next_turn()
 
-            t = ARCHETYPE_THEMES.get(arch_select.value, ARCHETYPE_THEMES['Corporate Tossica'])
-            ui.run_javascript(f'''
-                document.documentElement.style.setProperty('--theme-accent', '{t["accent"]}');
-                document.documentElement.style.setProperty('--theme-header', '{t["header"]}');
-                document.documentElement.style.setProperty('--theme-glow', '{t["glow"]}');
-            ''')
+                t = ARCHETYPE_THEMES.get(arch_select.value, ARCHETYPE_THEMES['Corporate Tossica'])
+                ui.run_javascript(f'''
+                    document.documentElement.style.setProperty('--theme-accent', '{t["accent"]}');
+                    document.documentElement.style.setProperty('--theme-header', '{t["header"]}');
+                    document.documentElement.style.setProperty('--theme-glow', '{t["glow"]}');
+                ''')
 
-            _tutorial_active = True
-            _tutorial_step = 0
-            screen = 'game_over' if engine.is_game_over() else 'game'
-            page.refresh()
+                _tutorial_active = True
+                _tutorial_step = 0
+                screen = 'game_over' if engine.is_game_over() else 'game'
+                page.refresh()
 
-        ui.button('Inizia Avventura', on_click=start_game_cb, icon='play_arrow') \
-            .classes('mt-6').props('color=positive')
+            with ui.button(on_click=start_game_cb).classes('w-full mt-10 py-6 text-xl font-bold rounded-xl shadow-xl hover:scale-102 transition-transform bg-blue-600 text-white'):
+                with ui.row().classes('items-center gap-3 no-wrap'):
+                    ui.icon('rocket_launch', size='md')
+                    ui.label('INIZIA CARRIERA')
 
-        with ui.row().classes('w-full justify-center mt-6 gap-2'):
-            ui.button('📊 Analytics', on_click=lambda: _go_analytics()).props('flat').classes('text-gray-400')
+            with ui.row().classes('w-full justify-center mt-6 pt-6 border-t border-white/5 gap-4'):
+                ui.button('Analytics', on_click=lambda: _go_analytics(), icon='insights').props('flat color=grey-5').classes('text-xs')
+                ui.button('Credits', icon='info').props('flat color=grey-5').classes('text-xs')
 
 
 def _render_game():
@@ -260,25 +319,30 @@ def _render_game():
         unique_seen = len(set(engine.history))
         is_repeat = event and event.id in engine.history[:-1]
 
-        with ui.row().classes('w-full items-center justify-between mb-4 pb-3 top-bar'):
-            with ui.row().classes('items-center gap-2 flex-wrap'):
-                ui.icon('calendar_month').classes('text-gray-400')
-                ui.label(f'Giorno {player.days_survived}').style(f'color: {theme["header"]}').classes('text-xl font-bold')
-                ui.badge(player.company_type, color=theme['badge'])
-                ui.badge(f'Evento {unique_seen}/{total_events}', color='dark') \
-                    .props('outline').classes('text-gray-400')
-            with ui.row().classes('items-center gap-1'):
-                ui.button('', icon='bar_chart', on_click=_show_stats_dialog) \
-                    .props('flat').classes('text-gray-400 lg:hidden')
-                ui.button('', icon='hub', on_click=_show_decision_graph) \
-                    .props('flat').classes('text-gray-400')
-                ui.button('', icon='exit_to_app', on_click=_exit_game) \
-                    .props('flat').classes('text-gray-400')
+        with ui.row().classes('w-full items-center justify-between mb-6 pb-4 border-b border-white/5'):
+            with ui.row().classes('items-center gap-4 flex-wrap'):
+                with ui.column().classes('gap-0'):
+                    ui.label('GIORNO').classes('text-[10px] font-bold text-gray-500 uppercase tracking-widest')
+                    ui.label(str(player.days_survived)).classes('text-3xl font-black text-white leading-none')
+
+                ui.separator().props('vertical').classes('bg-white/10 h-8')
+
+                with ui.column().classes('gap-1'):
+                    ui.badge(player.company_type.upper(), color=theme['badge']).classes('px-3 py-1 font-bold tracking-tighter')
+                    ui.label(f'Evento {unique_seen}/{total_events}').classes('text-[10px] text-gray-400 font-mono')
+
+            with ui.row().classes('items-center gap-2'):
+                ui.button(icon='menu', on_click=lambda: ui.run_javascript('document.querySelector(".stats-sidebar").classList.toggle("open")')) \
+                    .props('flat round color=white').classes('lg:hidden')
+                ui.button(icon='hub', on_click=_show_decision_graph) \
+                    .props('flat round color=blue').classes('hover:bg-blue-500/10')
+                ui.button(icon='logout', on_click=_exit_game) \
+                    .props('flat round color=red').classes('hover:bg-red-500/10')
 
         # Main area
-        with ui.row().classes('w-full gap-0'):
+        with ui.row().classes('w-full gap-6 items-start'):
             # Stats sidebar
-            with ui.card().classes('w-full md:w-72 p-4 gap-2 md:mr-4 mb-4 md:mb-0 stats-sidebar-card stats-sidebar') \
+            with ui.card().classes('w-full lg:w-80 p-6 gap-4 stats-sidebar-card stats-sidebar vn-card') \
                     .props('flat'):
                 ui.label('STATISTICHE').classes('text-xs font-bold text-gray-500 uppercase tracking-wider mb-2')
                 stats = pdata['stats']
@@ -312,43 +376,13 @@ def _render_game():
                 ui.echart(radar_option).classes('w-full h-44')
 
                 # Stat bars with pulse on critical
-                for label, key, color in bars_def:
-                    is_critical = stats[key] <= 20 or (key == 'stress' and stats[key] >= 80)
-                    pulse_class = ' pulse-danger' if is_critical else ''
-                    with ui.row().classes(f'w-full items-center justify-between{pulse_class}'):
-                        ui.label(label).classes('text-xs text-gray-400')
-                        val = stats[key]
-                        val_color = '#ef4444' if (val <= 20 or (key == 'stress' and val >= 80)) else color
-                        ui.label(f'{val}%').style(f'color: {val_color}').classes('text-xs font-mono')
-                    bar_color = '#ef4444' if is_critical else color
-                    ui.linear_progress(value=stats[key] / 100, size='xs', color=bar_color)
+                _render_stats_section(stats)
 
                 # FAZIONI
-                ui.label('FAZIONI').classes('text-xs font-bold text-gray-500 uppercase tracking-wider mt-4 mb-1')
-                for fname, fscore in pdata['factions'].items():
-                    fcol = NPC_FACTION_COLORS.get(fname, '#6b7280')
-                    aligned = [n for n, f in NPC_FACTION_MAP.items() if f == fname]
-                    aligned_str = f' ({", ".join(aligned)})' if aligned else ''
-                    with ui.row().classes('w-full items-center justify-between'):
-                        with ui.row().classes('items-center gap-1'):
-                            ui.icon('circle', size='8px').style(f'color: {fcol}')
-                            ui.label(f'{fname}{aligned_str}').classes('text-xs text-gray-400')
-                        ui.label(f'{fscore}%').classes('text-xs text-gray-300')
+                _render_factions_section(pdata['factions'])
 
                 # RELAZIONI con avatar
-                ui.label('RELAZIONI').classes('text-xs font-bold text-gray-500 uppercase tracking-wider mt-4 mb-1')
-                for nname, ndata in pdata['npcs'].items():
-                    nfaction = NPC_FACTION_MAP.get(nname, '')
-                    avi_color = NPC_FACTION_COLORS.get(nfaction, '#6b7280')
-                    trust = ndata['trust']
-                    trust_color = '#4ade80' if trust >= 60 else '#f87171' if trust < 35 else '#eab308'
-                    with ui.row().classes('w-full items-center gap-2'):
-                        ui.html(_npc_svg_face(nname, ndata)).style(f'background: {avi_color}').classes('npc-avatar')
-                        with ui.column().classes('gap-0 flex-1'):
-                            ui.label(nname).classes('text-xs text-gray-300')
-                            ui.label(
-                                f'Fiducia {trust}%  Rispetto {ndata["respect"]}%  Paura {ndata["fear"]}%'
-                            ).style(f'color: {trust_color}').classes('text-[10px]')
+                _render_relationships_section(pdata['npcs'])
 
                 # ULTIME SCELTE
                 if choice_history:
@@ -427,63 +461,64 @@ def _render_game():
                     ui.label(f'⚠ {msg}').classes('text-xs text-red-400 mt-1')
 
             # Event + Choices
-            with ui.column().classes('flex-1 gap-4 min-w-0'):
+            with ui.column().classes('flex-1 gap-6 min-w-0 fade-in'):
                 # Mini-evento giornaliero
                 if engine.current_mini_event:
                     mini_text, mini_effects = engine.current_mini_event
-                    with ui.card().classes('w-full p-3 border-l-4 border-gray-600 event-card').props('flat'):
-                        with ui.row().classes('items-center gap-2'):
-                            ui.icon('wb_sunny', size='16px').classes('text-gray-500')
-                            ui.label('Routine').classes('text-xs font-bold text-gray-500 uppercase tracking-wide')
-                        ui.label(mini_text).classes('text-sm text-gray-400 italic mt-1')
-                        with ui.row().classes('gap-2 mt-2 flex-wrap'):
-                            for k, v in mini_effects.items():
-                                if v > 0:
-                                    ui.badge(f'{k}: +{v}', color='dark').props('outline')
-                                else:
-                                    ui.badge(f'{k}: {v}', color='dark').props('outline')
+                    with ui.card().classes('w-full p-4 border-l-4 border-blue-500/50 vn-card').props('flat'):
+                        with ui.row().classes('items-center justify-between'):
+                            with ui.row().classes('items-center gap-2'):
+                                ui.icon('coffee', size='18px').classes('text-blue-400')
+                                ui.label('DAILY ROUTINE').classes('text-xs font-black text-blue-400 tracking-tighter')
+                            with ui.row().classes('gap-1'):
+                                for k, v in mini_effects.items():
+                                    color = 'text-green-400' if v > 0 else 'text-red-400'
+                                    sign = '+' if v > 0 else ''
+                                    ui.label(f'{k[:3].upper()} {sign}{v}').classes(f'text-[10px] font-bold {color} px-1.5 py-0.5 rounded bg-black/20')
+
+                        ui.label(mini_text).classes('text-sm text-gray-300 italic mt-2 leading-relaxed')
 
                 if event:
-                    with ui.row().classes('items-center gap-2 flex-wrap'):
-                        ui.badge(
-                            event.category.replace('_', ' ').upper(),
-                            color='warning',
-                        )
-                        if is_repeat:
-                            ui.badge('Già visto', color='dark').props('outline')
-                        if engine.deferred_events:
-                            ui.badge(f'{len(engine.deferred_events)} in sospeso', color='dark').props('outline')
-                        if engine.real_cases_mode:
-                            ui.badge('Caso Reale', color='dark').props('outline').classes('text-orange-400')
+                    with ui.column().classes('w-full gap-2'):
+                        with ui.row().classes('items-center justify-between'):
+                            ui.badge(
+                                event.category.replace('_', ' ').upper(),
+                                color='amber-9',
+                            ).classes('px-3 py-1 text-[10px] font-bold tracking-widest')
 
-                    # NPC portrait + narrative card (Visual Novel style)
-                    npc_names = list(pdata['npcs'].keys())
-                    npc_idx = (len(engine.history)) % max(len(npc_names), 1) if npc_names else 0
-                    npc_trigger = npc_names[npc_idx] if npc_names else ''
-                    with ui.row().classes('w-full gap-4 items-start'):
-                        # NPC portrait that spoke this event
-                        with ui.column().classes('items-center gap-1 shrink-0'):
-                            nd = pdata['npcs'].get(npc_trigger, {})
-                            nf = NPC_FACTION_MAP.get(npc_trigger, '')
-                            nc = NPC_FACTION_COLORS.get(nf, '#6b7280')
-                            ui.html(_npc_svg_face(npc_trigger, nd)).style(f'border-color: {nc}').classes('npc-portrait')
-                            ui.label(npc_trigger).classes('text-[10px] text-gray-500')
+                            with ui.row().classes('gap-2'):
+                                if engine.real_cases_mode:
+                                    ui.badge('CASO REALE', color='orange-10').classes('px-2 py-0.5 text-[9px] font-black')
+                                if is_repeat:
+                                    ui.label('🔄 DÉJÀ VU').classes('text-[9px] text-gray-500 font-bold')
 
-                        with ui.card().classes('flex-1 p-5 event-card vn-card-highlight').props('flat'):
-                            ui.markdown(event.text).classes(
-                                'narrative-text prose prose-invert max-w-none'
-                                ' [&_strong]:text-amber-300'
-                            )
+                        # NPC portrait + narrative card (Visual Novel style)
+                        npc_names = list(pdata['npcs'].keys())
+                        npc_idx = (len(engine.history)) % max(len(npc_names), 1) if npc_names else 0
+                        npc_trigger = npc_names[npc_idx] if npc_names else ''
+
+                        with ui.row().classes('w-full gap-4 items-end'):
+                            # NPC portrait
+                            with ui.column().classes('items-center gap-1 shrink-0'):
+                                nd = pdata['npcs'].get(npc_trigger, {})
+                                nf = NPC_FACTION_MAP.get(npc_trigger, '')
+                                nc = NPC_FACTION_COLORS.get(nf, '#6b7280')
+                                ui.html(_npc_svg_face(npc_trigger, nd)).style(f'border-color: {nc}').classes('npc-portrait')
+                                ui.label(npc_trigger.upper()).classes('text-[9px] font-black text-gray-500 tracking-tighter')
+
+                            # Narrative Card
+                            with ui.card().classes('flex-1 p-6 event-card vn-card-highlight min-h-[140px]').props('flat'):
+                                ui.markdown(event.text).classes(
+                                    'narrative-text prose prose-invert max-w-none'
+                                    ' [&_strong]:text-blue-300 [&_strong]:font-bold'
+                                )
 
                     n_choices = len(event.choices)
-                    if n_choices == 1:
-                        ui.label('Conseguenza — proseguì automaticamente').classes(
-                            'text-xs text-gray-500 italic mt-3 mb-1'
-                        )
-                    else:
-                        ui.label('Cosa fai?').classes(
-                            'text-xs font-semibold text-gray-500 uppercase tracking-wider mt-4 mb-2'
-                        )
+                    with ui.column().classes('w-full gap-3 mt-2'):
+                        if n_choices > 1:
+                            ui.label('PRENDI UNA DECISIONE').classes(
+                                'text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1'
+                            )
 
                     # Timer per scelte critiche (M12)
                     _timer_choice_idx = -1
@@ -507,21 +542,22 @@ def _render_game():
                             label = 'Continua →'
 
                         with ui.button(
-                            label,
                             on_click=handle_choice_cb(i, event, choice),
                         ).classes(
-                            'w-full text-left choice-btn '
-                            f'{"border-blue-700 hover:border-blue-500" if n_choices == 1 else "border-gray-700/40 hover:border-gray-500"} '
-                            'transition-all'
+                            'w-full choice-btn '
+                            f'{timer_class} '
+                            'fade-in'
                         ).props('flat no-caps'):
+                            with ui.column().classes('w-full items-start gap-1'):
+                                ui.label(label).classes('text-left')
 
-                            # Effetti sempre visibili (chip)
-                            if choice.effects:
-                                with ui.row().classes('gap-1 mt-1 flex-wrap'):
-                                    for ek, ev in list(choice.effects.items())[:4]:
-                                        cls = 'pos' if ev > 0 else 'neg'
-                                        sign = '+' if ev > 0 else ''
-                                        ui.label(f'{ek}: {sign}{ev}').classes(f'effect-chip {cls}')
+                                # Effetti sempre visibili (chip)
+                                if choice.effects:
+                                    with ui.row().classes('gap-1 mt-1 flex-wrap'):
+                                        for ek, ev in list(choice.effects.items())[:4]:
+                                            cls = 'pos' if ev > 0 else 'neg'
+                                            sign = '+' if ev > 0 else ''
+                                            ui.label(f'{ek}: {sign}{ev}').classes(f'effect-chip {cls}')
 
                             # Timer su scelta critica
                             if i == _timer_choice_idx and n_choices > 1:
@@ -559,15 +595,18 @@ def _render_game_over():
     record_tags(session_id, player.tags)
     stats = get_stats_dict(engine)
 
-    with ui.column().classes('w-full max-w-2xl mx-auto'):
-        with ui.card().classes('w-full p-8 text-center vn-card vn-card-highlight').props('flat'):
+    with ui.column().classes('w-full max-w-4xl mx-auto py-12 fade-in'):
+        with ui.card().classes('w-full p-12 text-center vn-card vn-card-highlight overflow-hidden relative').props('flat'):
+            # Background effect for game over
+            ui.html(f'<div style="position:absolute; top:-50px; right:-50px; width:200px; height:200px; background:var(--theme-accent); opacity:0.1; border-radius:50%; filter:blur(60px);"></div>')
 
-            ui.label('REPORT FINALE').classes('text-3xl font-bold text-red-400')
-            ui.label(ending).classes('text-2xl font-bold text-yellow-400 mt-3')
-            ui.badge(player.status, color='secondary').classes('mt-2')
+            ui.label('VALUTAZIONE CARRIERA CONCLUSO').classes('text-[10px] font-black text-gray-500 tracking-[0.3em] mb-2')
+            ui.label(ending).classes('text-5xl font-black text-white mt-2 mb-2 tracking-tighter')
+            ui.badge(player.status.upper(), color='red-10' if 'Burnout' in player.status or 'Licenziato' in player.status else 'blue-10').classes('px-4 py-1 text-xs font-bold')
+
             ui.label(
-                f'Hai resistito {player.days_survived} giorni in {player.company_type}.'
-            ).classes('text-gray-300 mt-4')
+                f'Hai resistito {player.days_survived} giorni operativi presso {player.company_type}.'
+            ).classes('text-gray-400 mt-6 text-lg italic')
 
             # Grafico storico stress/tempo
             hist = getattr(engine, 'stats_history', [])
@@ -744,28 +783,33 @@ def _show_choice_feedback(deltas: dict, category: str):
         'employability': '#34d399', 'manager_rep': '#fb923c', 'team_rep': '#60a5fa',
     }
 
-    with ui.dialog() as dialog, ui.card().classes('p-6 min-w-[280px] vn-card'):
-        ui.label('Esito della scelta').classes('text-lg font-bold text-gray-200 mb-1')
-        ui.badge(category, color='dark').classes('mb-4')
+    with ui.dialog().props('persistent transition-show=scale transition-hide=scale') as dialog, ui.card().classes('p-8 min-w-[320px] vn-card border-t-4 border-blue-500'):
+        ui.label('CONSEGUENZE').classes('text-[10px] font-black text-blue-400 tracking-[0.3em] mb-1')
+        ui.label(category.upper()).classes('text-xl font-bold text-white mb-6 tracking-tight')
 
         has_effects = False
-        for key in deltas:
-            has_effects = True
-            delta = deltas[key]
-            sign = '+' if delta > 0 else ''
-            color = stat_colors.get(key, '#9ca3af')
-            label = stat_labels.get(key, key)
-            bg = 'bg-green-900/30' if delta > 0 else 'bg-red-900/30'
-            text_color = 'text-green-400' if delta > 0 else 'text-red-400'
-            arrow = '▲' if delta > 0 else '▼'
-            with ui.row().classes(f'w-full items-center justify-between px-3 py-1 rounded {bg}'):
-                ui.label(label).classes('text-sm text-gray-300')
-                ui.label(f'{arrow} {sign}{delta}').classes(f'text-sm font-bold {text_color}')
+        with ui.column().classes('w-full gap-2'):
+            for key in deltas:
+                has_effects = True
+                delta = deltas[key]
+                sign = '+' if delta > 0 else ''
+                color = stat_colors.get(key, '#9ca3af')
+                label = stat_labels.get(key, key)
+
+                is_pos = (delta > 0 and key != 'stress') or (delta < 0 and key == 'stress')
+                bg_color = 'rgba(74, 222, 128, 0.1)' if is_pos else 'rgba(248, 113, 113, 0.1)'
+                text_color = '#4ade80' if is_pos else '#f87171'
+                arrow = '▲' if delta > 0 else '▼'
+
+                with ui.row().classes('w-full items-center justify-between px-4 py-3 rounded-xl border border-white/5').style(f'background: {bg_color}'):
+                    ui.label(label.upper()).classes('text-[10px] font-extrabold text-gray-300 tracking-tighter')
+                    ui.label(f'{arrow} {sign}{delta}').style(f'color: {text_color}').classes('text-sm font-black font-mono')
 
         if not has_effects:
-            ui.label('Nessun effetto rilevante sulle statistiche').classes('text-sm text-gray-500 italic')
+            ui.label('Nessun impatto sistemico rilevato.').classes('text-sm text-gray-500 italic text-center w-full my-4')
 
         def advance():
+            global screen
             dialog.close()
             if engine.is_game_over():
                 screen = 'game_over'
@@ -774,7 +818,7 @@ def _show_choice_feedback(deltas: dict, category: str):
                 screen = 'game_over' if engine.is_game_over() else 'game'
             page.refresh()
 
-        ui.button('Continua', on_click=advance).props('color=positive').classes('mt-4 w-full')
+        ui.button('PROSEGUI', on_click=advance).props('color=blue size=lg').classes('mt-8 w-full font-bold rounded-xl shadow-lg shadow-blue-500/20')
     dialog.open()
 
 
@@ -782,38 +826,49 @@ def _render_tutorial():
     steps = [
         {
             'title': 'Benvenuto in Burnout Simulator',
+            'icon': 'auto_awesome',
             'text': 'Questa è una simulazione di antropologia organizzativa. <b>Ogni scelta conta:</b> le tue decisioni influenzeranno le tue statistiche, i rapporti con i colleghi e il finale della partita.',
         },
         {
             'title': 'Le Statistiche',
+            'icon': 'query_stats',
             'text': 'A sinistra trovi il <b>radar psicologico</b> e le barre numeriche. Tienile d\'occhio: stress alto e salute bassa possono portare al burnout. Le barre pulsano quando sono in zona critica.',
         },
         {
             'title': 'Fazioni e NPC',
+            'icon': 'groups',
             'text': 'I tuoi colleghi appartengono a fazioni (Fedelissimi, Gruppo Silenzioso, Ribelli). Guadagnare o perdere fiducia con loro cambia il gioco. Ogni NPC ha un avatar colorato in base alla fazione.',
         },
         {
             'title': 'Le Scelte',
+            'icon': 'ads_click',
             'text': 'Le scelte mostrano gli effetti direttamente nel bottone (+/-). Su alcune scelte critiche parte un <b>timer di 15 secondi</b> per simulare la pressione lavorativa. Non farti prendere dal panico!',
         },
         {
             'title': 'Pronto?',
+            'icon': 'rocket_launch',
             'text': 'Ricorda: non esiste la scelta giusta. Esiste la scelta <b>coerente</b> con il tuo stile. Buona fortuna.',
         },
     ]
     if _tutorial_step >= len(steps):
         return
     step = steps[_tutorial_step]
-    with ui.column().classes('tutorial-overlay'):
-        with ui.card().classes('tutorial-card').props('flat'):
-            ui.label(step['title']).classes('text-lg font-bold text-white mb-3')
-            ui.html(step['text']).classes('text-sm text-gray-300 leading-relaxed')
-            ui.html('<br>')
-            with ui.row().classes('justify-center gap-2'):
+    with ui.column().classes('tutorial-overlay fade-in'):
+        with ui.card().classes('tutorial-card vn-card border-t-4 border-purple-500').props('flat'):
+            ui.icon(step['icon'], size='48px').classes('text-purple-400 mb-4')
+            ui.label(step['title']).classes('text-2xl font-black text-white mb-4 tracking-tight')
+            ui.html(step['text']).classes('text-base text-gray-300 leading-relaxed text-center')
+
+            with ui.row().classes('w-full items-center justify-center mt-8 gap-1'):
+                for i in range(len(steps)):
+                    color = 'bg-purple-500' if i == _tutorial_step else 'bg-gray-700'
+                    ui.html(f'<div class="w-2 h-2 rounded-full {color}"></div>')
+
+            with ui.row().classes('justify-center gap-4 mt-8 w-full'):
                 if _tutorial_step > 0:
-                    ui.button('← Indietro', on_click=lambda: _tutorial_prev()).props('flat').classes('text-gray-400')
-                btn_label = 'Inizia a giocare →' if _tutorial_step == len(steps) - 1 else 'Avanti →'
-                ui.button(btn_label, on_click=_tutorial_next).props('color=positive')
+                    ui.button('INDIETRO', on_click=lambda: _tutorial_prev()).props('flat').classes('text-gray-500 font-bold')
+                btn_label = 'INIZIA ORA' if _tutorial_step == len(steps) - 1 else 'AVANTI'
+                ui.button(btn_label, on_click=_tutorial_next).props('color=purple-10 elevation=0').classes('px-8 font-black rounded-xl')
 
 
 def _tutorial_next():
@@ -1121,160 +1176,189 @@ def _render_analytics():
 # ── Startup ──
 
 ui.add_head_html("""
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
-    * { font-family: 'Inter', system-ui, sans-serif; }
+    :root {
+        --theme-accent: #3b82f6;
+        --theme-header: #2563eb;
+        --theme-glow: 0 0 25px rgba(59,130,246,0.3);
+    }
+
+    * { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
     .font-mono, code, pre { font-family: 'JetBrains Mono', monospace !important; }
+    .q-icon, .material-icons { font-family: 'Material Icons' !important; }
 
     body {
-        background: linear-gradient(160deg, #0a0a1a 0%, #0f0f2a 50%, #0a0a1a 100%);
+        background: #050510;
+        color: #e2e8f0;
         min-height: 100vh;
-    }
-    body::before {
-        content: '';
-        position: fixed; inset: 0; z-index: 0;
-        background-image:
-            radial-gradient(ellipse at 20% 50%, rgba(59,130,246,0.03) 0%, transparent 50%),
-            radial-gradient(ellipse at 80% 50%, rgba(239,68,68,0.02) 0%, transparent 50%);
-        pointer-events: none;
+        overflow-x: hidden;
     }
 
-    /* Cards – stile finestra dialog */
+    .bg-animation {
+        position: fixed; inset: 0; z-index: -1;
+        background:
+            radial-gradient(circle at 15% 15%, rgba(59,130,246,0.08) 0%, transparent 40%),
+            radial-gradient(circle at 85% 85%, rgba(239,68,68,0.06) 0%, transparent 40%),
+            radial-gradient(circle at 50% 50%, rgba(15,15,35,1) 0%, #050510 100%);
+    }
+
+    /* Glassmorphism Cards */
     .vn-card {
-        border: 1px solid rgba(255,255,255,0.06);
-        border-radius: 10px;
-        background: linear-gradient(180deg, #12122a 0%, #0e0e20 100%);
-        box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-    }
-    .vn-card-highlight {
-        border-top: 2px solid var(--theme-accent, #3b82f6);
-    }
-
-    /* Evento – card narrativa stile VN */
-    .event-card {
         border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 10px;
-        background: linear-gradient(180deg, #141430 0%, #0f0f24 100%);
-        box-shadow: 0 4px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03);
-    }
-    .event-card .narrative-text {
-        font-size: 15px;
-        line-height: 1.7;
-        color: #d1d5db;
-    }
-    .event-card .narrative-text strong {
-        color: #fbbf24;
+        border-radius: 16px;
+        background: rgba(15, 15, 35, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* NPC portrait nella card evento */
+    .vn-card-highlight {
+        border-top: 3px solid var(--theme-accent);
+        box-shadow: var(--theme-glow);
+    }
+
+    /* Event Card - Visual Novel Style */
+    .event-card {
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        background: linear-gradient(165deg, rgba(20,20,45,0.9) 0%, rgba(10,10,25,0.95) 100%);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .event-card::before {
+        content: '';
+        position: absolute; top: 0; left: 0; right: 0; height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    }
+
+    .narrative-text {
+        font-size: 1.05rem;
+        line-height: 1.8;
+        color: #cbd5e1;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    /* NPC Portraits */
     .npc-portrait {
-        width: 64px; height: 64px;
-        border-radius: 50%;
-        border: 2px solid rgba(255,255,255,0.1);
-        flex-shrink: 0;
+        width: 80px; height: 80px;
+        border-radius: 20px;
+        border: 2px solid rgba(255,255,255,0.15);
+        background: rgba(255,255,255,0.05);
         display: flex; align-items: center; justify-content: center;
-        background: rgba(255,255,255,0.03);
-        transition: border-color 0.3s;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        transition: all 0.3s ease;
     }
-    .npc-portrait svg { width: 44px; height: 44px; }
-
-    /* NPC avatar sidebar – più ricco */
-    .npc-avatar {
-        width: 32px; height: 32px; border-radius: 50%;
-        display: inline-flex; align-items: center; justify-content: center;
-        font-size: 12px; font-weight: 700; color: #fff;
-        flex-shrink: 0;
-        border: 1px solid rgba(255,255,255,0.12);
-        transition: transform 0.2s;
+    .npc-portrait:hover {
+        transform: translateY(-2px);
+        border-color: var(--theme-accent);
     }
-    .npc-avatar:hover { transform: scale(1.15); }
-    .npc-avatar svg { width: 20px; height: 20px; }
+    .npc-portrait svg { width: 56px; height: 56px; }
 
-    /* Choice buttons – stile VN */
+    /* Choice Buttons */
     .choice-btn {
         text-transform: none;
-        transition: all 0.15s ease;
-        position: relative;
-        border: 1px solid rgba(255,255,255,0.08) !important;
-        background: linear-gradient(180deg, #1a1a34 0%, #15152a 100%) !important;
-        padding: 12px 16px !important;
-        font-size: 14px !important;
-        border-radius: 8px !important;
-        min-height: 52px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        background: rgba(30, 30, 60, 0.5) !important;
+        backdrop-filter: blur(4px);
+        border-radius: 12px !important;
+        padding: 16px 20px !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
     }
+
     .choice-btn:hover {
-        transform: translateX(6px);
-        border-color: var(--theme-accent, #3b82f6) !important;
-        background: linear-gradient(180deg, #1f1f3e 0%, #191934 100%) !important;
-        box-shadow: 0 0 20px rgba(59,130,246,0.08);
+        background: rgba(59, 130, 246, 0.15) !important;
+        border-color: var(--theme-accent) !important;
+        transform: translateX(8px);
+        box-shadow: 0 4px 20px rgba(59,130,246,0.15);
     }
-    .choice-btn .effect-chip {
-        font-size: 10px; padding: 2px 8px; border-radius: 6px;
-        background: rgba(255,255,255,0.06);
-        border: 1px solid rgba(255,255,255,0.06);
-    }
-    .choice-btn .effect-chip.pos { color: #4ade80; border-color: rgba(74,222,128,0.2); }
-    .choice-btn .effect-chip.neg { color: #f87171; border-color: rgba(248,113,113,0.2); }
 
-    /* Sidebar */
+    .effect-chip {
+        font-size: 0.7rem;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+        background: rgba(0,0,0,0.3);
+    }
+    .effect-chip.pos { color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+    .effect-chip.neg { color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+
+    /* Sidebar Stats */
     .stats-sidebar-card {
-        border: 1px solid rgba(255,255,255,0.06);
-        border-radius: 10px;
-        background: linear-gradient(180deg, #12122a 0%, #0e0e20 100%);
+        background: rgba(10, 10, 25, 0.5);
+        border: 1px solid rgba(255,255,255,0.05);
     }
 
-    /* Pulse – danger */
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.5s ease forwards; }
+
     .pulse-danger {
-        animation: pulse-danger 1.2s ease-in-out infinite;
+        animation: pulse-red 2s infinite;
     }
-    @keyframes pulse-danger {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.45; }
+    @keyframes pulse-red {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
     }
 
-    /* Tutorial overlay */
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+    ::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.1);
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+    /* Responsive fixes */
+    @media (max-width: 1024px) {
+        .stats-sidebar {
+            position: fixed;
+            left: -320px;
+            top: 0; bottom: 0;
+            width: 300px;
+            z-index: 100;
+            transition: left 0.3s ease;
+            overflow-y: auto;
+            background: #0f0f2d !important;
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+        .stats-sidebar.open { left: 0; }
+    }
+
+    /* Tutorial & Overlays */
     .tutorial-overlay {
         position: fixed; inset: 0; z-index: 9999;
-        background: rgba(0,0,0,0.75);
-        backdrop-filter: blur(4px);
+        background: rgba(0,0,0,0.85);
+        backdrop-filter: blur(8px);
         display: flex; align-items: center; justify-content: center;
     }
     .tutorial-card {
-        max-width: 420px; background: #15152e; border: 1px solid #7c3aed;
-        border-radius: 14px; padding: 28px; text-align: center;
-        box-shadow: 0 8px 40px rgba(124,58,237,0.15);
+        max-width: 480px;
+        width: 90%;
     }
 
     .timer-ring {
         display: inline-flex; align-items: center; gap: 6px;
-        font-size: 12px; color: #fbbf24; font-weight: 600;
-    }
-
-    /* Top bar */
-    .top-bar { border-bottom: 1px solid rgba(255,255,255,0.05); }
-
-    /* Badge personalizzato */
-    .badge-archetype {
-        background: var(--theme-accent, #3b82f6) !important;
-        color: #fff !important;
-        font-weight: 600 !important;
-    }
-
-    /* Scrollbar personalizzata */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-
-    @media (max-width: 767px) {
-        .stats-sidebar { display: none; }
-        .choice-btn { padding: 14px 16px !important; font-size: 15px !important; min-height: 56px; }
-    }
-    @media (min-width: 768px) {
-        .mobile-stats-btn { display: none !important; }
+        font-size: 12px; color: #fbbf24; font-weight: 800;
+        background: rgba(0,0,0,0.3);
+        padding: 2px 8px;
+        border-radius: 4px;
+        border: 1px solid rgba(251,191,36,0.3);
     }
 </style>
+<div class="bg-animation"></div>
 """)
 
 init_db()
