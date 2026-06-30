@@ -1,0 +1,55 @@
+{
+    "player": {
+        "name": "Test Player",
+        "stats": {
+            "patience": 35,
+            "preparation": 50,
+            "collaboration": 55,
+            "mood": 0,
+            "energy": 85,
+            "reputation": 45,
+            "assertiveness": 30,
+            "resilience": 30
+        },
+        "days_survived": 4,
+        "status": "Quiet Quitting"
+    },
+    "graph": {
+        "weights": {
+            "stolen_credit": {
+                "ignore": 1
+            },
+            "public_criticism": {
+                "silent": 1
+            },
+            "friday_evening_task": {
+                "accept": 1
+            },
+            "unethical_request": {
+                "comply_unethical": 1
+            }
+        },
+        "history": [
+            {
+                "event_id": "stolen_credit",
+                "choice_id": "ignore",
+                "next_event_id": null
+            },
+            {
+                "event_id": "public_criticism",
+                "choice_id": "silent",
+                "next_event_id": null
+            },
+            {
+                "event_id": "friday_evening_task",
+                "choice_id": "accept",
+                "next_event_id": null
+            },
+            {
+                "event_id": "unethical_request",
+                "choice_id": "comply_unethical",
+                "next_event_id": null
+            }
+        ]
+    }
+}

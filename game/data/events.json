@@ -1,0 +1,188 @@
+[
+  {
+    "id": "friday_evening_task",
+    "text": "Sono le 18:15 di venerdì. Il tuo manager ti invia un'email con un 'task urgente' da finire entro lunedì mattina. Dice che è fondamentale per il team.",
+    "category": "burnout",
+    "choices": [
+      {
+        "id": "accept",
+        "text": "Accetti senza discutere e lavori nel weekend.",
+        "category": "COMPLIANCE",
+        "effects": {
+          "energy": -15,
+          "reputation": 10,
+          "mood": -10,
+          "patience": -5
+        }
+      },
+      {
+        "id": "negotiate",
+        "text": "Chiedi una ridefinizione delle priorità per lunedì.",
+        "category": "NEGOTIATION",
+        "effects": {
+          "reputation": 2,
+          "assertiveness": 5,
+          "energy": -5
+        }
+      },
+      {
+        "id": "refuse",
+        "text": "Rifiuti gentilmente spiegando che il tuo orario è terminato.",
+        "category": "RESISTANCE",
+        "effects": {
+          "reputation": -10,
+          "mood": 5,
+          "assertiveness": 10
+        }
+      }
+    ]
+  },
+  {
+    "id": "public_criticism",
+    "text": "Durante la riunione di team, il tuo manager critica aspramente il tuo ultimo report davanti a tutti, definendolo 'sciatto'.",
+    "category": "mobbing",
+    "choices": [
+      {
+        "id": "silent",
+        "text": "Resti in silenzio e incassi il colpo.",
+        "category": "COMPLIANCE",
+        "effects": {
+          "mood": -15,
+          "patience": -10,
+          "resilience": -5
+        }
+      },
+      {
+        "id": "private_talk",
+        "text": "Chiedi un confronto privato a fine riunione.",
+        "category": "NEGOTIATION",
+        "effects": {
+          "assertiveness": 5,
+          "reputation": 2,
+          "patience": -5
+        }
+      },
+      {
+        "id": "public_defense",
+        "text": "Ti difendi pubblicamente spiegando i dati.",
+        "category": "RESISTANCE",
+        "effects": {
+          "reputation": -5,
+          "assertiveness": 10,
+          "mood": -5
+        }
+      }
+    ]
+  },
+  {
+    "id": "stolen_credit",
+    "text": "Un collega senior presenta un'idea tua come sua durante un meeting con la direzione.",
+    "category": "favoritism",
+    "choices": [
+      {
+        "id": "ignore",
+        "text": "Non dici nulla per evitare conflitti.",
+        "category": "COMPLIANCE",
+        "effects": {
+          "mood": -10,
+          "collaboration": 5,
+          "reputation": -5
+        }
+      },
+      {
+        "id": "clarify",
+        "text": "Intervieni gentilmente dicendo 'Sono lieto che abbiamo sviluppato insieme questa idea...'",
+        "category": "NEGOTIATION",
+        "effects": {
+          "reputation": 5,
+          "assertiveness": 5,
+          "collaboration": -2
+        }
+      },
+      {
+        "id": "confront",
+        "text": "Lo affronti duramente dopo il meeting.",
+        "category": "RESISTANCE",
+        "effects": {
+          "collaboration": -15,
+          "assertiveness": 10,
+          "mood": -5
+        }
+      }
+    ]
+  },
+  {
+    "id": "micromanagement_check",
+    "text": "Il tuo manager ti chiede di inviargli un update via email ogni ora su quello che stai facendo.",
+    "category": "micromanagement",
+    "choices": [
+      {
+        "id": "obey",
+        "text": "Esegui meticolosamente.",
+        "category": "COMPLIANCE",
+        "effects": {
+          "energy": -10,
+          "patience": -15,
+          "preparation": -5
+        }
+      },
+      {
+        "id": "propose_summary",
+        "text": "Proponi un unico riassunto a fine giornata.",
+        "category": "NEGOTIATION",
+        "effects": {
+          "assertiveness": 5,
+          "reputation": 0,
+          "energy": -2
+        }
+      },
+      {
+        "id": "ignore_partially",
+        "text": "Invii gli update solo quando hai qualcosa di importante.",
+        "category": "RESISTANCE",
+        "effects": {
+          "reputation": -5,
+          "mood": 5,
+          "assertiveness": 5
+        }
+      }
+    ]
+  },
+  {
+    "id": "unethical_request",
+    "text": "Ti viene chiesto di 'aggiustare' alcuni numeri in un report di conformità per farli sembrare migliori.",
+    "category": "unethical_behavior",
+    "choices": [
+      {
+        "id": "comply_unethical",
+        "text": "Lo fai per non rischiare il posto.",
+        "category": "COMPLIANCE",
+        "effects": {
+          "mood": -25,
+          "reputation": 10,
+          "resilience": -15
+        }
+      },
+      {
+        "id": "question_request",
+        "text": "Chiedi chiarimenti scritti via email prima di procedere.",
+        "category": "NEGOTIATION",
+        "effects": {
+          "assertiveness": 10,
+          "reputation": -5,
+          "resilience": 5
+        }
+      },
+      {
+        "id": "report_hr",
+        "text": "Segnali la cosa in forma anonima o rifiuti categoricamente.",
+        "category": "ESCAPE",
+        "effects": {
+          "reputation": -20,
+          "mood": 10,
+          "resilience": 10
+        }
+      }
+    ]
+  }
+]
