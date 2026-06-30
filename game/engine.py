@@ -58,20 +58,21 @@ class GameEngine:
 
     def next_turn(self):
         self.player.days_survived += 1
-        player_dict = self.player.to_dict()
-        combined_stats = {
-            **player_dict['stats'],
-            **player_dict['factions'],
-            "days_survived": self.player.days_survived
-        }
 
         if self.player.stress > 80 and random.random() < 0.3:
-            self.current_event = self.event_manager.get_event("burnout_warning") or self.event_manager.get_random_event(combined_stats, exclude_ids=self.history[-10:])
+            self.current_event = self.event_manager.get_event("burnout_warning")
         elif self.next_event_id_override:
             self.current_event = self.event_manager.get_event(self.next_event_id_override)
             self.next_event_id_override = None
         else:
-             self.current_event = self.event_manager.get_random_event(combined_stats, exclude_ids=self.history[-10:])
+             # Logic for deferred consequences
+             # We can generalize this by checking if certain tags have high frequency
+             if self.player.tags.get("yes_man", 0) > 3 and random.random() < 0.2:
+                 # This would need a generic way to find 'consequence' events
+                 # For now, keeping it simple but less hardcoded to IDs if possible
+                 pass
+
+             self.current_event = self.event_manager.get_random_event(exclude_ids=self.history[-10:])
 
         if self.current_event:
             self.history.append(self.current_event.id)
