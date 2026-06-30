@@ -1,8 +1,6 @@
 import sys
 import os
-import tkinter as tk
 from game.engine import GameEngine
-from game.gui import BurnoutGUI
 from collections import Counter
 
 def clear_screen():
@@ -30,7 +28,7 @@ def print_relationships(player):
         print(f"- {faction}: {score}%")
     print("-" * 70)
 
-def run_cli():
+def main():
     clear_screen()
     print("=" * 70)
     print("           BURNOUT SIMULATOR - ARCHETYPI AZIENDALI")
@@ -142,9 +140,8 @@ def run_cli():
     if total_tags > 0:
         print("PROFILO COMPORTAMENTALE:")
         for tag, count in sorted(tags.items(), key=lambda x: x[1], reverse=True):
-            if count > 0:
-                perc = (count / total_tags) * 100
-                print(f"- {tag:<15}: {perc:>3.1f}%")
+            perc = (count / total_tags) * 100
+            print(f"- {tag:<15}: {perc:>3.1f}%")
         print("-" * 70)
 
     # Achievements
@@ -167,19 +164,6 @@ def run_cli():
     save_path = engine.save_game()
     print(f"Sessione salvata: {save_path}")
     print("=" * 70)
-
-def main():
-    if len(sys.argv) > 1 and sys.argv[1] == "--cli":
-        run_cli()
-    else:
-        try:
-            root = tk.Tk()
-            app = BurnoutGUI(root)
-            root.mainloop()
-        except Exception as e:
-            print(f"Impossibile avviare la GUI: {e}")
-            print("Avvio in modalità CLI...")
-            run_cli()
 
 if __name__ == "__main__":
     main()
