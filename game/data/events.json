@@ -1,385 +1,338 @@
 [
   {
-    "id": "friday_evening_task",
-    "text": "Sono le 18:15 di venerdì. Il tuo manager ti invia un'email con un 'task urgente' da finire entro lunedì mattina. Dice che è fondamentale per il team.",
-    "category": "work_life_balance",
+    "id": "riunione_inutile",
+    "text": "Sono le 18:05. Alle 18:00 avresti dovuto terminare il turno. Ricevi un invito urgente per una riunione: 'Allineamento strategico operativo'. Non contiene agenda. Scopri che il manager vuole semplicemente ascoltare aggiornamenti già inviati via email.",
+    "category": "micromanagement",
     "choices": [
       {
-        "id": "accept",
-        "text": "Accetti senza discutere e lavori nel weekend.",
+        "id": "partecipa_senza_domande",
+        "text": "Partecipi senza fare domande",
         "category": "COMPLIANCE",
+        "tags": ["yes_man"],
         "effects": {
-          "energy": -15,
-          "reputation": 10,
-          "mood": -10,
-          "patience": -5,
-          "rel_manager": 10
+          "manager_rep": 2,
+          "stress": 3,
+          "energy": -2,
+          "npc_Marco_trust": 2
         }
       },
       {
-        "id": "negotiate",
-        "text": "Chiedi una ridefinizione delle priorità per lunedì.",
+        "id": "chiedi_domani",
+        "text": "Chiedi gentilmente se il tema può essere affrontato domani",
         "category": "NEGOTIATION",
+        "tags": ["boundary_setter"],
         "effects": {
-          "reputation": 2,
-          "assertiveness": 5,
-          "energy": -5,
-          "rel_manager": -2
-        }
+          "manager_rep": -1,
+          "stress": -1,
+          "integrity": 2,
+          "npc_Marco_trust": -2
+        },
+        "next_event_id": "etichetta_poco_flessibile"
       },
       {
-        "id": "refuse",
-        "text": "Rifiuti gentilmente spiegando che il tuo orario è terminato.",
-        "category": "RESISTANCE",
+        "id": "camera_spenta_multitask",
+        "text": "Partecipi ma tieni la telecamera spenta e lavori ad altro",
+        "category": "ESCAPE",
+        "tags": ["survivor"],
         "effects": {
-          "reputation": -10,
-          "mood": 5,
-          "assertiveness": 10,
-          "rel_manager": -10
+          "energy": 1,
+          "stress": 1,
+          "manager_rep": -2
         }
       }
     ]
   },
   {
-    "id": "burnout_crisis",
-    "text": "Ti senti completamente svuotato. Non riesci neanche ad aprire il portatile senza sentire un nodo alla gola.",
-    "category": "burnout_personal",
-    "requirements": {
-      "energy": {"max": 20},
-      "mood": {"max": 20}
-    },
+    "id": "etichetta_poco_flessibile",
+    "text": "Qualche giorno dopo, senti per caso il manager commentare con un altro responsabile che ti vede 'poco flessibile' e 'poco orientato al sacrificio'.",
+    "category": "mobbing",
     "choices": [
       {
-        "id": "sick_leave",
-        "text": "Chiedi un periodo di mutua per stress correlato.",
-        "category": "ESCAPE",
+        "id": "ignora_commento",
+        "text": "Ignori il commento e continui per la tua strada.",
+        "category": "RESISTANCE",
+        "tags": ["boundary_setter"],
         "effects": {
-          "energy": 30,
-          "mood": 20,
-          "reputation": -20,
-          "rel_manager": -15
+          "stress": 2,
+          "manager_rep": -2,
+          "faction_Ribelli": 2
+        }
+      }
+    ]
+  },
+  {
+    "id": "collega_favorito_credito",
+    "text": "Un progetto viene consegnato con successo. Hai svolto il 70% del lavoro. Durante la riunione finale il manager Marco ringrazia esclusivamente Luca, il suo collega preferito.",
+    "category": "favoritismo",
+    "choices": [
+      {
+        "id": "non_dici_nulla",
+        "text": "Non dici nulla",
+        "category": "COMPLIANCE",
+        "tags": ["survivor"],
+        "effects": {
+          "stress": 2,
+          "integrity": -1,
+          "manager_rep": 1,
+          "self_esteem": -5
         }
       },
+      {
+        "id": "ricorda_contributo",
+        "text": "Ricordi con educazione il tuo contributo",
+        "category": "NEGOTIATION",
+        "tags": ["truth_teller"],
+        "effects": {
+          "integrity": 2,
+          "manager_rep": -1,
+          "npc_Marco_respect": 2
+        },
+        "next_event_id": "reazione_manager_favoritismo|manager_apprezza:50;manager_infastidito:50"
+      },
+      {
+        "id": "scrivi_privato",
+        "text": "Scrivi al manager in privato",
+        "category": "NEGOTIATION",
+        "tags": ["truth_teller"],
+        "effects": {
+          "integrity": 1,
+          "stress": 1,
+          "npc_Marco_trust": 1
+        }
+      }
+    ]
+  },
+  {
+    "id": "manager_apprezza",
+    "text": "Marco sembra sorpreso ma ammette: 'Ah sì, giusto, anche il tuo contributo è stato utile'.",
+    "category": "favoritismo",
+    "choices": [
+      {
+        "id": "annuisci",
+        "text": "Annuisci e prosegui.",
+        "category": "COMPLIANCE",
+        "tags": ["survivor"],
+        "effects": {
+          "manager_rep": 2,
+          "self_esteem": 5
+        }
+      }
+    ]
+  },
+  {
+    "id": "manager_infastidito",
+    "text": "Marco ti guarda freddamente: 'Non c'è bisogno di essere così competitivi, lavoriamo come una squadra qui'.",
+    "category": "favoritismo",
+    "choices": [
+      {
+        "id": "scusati",
+        "text": "Ti scusi per il malinteso.",
+        "category": "COMPLIANCE",
+        "tags": ["yes_man"],
+        "effects": {
+          "manager_rep": -2,
+          "stress": 3,
+          "integrity": -2
+        }
+      }
+    ]
+  },
+  {
+    "id": "scadenza_impossibile",
+    "text": "Lunedì mattina. Il direttore assegna: 'Una piccola modifica'. Dopo l'analisi emerge che servono almeno 3 settimane. La scadenza richiesta è venerdì.",
+    "category": "micromanagement",
+    "choices": [
+      {
+        "id": "accetta_senza_discutere",
+        "text": "Accetti senza discutere",
+        "category": "COMPLIANCE",
+        "tags": ["yes_man", "burnout_risk"],
+        "effects": {
+          "manager_rep": 2,
+          "stress": 4,
+          "energy": -3,
+          "npc_Marco_trust": 5
+        }
+      },
+      {
+        "id": "stima_realistica",
+        "text": "Presenti una stima realistica",
+        "category": "NEGOTIATION",
+        "tags": ["boundary_setter"],
+        "effects": {
+          "integrity": 2,
+          "manager_rep": -1,
+          "npc_Marco_respect": 5
+        },
+        "next_event_id": "commento_problem_solver"
+      },
+      {
+        "id": "riduci_ambito",
+        "text": "Riduci l'ambito del lavoro e proponi una versione minima",
+        "category": "NEGOTIATION",
+        "tags": ["survivor"],
+        "effects": {
+          "manager_rep": 1,
+          "stress": 1,
+          "integrity": 1
+        }
+      }
+    ]
+  },
+  {
+    "id": "commento_problem_solver",
+    "text": "Marco sospira: 'Qui abbiamo bisogno di problem solver, non di problemi. Vedi cosa puoi fare per farlo stare in questa settimana'.",
+    "category": "mobbing",
+    "choices": [
+      {
+        "id": "arrenditi_straordinari",
+        "text": "Ti arrendi e decidi di fare gli straordinari.",
+        "category": "COMPLIANCE",
+        "tags": ["burnout_risk"],
+        "effects": {
+          "stress": 5,
+          "energy": -4,
+          "manager_rep": 1,
+          "health": -2
+        }
+      },
+      {
+        "id": "ribadisci_fatti",
+        "text": "Ribadisci che fisicamente non è possibile senza compromettere la qualità.",
+        "category": "RESISTANCE",
+        "tags": ["boundary_setter"],
+        "effects": {
+          "manager_rep": -3,
+          "integrity": 3,
+          "stress": 2
+        }
+      }
+    ]
+  },
+  {
+    "id": "messaggio_weekend",
+    "text": "Sabato ore 22:47. Notifica sul telefono. 'Hai cinque minuti per controllare una cosa veloce?'",
+    "category": "burnout",
+    "choices": [
+      {
+        "id": "rispondi_ora",
+        "text": "Rispondi immediatamente",
+        "category": "COMPLIANCE",
+        "tags": ["yes_man"],
+        "effects": {
+          "manager_rep": 2,
+          "energy": -2,
+          "stress": 2,
+          "npc_Marco_trust": 2
+        }
+      },
+      {
+        "id": "rispondi_lunedi",
+        "text": "Rispondi lunedì mattina",
+        "category": "RESISTANCE",
+        "tags": ["boundary_setter"],
+        "effects": {
+          "integrity": 1,
+          "energy": 1,
+          "manager_rep": -2
+        }
+      },
+      {
+        "id": "disattiva_notifiche",
+        "text": "Disattivi le notifiche aziendali",
+        "category": "ESCAPE",
+        "tags": ["boundary_setter"],
+        "effects": {
+          "energy": 2,
+          "integrity": 2
+        },
+        "next_event_id": "commento_reperibilita"
+      }
+    ]
+  },
+  {
+    "id": "commento_reperibilita",
+    "text": "Il lunedì successivo, Marco fa un commento passivo-aggressivo sulla tua 'scarsa reperibilità' durante le emergenze.",
+    "category": "mobbing",
+    "choices": [
+      {
+        "id": "ignora_reperibilita",
+        "text": "Fai finta di nulla.",
+        "category": "ESCAPE",
+        "effects": {
+          "stress": 1
+        }
+      }
+    ]
+  },
+  {
+    "id": "capro_espiatorio",
+    "text": "Durante una presentazione con il cliente emerge un errore. Sai con certezza che la decisione è stata presa dal manager. Marco afferma: 'Il team tecnico avrebbe dovuto accorgersene'. Tutti ti guardano.",
+    "category": "scapegoating",
+    "choices": [
+      {
+        "id": "assumi_responsabilita",
+        "text": "Ti assumi la responsabilità",
+        "category": "COMPLIANCE",
+        "tags": ["yes_man"],
+        "effects": {
+          "manager_rep": 1,
+          "stress": 4,
+          "integrity": -3,
+          "self_esteem": -10
+        }
+      },
+      {
+        "id": "correggi_educazione",
+        "text": "Correggi i fatti con educazione",
+        "category": "RESISTANCE",
+        "tags": ["truth_teller"],
+        "effects": {
+          "integrity": 3,
+          "manager_rep": -2,
+          "npc_Marco_fear": 5
+        }
+      },
+      {
+        "id": "rimanda_discussione",
+        "text": "Rimandi la discussione a un momento privato",
+        "category": "NEGOTIATION",
+        "tags": ["survivor"],
+        "effects": {
+          "stress": 1,
+          "integrity": 1
+        }
+      }
+    ]
+  },
+  {
+    "id": "burnout_warning",
+    "text": "Ti senti svuotato. Ti svegli la mattina con un senso di angoscia profonda al solo pensiero di aprire il portatile. È un segnale critico.",
+    "category": "burnout",
+    "choices": [
       {
         "id": "push_through",
-        "text": "Cerchi di ignorare tutto e vai avanti a caffè e ansiolitici.",
+        "text": "Ignora e continua a lavorare",
         "category": "COMPLIANCE",
+        "tags": ["burnout_risk"],
         "effects": {
-          "energy": -20,
-          "mood": -10,
-          "resilience": -10
-        }
-      }
-    ]
-  },
-  {
-    "id": "public_criticism",
-    "text": "Durante la riunione di team, il tuo manager critica aspramente il tuo ultimo report davanti a tutti, definendolo 'sciatto'.",
-    "category": "leadership_inadequate",
-    "choices": [
-      {
-        "id": "silent",
-        "text": "Resti in silenzio e incassi il colpo.",
-        "category": "COMPLIANCE",
-        "effects": {
-          "mood": -15,
-          "patience": -10,
-          "resilience": -5,
-          "rel_manager": 5
-        }
-      },
-      {
-        "id": "private_talk",
-        "text": "Chiedi un confronto privato a fine riunione.",
-        "category": "NEGOTIATION",
-        "effects": {
-          "assertiveness": 5,
-          "reputation": 2,
-          "patience": -5,
-          "rel_manager": -5
-        }
-      },
-      {
-        "id": "public_defense",
-        "text": "Ti difendi pubblicamente spiegando i dati.",
-        "category": "RESISTANCE",
-        "effects": {
-          "reputation": -5,
-          "assertiveness": 10,
-          "mood": -5,
-          "rel_manager": -15
-        }
-      }
-    ]
-  },
-  {
-    "id": "stolen_credit",
-    "text": "Un collega senior presenta un'idea tua come sua durante un meeting con la direzione.",
-    "category": "culture_problematic",
-    "choices": [
-      {
-        "id": "ignore",
-        "text": "Non dici nulla per evitare conflitti.",
-        "category": "COMPLIANCE",
-        "effects": {
-          "mood": -10,
-          "collaboration": 5,
-          "reputation": -5,
-          "rel_colleagues": 5
-        }
-      },
-      {
-        "id": "clarify",
-        "text": "Intervieni gentilmente dicendo 'Sono lieto che abbiamo sviluppato insieme questa idea...'",
-        "category": "NEGOTIATION",
-        "effects": {
-          "reputation": 5,
-          "assertiveness": 5,
-          "collaboration": -2,
-          "rel_colleagues": -5
-        }
-      },
-      {
-        "id": "confront",
-        "text": "Lo affronti duramente dopo il meeting.",
-        "category": "RESISTANCE",
-        "effects": {
-          "collaboration": -15,
-          "assertiveness": 10,
-          "mood": -5,
-          "rel_colleagues": -20
-        }
-      }
-    ]
-  },
-  {
-    "id": "micromanagement_check",
-    "text": "Il tuo manager ti chiede di inviargli un update via email ogni ora su quello che stai facendo.",
-    "category": "leadership_inadequate",
-    "choices": [
-      {
-        "id": "obey",
-        "text": "Esegui meticolosamente.",
-        "category": "COMPLIANCE",
-        "effects": {
+          "health": -20,
           "energy": -10,
-          "patience": -15,
-          "preparation": -5,
-          "rel_manager": 10
+          "stress": 10,
+          "self_esteem": -10
         }
       },
       {
-        "id": "propose_summary",
-        "text": "Proponi un unico riassunto a fine giornata.",
-        "category": "NEGOTIATION",
-        "effects": {
-          "assertiveness": 5,
-          "reputation": 0,
-          "energy": -2,
-          "rel_manager": -2
-        }
-      },
-      {
-        "id": "ignore_partially",
-        "text": "Invii gli update solo quando hai qualcosa di importante.",
-        "category": "RESISTANCE",
-        "effects": {
-          "reputation": -5,
-          "mood": 5,
-          "assertiveness": 5,
-          "rel_manager": -10
-        }
-      }
-    ]
-  },
-  {
-    "id": "unethical_request",
-    "text": "Ti viene chiesto di 'aggiustare' alcuni numeri in un report di conformità per farli sembrare migliori.",
-    "category": "unethical_behavior",
-    "choices": [
-      {
-        "id": "comply_unethical",
-        "text": "Lo fai per non rischiare il posto.",
-        "category": "COMPLIANCE",
-        "effects": {
-          "mood": -25,
-          "reputation": 10,
-          "resilience": -15,
-          "rel_manager": 15
-        }
-      },
-      {
-        "id": "question_request",
-        "text": "Chiedi chiarimenti scritti via email prima di procedere.",
-        "category": "NEGOTIATION",
-        "effects": {
-          "assertiveness": 10,
-          "reputation": -5,
-          "resilience": 5,
-          "rel_manager": -5
-        }
-      },
-      {
-        "id": "report_hr",
-        "text": "Segnali la cosa in forma anonima o rifiuti categoricamente.",
+        "id": "take_leave",
+        "text": "Prendi un periodo di malattia per stress",
         "category": "ESCAPE",
+        "tags": ["boundary_setter"],
         "effects": {
-          "reputation": -20,
-          "mood": 10,
-          "resilience": 10,
-          "rel_manager": -30,
-          "rel_hr": 20
-        }
-      }
-    ]
-  },
-  {
-    "id": "absent_leader",
-    "text": "Hai un problema bloccante su un progetto e il tuo manager non risponde alle email da tre giorni, ma lo vedi attivo sui social.",
-    "category": "leadership_inadequate",
-    "choices": [
-      {
-        "id": "wait",
-        "text": "Aspetti in silenzio, bloccando il lavoro.",
-        "category": "COMPLIANCE",
-        "effects": {
-          "preparation": -10,
-          "patience": -5,
-          "energy": -2,
-          "rel_manager": 0
-        }
-      },
-      {
-        "id": "escalate_gently",
-        "text": "Contatti un altro responsabile per sbloccare la situazione.",
-        "category": "NEGOTIATION",
-        "effects": {
-          "assertiveness": 5,
-          "reputation": -5,
-          "preparation": 5,
-          "rel_manager": -10
-        }
-      },
-      {
-        "id": "call_direct",
-        "text": "Lo chiami direttamente sul cellulare personale.",
-        "category": "RESISTANCE",
-        "effects": {
-          "assertiveness": 10,
-          "reputation": -2,
-          "mood": -5,
-          "rel_manager": -20
-        }
-      }
-    ]
-  },
-  {
-    "id": "nepotism_promotion",
-    "text": "La posizione di Senior Lead che sognavi viene data al nipote del Direttore Generale, che ha molta meno esperienza di te.",
-    "category": "culture_problematic",
-    "choices": [
-      {
-        "id": "congratulate",
-        "text": "Ti congratuli e offri il tuo aiuto per formarlo.",
-        "category": "COMPLIANCE",
-        "effects": {
-          "mood": -20,
-          "reputation": 5,
-          "collaboration": 10,
-          "rel_manager": 10
-        }
-      },
-      {
-        "id": "ask_feedback",
-        "text": "Chiedi un colloquio per capire cosa ti è mancato per la promozione.",
-        "category": "NEGOTIATION",
-        "effects": {
-          "assertiveness": 5,
-          "preparation": 5,
-          "mood": -5,
-          "rel_manager": -5
-        }
-      },
-      {
-        "id": "start_looking",
-        "text": "Aggiorni il CV e inizi a guardarti intorno seriamente.",
-        "category": "ESCAPE",
-        "effects": {
-          "resilience": 5,
-          "mood": 5,
-          "reputation": -5
-        }
-      }
-    ]
-  },
-  {
-    "id": "public_image_discrepancy",
-    "text": "L'azienda pubblica un post su LinkedIn lodando il 'benessere dei dipendenti', mentre tu sei al terzo weekend consecutivo di straordinari non pagati.",
-    "category": "communication_carent",
-    "choices": [
-      {
-        "id": "like_post",
-        "text": "Metti 'like' al post per piaggeria.",
-        "category": "COMPLIANCE",
-        "effects": {
-          "mood": -15,
-          "reputation": 5,
-          "resilience": -10,
-          "rel_manager": 5
-        }
-      },
-      {
-        "id": "internal_comment",
-        "text": "Fai notare ironicamente la cosa ai colleghi in pausa caffè.",
-        "category": "NEGOTIATION",
-        "effects": {
-          "collaboration": 10,
-          "mood": 2,
-          "reputation": -2,
-          "rel_colleagues": 10
-        }
-      },
-      {
-        "id": "anonymous_glassdoor",
-        "text": "Scrivi una recensione anonima su Glassdoor raccontando la verità.",
-        "category": "ESCAPE",
-        "effects": {
-          "mood": 10,
-          "resilience": 5,
-          "reputation": -5,
-          "rel_manager": -10
-        }
-      }
-    ]
-  },
-  {
-    "id": "hr_trap",
-    "text": "L'ufficio HR ti chiama per un 'colloquio conoscitivo informale' per sapere come ti trovi nel team.",
-    "category": "communication_carent",
-    "requirements": {
-      "days_survived": {"min": 30}
-    },
-    "choices": [
-      {
-        "id": "everything_fine",
-        "text": "Dici che va tutto benissimo e ami l'azienda.",
-        "category": "COMPLIANCE",
-        "effects": {
-          "mood": -10,
-          "reputation": 5,
-          "rel_hr": 10,
-          "rel_manager": 5
-        }
-      },
-      {
-        "id": "honest_feedback",
-        "text": "Segnali alcune criticità in modo professionale.",
-        "category": "NEGOTIATION",
-        "effects": {
-          "assertiveness": 5,
-          "rel_hr": -5,
-          "rel_manager": -20,
-          "reputation": -5
+          "health": 15,
+          "energy": 20,
+          "stress": -20,
+          "manager_rep": -15,
+          "employability": -5
         }
       }
     ]

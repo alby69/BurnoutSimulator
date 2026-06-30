@@ -1,90 +1,138 @@
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, List, Set
+
+@dataclass
+class NPC:
+    name: str
+    role: str
+    trust: int = 50
+    fear: int = 0
+    respect: int = 50
 
 @dataclass
 class Player:
     name: str
-    patience: int = 50
-    preparation: int = 50
-    collaboration: int = 50
-    mood: int = 50
+    company_type: str = "Corporate Tossica"
     energy: int = 100
-    reputation: int = 30
-    assertiveness: int = 30
-    resilience: int = 50
+    stress: int = 0
+    self_esteem: int = 50
+    manager_rep: int = 50
+    team_rep: int = 50
+    integrity: int = 50
+    employability: int = 50
+    health: int = 100
+
+    # Factions: Loyalist, Silent, Rebel
+    factions: Dict[str, int] = field(default_factory=lambda: {
+        "Fedelissimi": 0,
+        "Gruppo Silenzioso": 50,
+        "Ribelli": 0
+    })
+
+    # NPCs
+    npcs: Dict[str, NPC] = field(default_factory=lambda: {
+        "Marco": NPC("Marco", "Manager Tossico"),
+        "Giulia": NPC("Giulia", "Collega Opportunista"),
+        "Roberto": NPC("Roberto", "Mentor Disilluso"),
+        "Elena": NPC("Elena", "HR Passiva")
+    })
+
+    tags: Dict[str, int] = field(default_factory=lambda: {
+        "yes_man": 0,
+        "boundary_setter": 0,
+        "truth_teller": 0,
+        "survivor": 0,
+        "burnout_risk": 0
+    })
+
+    achievements: Set[str] = field(default_factory=set)
     days_survived: int = 0
     is_alive: bool = True
     status: str = "Active"
 
-    # NPC Relationships: Stat from -100 to 100
-    relationships: Dict[str, int] = field(default_factory=lambda: {
-        "Manager": 0,
-        "Colleagues": 0,
-        "HR": 0
-    })
-
     def update_stats(self, effects: dict):
         for stat, value in effects.items():
-            if stat.startswith("rel_"):
-                npc_raw = stat.split("_")[1]
-                # Map specific keys to their display names
-                mapping = {
-                    "manager": "Manager",
-                    "colleagues": "Colleagues",
-                    "hr": "HR"
-                }
-                npc = mapping.get(npc_raw.lower(), npc_raw.capitalize())
-
-                if npc in self.relationships:
-                    self.relationships[npc] = max(-100, min(100, self.relationships[npc] + value))
-            elif hasattr(self, stat):
+            if stat == "reputation":
+                self.manager_rep = max(0, min(100, self.manager_rep + value))
+            elif hasattr(self, stat) and not isinstance(getattr(self, stat), (dict, list, set, NPC)):
                 current_val = getattr(self, stat)
                 setattr(self, stat, max(0, min(100, current_val + value)))
+            elif stat.startswith("npc_"):
+                # npc_Marco_trust
+                parts = stat.split("_")
+                if len(parts) == 3:
+                    npc_name = parts[1]
+                    attr = parts[2]
+                    if npc_name in self.npcs:
+                        npc = self.npcs[npc_name]
+                        if hasattr(npc, attr):
+                            current_val = getattr(npc, attr)
+                            setattr(npc, attr, max(0, min(100, current_val + value)))
+            elif stat.startswith("faction_"):
+                # faction_Ribelli
+                faction_name = stat.replace("faction_", "").replace("_", " ")
+                if faction_name in self.factions:
+                    self.factions[faction_name] = max(0, min(100, self.factions[faction_name] + value))
 
         self.check_conditions()
 
+    def add_tags(self, tags_list: list):
+        for tag in tags_list:
+            if tag in self.tags:
+                self.tags[tag] += 1
+            else:
+                self.tags[tag] = 1
+
+        # Check for tag-based achievements
+        if self.tags.get("yes_man", 0) >= 10:
+            self.achievements.add("Sempre Disponibile")
+        if self.tags.get("burnout_risk", 0) >= 5:
+            self.achievements.add("Vivere al Limite")
+
     def check_conditions(self):
-        if self.energy <= 0:
+        if self.health <= 0:
             self.is_alive = False
-            self.status = "Burnout"
-        elif self.reputation <= 0:
+            self.status = "Burnout (Crollo Fisico)"
+        elif self.stress >= 100:
             self.is_alive = False
-            self.status = "Fired"
-        elif self.mood <= 10:
+            self.status = "Burnout (Crollo Mentale)"
+        elif self.energy <= 0:
             self.is_alive = False
-            self.status = "Quiet Quitting"
-        elif self.reputation >= 90 and self.preparation >= 80:
+            self.status = "Esaurimento Energie"
+        elif self.manager_rep <= 0:
             self.is_alive = False
-            self.status = "Promoted"
+            self.status = "Licenziato"
+        elif self.self_esteem <= 0:
+            self.is_alive = False
+            self.status = "Depressione Professionale"
+        elif self.integrity <= 0:
+            self.is_alive = False
+            self.status = "Promozione Tossica"
+        elif self.manager_rep >= 90 and self.days_survived >= 20:
+            self.is_alive = False
+            self.status = "Promosso"
         elif self.days_survived >= 365:
             self.is_alive = False
-            self.status = "Survived"
-
-    def get_behavioral_title(self):
-        # Logic to return a title based on stats
-        if self.assertiveness > 70:
-            return "The Disruptor"
-        if self.patience > 80:
-            return "The Martyr"
-        if self.reputation > 80 and self.collaboration > 80:
-            return "The Corporate Star"
-        return "Standard Employee"
+            self.status = "Sopravvissuto"
 
     def to_dict(self):
         return {
             "name": self.name,
+            "company_type": self.company_type,
             "stats": {
-                "patience": self.patience,
-                "preparation": self.preparation,
-                "collaboration": self.collaboration,
-                "mood": self.mood,
                 "energy": self.energy,
-                "reputation": self.reputation,
-                "assertiveness": self.assertiveness,
-                "resilience": self.resilience
+                "stress": self.stress,
+                "self_esteem": self.self_esteem,
+                "manager_rep": self.manager_rep,
+                "team_rep": self.team_rep,
+                "integrity": self.integrity,
+                "employability": self.employability,
+                "health": self.health
             },
-            "relationships": self.relationships,
+            "factions": self.factions,
+            "npcs": {name: vars(npc) for name, npc in self.npcs.items()},
+            "tags": self.tags,
+            "achievements": list(self.achievements),
             "days_survived": self.days_survived,
-            "status": self.status,
-            "title": self.get_behavioral_title()
+            "status": self.status
         }

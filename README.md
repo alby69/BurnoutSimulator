@@ -4,42 +4,48 @@
 
 Il progetto è stato concepito come strumento didattico e di ricerca per una tesina magistrale in HR presso l'Università Sapienza di Roma.
 
-## Nuove Caratteristiche (v2.0)
-
-- **Interfaccia Grafica (GUI)**: Una nuova interfaccia basata su `tkinter` per un'esperienza più immersiva.
-- **Relazioni con i Personaggi (NPC)**: Ora le tue scelte influenzano i rapporti con il **Manager**, i **Colleghi** e l'**HR**.
-- **Eventi Condizionali**: Alcuni scenari appaiono solo se soddisfi determinati requisiti (es. stress elevato o tempo trascorso in azienda).
-- **Titoli Dinamici**: Ricevi un titolo finale basato sul tuo stile di gioco (es. "The Martyr", "The Disruptor").
-
 ## Concept Antropologico
 
-Il gioco esplora le categorie di tossicità aziendale:
-- **Cultura aziendale problematica**: Nepotismo e competizione malsana.
-- **Gestione inadeguata**: Leadership assente o micromanagement.
-- **Work-Life Balance**: Cultura dell'overwork e aspettative 24/7.
-- **Comunicazione Carente**: Discrepanza tra immagine pubblica e realtà.
+Il gioco mette il giocatore nei panni di un neoassunto in un'azienda caratterizzata da dinamiche malsane, ispirate a ricerche recenti e standard di qualità organizzativa (ISO 9001). Le categorie di tossicità esplorate includono:
 
-Strategie di adattamento monitorate:
-- **COMPLIANCE** (Conformismo)
-- **RESISTANCE** (Resistenza)
-- **NEGOTIATION** (Negoziazione)
-- **ESCAPE** (Fuga)
+- **Cultura aziendale problematica**: Mancanza di trasparenza, competizione interna malsana, favoritismi e nepotismo.
+- **Gestione inadeguata**: Leadership autoritaria o assente, micromanagement, mancanza di vision e obiettivi chiari.
+- **Problemi di Work-Life Balance**: Cultura dell'overwork, aspettative irrealistiche (disponibilità 24/7) e mancanza di flessibilità.
+- **Problemi Etici e Comportamentali**: Pratiche poco etiche, discriminazioni e molestie tollerate.
+- **Comunicazione Carente**: Discrepanza tra immagine pubblica (es. social media) e realtà interna.
+
+L'obiettivo è osservare come diverse strategie di adattamento influenzano il benessere e la carriera:
+- **COMPLIANCE** (Conformismo/Adattamento passivo)
+- **RESISTANCE** (Resistenza attiva/Dissenso)
+- **NEGOTIATION** (Negoziazione/Mediazione)
+- **ESCAPE** (Fuga/Ricerca di alternative)
+
+## Caratteristiche Tecniche
+
+- **Motore di Gioco Leggero**: Sviluppato in Python puro senza dipendenze esterne.
+- **Grafo delle Decisioni**: Tracciamento di ogni scelta in un grafo pesato per analisi statistica.
+- **Profilazione Finale**: Al termine della partita, il gioco genera un profilo comportamentale basato sulle scelte effettuate.
+- **Esportazione Sessioni**: Salvataggio in JSON per analisi dei dati.
 
 ## Come Giocare
 
 1. Assicurati di avere Python 3 installato.
-2. Esegui il gioco:
+2. Clona il repository.
+3. Esegui il gioco:
    ```bash
    python3 main.py
    ```
-3. Per la modalità classica da terminale:
-   ```bash
-   python3 main.py --cli
-   ```
 
-## Requisiti Tecnici
-- Python 3.x
-- Libreria `tkinter` (solitamente inclusa in Python).
+## Struttura del Progetto
+
+- `main.py`: Punto di ingresso e interfaccia utente.
+- `game/`:
+    - `engine.py`: Logica centrale.
+    - `player.py`: Gestione statistiche.
+    - `events.py`: Gestione scenari.
+    - `graph.py`: Tracciamento decisioni.
+    - `save_manager.py`: Sistema di salvataggio.
+    - `data/events.json`: Database degli eventi (espandibile).
 
 ---
 *Progetto realizzato per scopi accademici - Tesina di Antropologia delle Organizzazioni.*

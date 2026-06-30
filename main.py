@@ -1,55 +1,105 @@
 import sys
 import os
 import tkinter as tk
-from game.gui import BurnoutGUI
 from game.engine import GameEngine
+from game.gui import BurnoutGUI
 from collections import Counter
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-def print_header(player):
-    print("=" * 60)
+def print_header(engine):
+    player = engine.player
+    print("=" * 70)
     print(f" BURNOUT SIMULATOR - Giorno {player.days_survived}")
-    print("=" * 60)
-    player_dict = player.to_dict()
-    stats = player_dict['stats']
-    print(f" Energ: {stats['energy']}% | Mood: {stats['mood']}% | Rep: {stats['reputation']}%")
-    print(f" Paz: {stats['patience']}% | Prep: {stats['preparation']}% | Coll: {stats['collaboration']}%")
-    rels = player_dict['relationships']
-    print(f" Manager: {rels['Manager']} | Colleagues: {rels['Colleagues']} | HR: {rels['HR']}")
-    print("-" * 60)
+    print(f" AZIENDA: {player.company_type.upper()}")
+    print("=" * 70)
+    stats = player.to_dict()['stats']
+    print(f" Energ: {stats['energy']}% | Stress: {stats['stress']}% | Salute: {stats['health']}%")
+    print(f" Integ: {stats['integrity']}% | Autost: {stats['self_esteem']}% | Occup: {stats['employability']}%")
+    print(f" Rep. Manager: {stats['manager_rep']}% | Rep. Team: {stats['team_rep']}%")
+    print("-" * 70)
+
+def print_relationships(player):
+    print("\nRELAZIONI NPC:")
+    for name, npc in player.npcs.items():
+        print(f"- {name} ({npc.role}): Trust {npc.trust} | Respect {npc.respect} | Fear {npc.fear}")
+
+    print("\nFAZIONI:")
+    for faction, score in player.factions.items():
+        print(f"- {faction}: {score}%")
+    print("-" * 70)
 
 def run_cli():
     clear_screen()
-    print("Benvenuto in Burnout Simulator (CLI Mode).")
-    print("Un gioco di simulazione antropologica sulle dinamiche aziendali tossiche.")
+    print("=" * 70)
+    print("           BURNOUT SIMULATOR - ARCHETYPI AZIENDALI")
+    print("=" * 70)
+    print("Benvenuto. Scegli il tipo di azienda in cui inizierai il tuo percorso:")
+
+    archetypes = list(GameEngine.COMPANY_ARCHETYPES.keys())
+    for i, arch in enumerate(archetypes):
+        desc = GameEngine.COMPANY_ARCHETYPES[arch]["description"]
+        print(f"{i+1}) {arch}: {desc}")
+
+    arch_choice = 0
+    while arch_choice < 1 or arch_choice > len(archetypes):
+        try:
+            arch_input = input("\nScegli (1-4): ")
+            arch_choice = int(arch_input)
+        except ValueError:
+            pass
+
+    company_type = archetypes[arch_choice-1]
     player_name = input("\nInserisci il tuo nome: ") or "Impiegato Anonimo"
 
-    engine = GameEngine(player_name, "game/data/events.json")
+    engine = GameEngine(player_name, "game/data/events.json", company_type=company_type)
 
-    while not engine.is_game_over():
+    exit_game = False
+    while not engine.is_game_over() and not exit_game:
         event = engine.next_turn()
+        if not event:
+             break
+
         clear_screen()
-        print_header(engine.player)
-        print(f"CATEGORIA TOSSICA: {event.category.replace('_', ' ').upper()}")
+        print_header(engine)
+        print(f"CATEGORIA: {event.category.replace('_', ' ').upper()}")
         print(f"\n{event.text}\n")
 
         for i, choice in enumerate(event.choices):
             print(f"{i+1}) {choice.text}")
 
+        print("\n0) Esci e vedi report finale")
+        print("9) Vedi Relazioni e Fazioni")
+
         valid_choice = False
         while not valid_choice:
             try:
-                choice_input = input("\nScegli un'opzione (o 0 per uscire): ")
+                choice_input = input("\nScegli un'opzione: ")
                 if not choice_input:
                     continue
-                choice_idx = int(choice_input) - 1
-                if choice_idx == -1:
-                    print("Uscita in corso...")
-                    engine.save_game()
-                    return
+                choice_idx = int(choice_input)
 
+                if choice_idx == 0:
+                    print("Uscita in corso...")
+                    valid_choice = True
+                    exit_game = True
+                    break
+
+                if choice_idx == 9:
+                    print_relationships(engine.player)
+                    input("\nPremi invio per tornare all'evento...")
+                    clear_screen()
+                    print_header(engine)
+                    print(f"CATEGORIA: {event.category.replace('_', ' ').upper()}")
+                    print(f"\n{event.text}\n")
+                    for i, choice in enumerate(event.choices):
+                        print(f"{i+1}) {choice.text}")
+                    print("\n0) Esci e vedi report finale")
+                    print("9) Vedi Relazioni e Fazioni")
+                    continue
+
+                choice_idx -= 1
                 if 0 <= choice_idx < len(event.choices):
                     engine.handle_choice(choice_idx)
                     valid_choice = True
@@ -59,34 +109,63 @@ def run_cli():
                 print("Inserisci un numero.")
 
     clear_screen()
-    print("=" * 60)
-    print("   PARTITA CONCLUSA   ")
-    print("=" * 60)
-    print(f"Risultato: {engine.player.status}")
-    print(f"Titolo: {engine.player.get_behavioral_title()}")
-    print(f"Giorni sopravvissuti: {engine.player.days_survived}")
-    print("-" * 60)
+    print("=" * 70)
+    print("   REPORT FINALE SCIENTIFICO-ANTROPOLOGICO   ")
+    print("=" * 70)
 
-    history = engine.graph.history
-    if history:
-        categories = []
-        toxic_types = []
-        for entry in history:
-            event = engine.event_manager.get_event(entry['event_id'])
-            toxic_types.append(event.category)
-            for c in event.choices:
-                if c.id == entry['choice_id']:
-                    categories.append(c.category)
+    # Complex Ending Determination
+    p = engine.player
+    ending = "IL SOPRAVVISSUTO"
+    if p.status == "Promosso":
+        ending = "IL POLITICO"
+    elif p.status == "Promozione Tossica":
+        ending = "IL CINICO"
+    elif p.integrity >= 80 and p.manager_rep <= 30:
+        ending = "IL MARTIRE"
+    elif p.integrity <= 25:
+        ending = "IL CINICO"
+    elif p.employability >= 70 and p.is_alive:
+        ending = "IL FUGGITIVO"
+    elif p.manager_rep >= 70 and p.integrity >= 70:
+        ending = "IL RIFORMATORE"
+    elif "Burnout" in p.status:
+        ending = "IL CADUTO"
 
-        prof_counts = Counter(categories)
-        total = len(categories)
+    print(f"FINALE: {ending}")
+    print(f"Stato Finale: {p.status}")
+    print(f"Giorni in {p.company_type}: {p.days_survived}")
+    print("-" * 70)
+
+    # Behavioral Profile
+    tags = p.tags
+    total_tags = sum(tags.values())
+    if total_tags > 0:
         print("PROFILO COMPORTAMENTALE:")
-        for cat, count in prof_counts.items():
-            perc = (count / total) * 100
-            print(f"- {cat:<12}: {perc:>3.1f}%")
+        for tag, count in sorted(tags.items(), key=lambda x: x[1], reverse=True):
+            perc = (count / total_tags) * 100
+            print(f"- {tag:<15}: {perc:>3.1f}%")
+        print("-" * 70)
 
+    # Achievements
+    if p.achievements:
+        print("ACHIEVEMENT SBLOCCATI:")
+        for ach in p.achievements:
+            print(f"[*] {ach}")
+        print("-" * 70)
+
+    # Scientific Analysis
+    print("ANALISI ANTROPOLOGICA:")
+    if p.factions["Ribelli"] > 30:
+        print("- Hai mostrato una forte tendenza alla resistenza attiva, prioritizzando l'integrità individuale.")
+    if p.factions["Fedelissimi"] > 30:
+        print("- Il tuo adattamento è stato di tipo opportunistico, integrando i valori dominanti dell'organizzazione.")
+    if p.stress > 70:
+        print("- L'esposizione prolungata a dinamiche tossiche ha eroso le tue barriere psicologiche (Burnout Alert).")
+
+    print("-" * 70)
     save_path = engine.save_game()
-    print(f"\nSessione salvata in: {save_path}")
+    print(f"Sessione salvata: {save_path}")
+    print("=" * 70)
 
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == "--cli":
