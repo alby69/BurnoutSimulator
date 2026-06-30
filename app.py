@@ -201,6 +201,8 @@ def _render_game():
             with ui.row().classes('items-center gap-1'):
                 ui.button('', icon='bar_chart', on_click=_show_stats_dialog) \
                     .props('flat').classes('text-gray-400 lg:hidden')
+                ui.button('', icon='hub', on_click=_show_decision_graph) \
+                    .props('flat').classes('text-gray-400')
                 ui.button('', icon='exit_to_app', on_click=_exit_game) \
                     .props('flat').classes('text-gray-400')
 
@@ -551,6 +553,8 @@ def _render_game_over():
                 .props('color=positive size=lg')
             ui.button('📷 Esporta Report', icon='download', on_click=_export_report) \
                 .props('flat size=lg').classes('text-gray-400')
+            ui.button('🕸 Grafo Decisionale', icon='hub', on_click=_show_decision_graph) \
+                .props('flat size=lg').classes('text-gray-400')
 
 
 # ── Actions ──
@@ -737,6 +741,114 @@ def _export_report():
             .catch(() => alert('Esportazione non disponibile (nessuna connessione)'));
         })();
     ''')
+
+
+def _show_decision_graph():
+    if not engine or not engine.graph.history:
+        ui.notify('Nessun dato disponibile per il grafo', type='warning')
+        return
+
+    graph = engine.graph
+    event_mgr = engine.event_manager
+    history = graph.history
+
+    nodes_map = {}
+    edges = []
+
+    for entry in history:
+        ev_id = entry['event_id']
+        ch_id = entry['choice_id']
+        nxt = entry.get('next_event_id')
+
+        if ev_id not in nodes_map:
+            ev = event_mgr.get_event(ev_id)
+            cat = ev.category if ev else 'unknown'
+            cat_colors_map = {
+                'micromanagement': '#3b82f6', 'mobbing': '#ef4444',
+                'favoritismo': '#eab308', 'burnout': '#f97316',
+                'scapegoating': '#a855f7',
+            }
+            nodes_map[ev_id] = {
+                'id': ev_id,
+                'name': ev_id.replace('_', ' ')[:25],
+                'symbolSize': 20,
+                'itemStyle': {'color': cat_colors_map.get(cat, '#6b7280')},
+                'category': cat,
+            }
+
+        if nxt and nxt not in nodes_map:
+            ev = event_mgr.get_event(nxt)
+            if ev:
+                cat = ev.category if ev else 'unknown'
+                cat_colors_map = {
+                    'micromanagement': '#3b82f6', 'mobbing': '#ef4444',
+                    'favoritismo': '#eab308', 'burnout': '#f97316',
+                    'scapegoating': '#a855f7',
+                }
+                nodes_map[nxt] = {
+                    'id': nxt,
+                    'name': nxt.replace('_', ' ')[:25],
+                    'symbolSize': 16,
+                    'itemStyle': {'color': cat_colors_map.get(cat, '#6b7280')},
+                    'category': 'consequence',
+                }
+
+        ev = event_mgr.get_event(ev_id)
+        choice_text = ''
+        if ev:
+            for c in ev.choices:
+                if c.id == ch_id:
+                    choice_text = c.category
+                    break
+
+        edge_color = {
+            'COMPLIANCE': '#3b82f6', 'RESISTANCE': '#ef4444',
+            'NEGOTIATION': '#eab308', 'ESCAPE': '#22c55e',
+        }.get(choice_text, '#6b7280')
+
+        target = nxt if nxt else ''
+        if target:
+            edges.append({
+                'source': ev_id,
+                'target': target,
+                'label': {'formatter': choice_text, 'fontSize': 9, 'color': edge_color},
+                'lineStyle': {'color': edge_color, 'width': 1.5, 'curveness': 0.2},
+            })
+
+    option = {
+        'tooltip': {'formatter': '{b}'},
+        'series': [{
+            'type': 'graph',
+            'layout': 'force',
+            'force': {'repulsion': 300, 'edgeLength': 120},
+            'draggable': True,
+            'roam': True,
+            'data': list(nodes_map.values()),
+            'edges': edges,
+            'categories': [
+                {'name': 'micromanagement', 'itemStyle': {'color': '#3b82f6'}},
+                {'name': 'mobbing', 'itemStyle': {'color': '#ef4444'}},
+                {'name': 'favoritismo', 'itemStyle': {'color': '#eab308'}},
+                {'name': 'burnout', 'itemStyle': {'color': '#f97316'}},
+                {'name': 'scapegoating', 'itemStyle': {'color': '#a855f7'}},
+                {'name': 'consequence', 'itemStyle': {'color': '#6b7280'}},
+            ],
+            'lineStyle': {'color': 'source', 'curveness': 0.3},
+            'label': {'show': True, 'position': 'bottom', 'fontSize': 10, 'color': '#ccc'},
+            'emphasis': {'focus': 'adjacency', 'lineStyle': {'width': 3}},
+        }],
+        'backgroundColor': 'transparent',
+    }
+
+    with ui.dialog() as dialog, ui.card().classes('w-full max-w-4xl p-4 bg-gray-900'):
+        with ui.row().classes('w-full items-center justify-between mb-2'):
+            ui.label('Grafo Decisionale').classes('text-lg font-bold text-gray-200')
+            ui.button('', icon='close', on_click=dialog.close).props('flat').classes('text-gray-400')
+        ui.echart(option).classes('w-full h-[500px]')
+        ui.label(f'{len(nodes_map)} nodi · {len(edges)} connessioni · trascina per esplorare').classes(
+            'text-xs text-gray-500 text-center mt-1'
+        )
+    dialog.open()
 
 
 def _go_analytics():
