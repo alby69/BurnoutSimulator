@@ -657,7 +657,7 @@ def _render_tutorial():
     with ui.column().classes('tutorial-overlay'):
         with ui.card().classes('tutorial-card').props('flat'):
             ui.label(step['title']).classes('text-lg font-bold text-white mb-3')
-            ui.label(step['text']).classes('text-sm text-gray-300 leading-relaxed')
+            ui.html(step['text']).classes('text-sm text-gray-300 leading-relaxed')
             ui.html('<br>')
             with ui.row().classes('justify-center gap-2'):
                 if _tutorial_step > 0:
