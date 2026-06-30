@@ -213,3 +213,27 @@ Prima partita guidata con overlay modale a 5 step:
 8. ✅ ~~M7~~ (grafo decisionale) — completato
 
 Tutti i 12 miglioramenti pianificati sono stati implementati. 🎉
+
+## Extra: miglioramenti post-roadmap
+
+| # | Miglioramento | Impatto | Sforzo | Stato |
+|---|---------------|---------|--------|-------|
+| E1 | Personalità Manager per archetipo (Micromanager, Narcisista, ecc.) | Alto | Medio | ✅ Fatto |
+| E2 | Eventi su soglia (stress>80, energia<20, ecc.) | Alto | Basso | ✅ Fatto |
+| E3 | Grafico stress/tempo nel report finale | Alto | Basso | ✅ Fatto |
+| E4 | Fasi di carriera (Prova → Primo Progetto → Ristrutturazione → …) | Medio | Basso | ✅ Fatto |
+| E5 | 5 nuovi finali incrociando archetipo + profilo | Alto | Medio | ✅ Fatto |
+| E6 | Tracking tempo di decisione per scelta | Medio | Basso | ✅ Fatto |
+| E7 | 10 nuovi achievement (Senza Filtro, Muro di Berlino, ecc.) | Basso | Basso | ✅ Fatto |
+| E8 | Modalità "Casi Reali" | Basso | Basso | ✅ Fatto |
+
+### Descrizioni
+
+- **E1**: ogni archetipo aziendale ha un manager con personalità distinta (stress_bonus passivo, rep_bonus_compliance, crisis_threshold), visibile nella sidebar con descrizione.
+- **E2**: 7 eventi triggerati da soglie statistiche (stress, energia, salute, autostima, rep, fazioni) con testo narrativo ed effetti. Si attivano una volta per soglia.
+- **E3**: grafico a linee ECharts (Stress + Energia nel tempo) nel report finale, usando `stats_history` in memoria.
+- **E4**: 5 fasi (Periodo di Prova → Primo Progetto → Fase Operativa → Ristrutturazione → Sopravvivenza) visibili nella sidebar.
+- **E5**: IL FONDATORE ESAURITO (Startup+burnout_risk), IL PECORA NERA (Familiare+truth_teller), L'INGRANAGGIO PERFETTO (Consulting+yes_man), IL RESISTENTE (energia bassa+longevità), L'INDIOMABILE (autostima alta).
+- **E6**: `_decision_start` timestamp al render evento, calcolato in `_make_choice`, salvato in `analytics.db` e mostrato nel report (media, rapide, lente).
+- **E7**: sbloccati a 8/15 occorrenze per truth_teller e boundary_setter, 20 per yes_man, 10 per burnout_risk e survivor, 30/60 giorni.
+- **E8**: checkbox nella schermata iniziale, mostra badge "Caso Reale" sugli eventi in partita.
