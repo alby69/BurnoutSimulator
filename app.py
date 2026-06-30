@@ -10,6 +10,7 @@ screen: str = 'start'
 engine: GameEngine | None = None
 session_id: str | None = None
 stats_before: dict = {}
+choice_history: list = []
 
 bars_def = [
     ('Energia', 'energy', '#4ade80'),
@@ -76,8 +77,9 @@ def _render_start():
         name_input = ui.input(value='Impiegato Anonimo').classes('w-full max-w-md')
 
         def start_game_cb():
-            global engine, session_id, stats_before, screen
+            global engine, session_id, stats_before, screen, choice_history
             session_id = uuid.uuid4().hex[:12]
+            choice_history = []
             engine = GameEngine(
                 name_input.value, 'game/data/events.json',
                 company_type=arch_select.value,
@@ -141,6 +143,23 @@ def _render_game():
                     ui.label(
                         f'{nname}:  T{ndata["trust"]}  R{ndata["respect"]}  F{ndata["fear"]}'
                     ).classes('text-xs text-gray-400')
+
+                if choice_history:
+                    ui.separator().classes('my-3 bg-gray-700')
+                    ui.label('ULTIME SCELTE').classes('text-sm font-bold text-gray-400 mb-2')
+                    cat_colors = {
+                        'COMPLIANCE': '#3b82f6',
+                        'RESISTANCE': '#ef4444',
+                        'NEGOTIATION': '#eab308',
+                        'ESCAPE': '#22c55e',
+                    }
+                    for h in choice_history[-5:]:
+                        cat_color = cat_colors.get(h['category'], '#6b7280')
+                        with ui.row().classes('items-center gap-1'):
+                            ui.icon('circle', size='6px').style(f'color: {cat_color}')
+                            ui.label(h['text'][:40] + ('…' if len(h['text']) > 40 else '')).classes(
+                                'text-xs text-gray-400 truncate'
+                            )
 
                 ui.separator().classes('my-3 bg-gray-700')
                 ui.label('STATO').classes('text-sm font-bold text-gray-400 mb-2')
@@ -221,14 +240,20 @@ def _render_game():
                         if n_choices == 1:
                             label = 'Continua →'
 
-                        ui.button(
+                        with ui.button(
                             label,
                             on_click=handle_choice_cb(i, event, choice),
                         ).classes(
                             'w-full text-left choice-btn rounded-lg border '
                             f'{"border-blue-700 hover:border-blue-500" if n_choices == 1 else "border-gray-700 hover:border-gray-500"} '
                             'hover:bg-gray-800 transition-all'
-                        ).props('flat no-caps')
+                        ).props('flat no-caps'):
+                            with ui.tooltip().classes('p-2 bg-gray-800 border border-gray-600 rounded'):
+                                for effect_key, effect_val in choice.effects.items():
+                                    sign = '+' if effect_val > 0 else ''
+                                    ui.label(f'{effect_key}: {sign}{effect_val}').classes(
+                                        'text-xs font-mono',
+                                    )
 
 
 def _render_game_over():
@@ -313,21 +338,76 @@ def _render_game_over():
 # ── Actions ──
 
 def _make_choice(idx: int, event, choice):
-    global stats_before
+    global stats_before, choice_history
     stats_before = get_stats_dict(engine)
     engine.handle_choice(idx)
+    stats_after = get_stats_dict(engine)
+
     record_choice(
         session_id, engine.player.days_survived,
         event.id, choice.id, choice.text, choice.category,
-        stats_before, get_stats_dict(engine),
+        stats_before, stats_after,
     )
-    global screen
-    if engine.is_game_over():
-        screen = 'game_over'
-    else:
-        engine.next_turn()
-        screen = 'game_over' if engine.is_game_over() else 'game'
-    page.refresh()
+
+    choice_history.append({
+        'text': choice.text,
+        'category': choice.category,
+    })
+
+    deltas = {}
+    for key in stats_before:
+        d = stats_after[key] - stats_before[key]
+        if d != 0:
+            deltas[key] = d
+
+    _show_choice_feedback(deltas, choice.category)
+
+
+def _show_choice_feedback(deltas: dict, category: str):
+    stat_labels = {
+        'energy': 'Energia', 'stress': 'Stress', 'health': 'Salute',
+        'integrity': 'Integrità', 'self_esteem': 'Autostima',
+        'employability': 'Occupabilità', 'manager_rep': 'Rep. Manager',
+        'team_rep': 'Rep. Team',
+    }
+    stat_colors = {
+        'energy': '#4ade80', 'stress': '#f87171', 'health': '#22d3ee',
+        'integrity': '#a78bfa', 'self_esteem': '#fbbf24',
+        'employability': '#34d399', 'manager_rep': '#fb923c', 'team_rep': '#60a5fa',
+    }
+
+    with ui.dialog() as dialog, ui.card().classes('p-6 min-w-[280px] bg-gray-900'):
+        ui.label('Esito della scelta').classes('text-lg font-bold text-gray-200 mb-1')
+        ui.badge(category, color='dark').classes('mb-4')
+
+        has_effects = False
+        for key in deltas:
+            has_effects = True
+            delta = deltas[key]
+            sign = '+' if delta > 0 else ''
+            color = stat_colors.get(key, '#9ca3af')
+            label = stat_labels.get(key, key)
+            bg = 'bg-green-900/30' if delta > 0 else 'bg-red-900/30'
+            text_color = 'text-green-400' if delta > 0 else 'text-red-400'
+            arrow = '▲' if delta > 0 else '▼'
+            with ui.row().classes(f'w-full items-center justify-between px-3 py-1 rounded {bg}'):
+                ui.label(label).classes('text-sm text-gray-300')
+                ui.label(f'{arrow} {sign}{delta}').classes(f'text-sm font-bold {text_color}')
+
+        if not has_effects:
+            ui.label('Nessun effetto rilevante sulle statistiche').classes('text-sm text-gray-500 italic')
+
+        def advance():
+            dialog.close()
+            if engine.is_game_over():
+                screen = 'game_over'
+            else:
+                engine.next_turn()
+                screen = 'game_over' if engine.is_game_over() else 'game'
+            page.refresh()
+
+        ui.button('Continua', on_click=advance).props('color=positive').classes('mt-4 w-full')
+    dialog.open()
 
 
 def _exit_game():
@@ -337,9 +417,10 @@ def _exit_game():
 
 
 def _play_again():
-    global screen, engine, session_id
+    global screen, engine, session_id, choice_history
     engine = None
     session_id = None
+    choice_history = []
     screen = 'start'
     page.refresh()
 

@@ -17,31 +17,59 @@ Le percentuali cambiano in base alle tue scelte. Ogni effetto `faction_Ribelli: 
 - quali eventi ti capitano
 - dialoghi o conseguenze diverse in base alla reputazione
 
-Servono per calcolare il finale (analisi antropologica), ma durante il gioco non danno feedback. Vedi proposta **M4** sotto.
+Servono per calcolare il finale (analisi antropologica), ma durante il gioco non danno feedback. Vedi proposta **M2** sotto.
+
+---
+
+## Completati ✅
+
+### ✅ M1 — FEEDBACK SULLE SCELTE
+
+Dopo ogni scelta si apre un **dialog** con gli effetti reali:
+
+```
+┌──────────────────────┐
+│  Esito della scelta   │
+│  [COMPLIANCE]         │
+│                       │
+│  ▼ Stress      +3    │
+│  ▲ Rep. Manager +2   │
+│  ▼ Energia     -2    │
+│  ▲ Marco Trust +2    │
+│                      │
+│  [Continua]          │
+└──────────────────────┘
+```
+
+- Delta colorato (verde ↑ positivo, rosso ↓ negativo)
+- Sfondo dipende dal segno (verde/rosso)
+- Categoria della scelta mostrata come badge
+
+### ✅ M3 — ANTEPRIMA EFFETTI AL PASSAGGIO MOUSE
+
+Al passaggio del mouse su ogni scelta, un **tooltip** mostra gli effetti:
+
+```
+Tooltip:
+  manager_rep: +2
+  stress: +3
+  energy: -2
+  npc_Marco_trust: +2
+```
+
+Implementato con `ui.tooltip()` nativo NiceGUI — funziona su desktop e mobile (tap lungo).
+
+### ✅ M6 — STORICO SCELTE VISIBILE IN PARTITA
+
+Nella sidebar, sotto le RELAZIONI, compare **ULTIME SCELTE** con le ultime 5 decisioni:
+
+- Ogni scelta ha un pallino colorato in base alla categoria (blu COMPLIANCE, rosso RESISTANCE, giallo NEGOTIATION, verde ESCAPE)
+- Testo troncato a 40 caratteri
+- Si aggiorna automaticamente a ogni turno
 
 ---
 
 ## Prossimi miglioramenti
-
-### M1 — FEEDBACK SULLE SCELTE
-
-Dopo ogni scelta, mostrare un **popup temporaneo** con gli effetti reali:
-
-```
-┌──────────────────────┐
-│  Scelta: COMPLIANCE   │
-│                       │
-│  Manager Rep:   +2   │
-│  Stress:        +3   │
-│  Energia:       -2   │
-│  Marco Trust:   +2   │
-│                      │
-│  [OK]                │
-└──────────────────────┘
-```
-
-- Mostrare per ogni effetto il delta colore (verde positivo, rosso negativo)
-- Prima di scegliere: mostrare le **conseguenze stimate** (opzionale, hover/tooltip)
 
 ### M2 — FAZIONI VISIBILI E REATTIVE
 
@@ -150,26 +178,27 @@ Alcuni eventi critici potrebbero avere un **timer** per la scelta (30 secondi):
 
 ## Tabella riepilogativa
 
-| # | Miglioramento | Impatto | Sforzo | Priorità |
-|---|---------------|---------|--------|----------|
-| M1 | Feedback effetti dopo la scelta | Alto | Basso | 🔴 Alta |
-| M2 | Fazioni influenzano NPC | Alto | Medio | 🔴 Alta |
-| M3 | Anteprima effetti al passaggio mouse | Medio | Basso | 🔴 Alta |
-| M4 | Dialoghi scriptati e conseguenze NPC | Alto | Alto | 🟡 Media |
-| M5 | Più finali basati su fazioni | Alto | Medio | 🟡 Media |
-| M6 | Storico scelte visibile in partita | Medio | Basso | 🟡 Media |
-| M7 | Grafo decisionale interattivo | Basso | Alto | 🟢 Bassa |
-| M8 | Mini-eventi giornalieri (routine) | Alto | Medio | 🟡 Media |
-| M9 | Dashboard analytics globale | Medio | Medio | 🟢 Bassa |
-| M10 | Mobile responsive migliorato | Medio | Basso | 🟡 Media |
-| M11 | Tutorial / onboarding | Alto | Medio | 🟡 Media |
-| M12 | Eventi con timer | Medio | Basso | 🟢 Bassa |
+| # | Miglioramento | Impatto | Sforzo | Stato |
+|---|---------------|---------|--------|-------|
+| M1 | Feedback effetti dopo la scelta | Alto | Basso | ✅ Fatto |
+| M2 | Fazioni influenzano NPC | Alto | Medio | 🔴 Da fare |
+| M3 | Anteprima effetti al passaggio mouse | Medio | Basso | ✅ Fatto |
+| M4 | Dialoghi scriptati e conseguenze NPC | Alto | Alto | 🟡 Da fare |
+| M5 | Più finali basati su fazioni | Alto | Medio | 🔴 Da fare |
+| M6 | Storico scelte visibile in partita | Medio | Basso | ✅ Fatto |
+| M7 | Grafo decisionale interattivo | Basso | Alto | 🟢 Da fare |
+| M8 | Mini-eventi giornalieri (routine) | Alto | Medio | 🟡 Da fare |
+| M9 | Dashboard analytics globale | Medio | Medio | 🟢 Da fare |
+| M10 | Mobile responsive migliorato | Medio | Basso | 🟡 Da fare |
+| M11 | Tutorial / onboarding | Alto | Medio | 🟡 Da fare |
+| M12 | Eventi con timer | Medio | Basso | 🟢 Da fare |
 
 ---
 
-## Come contribuire / priorità consigliata
+## Priorità consigliata
 
-1. **Partire da M1** (feedback effetti) — poche righe, impatto enorme sul giocatore
-2. **M3** (anteprima) — completamento naturale di M1
-3. **M2 + M5** (fazioni con peso reale) — dà senso a tutto il sistema
-4. **M4** (dialoghi) — trasforma il gioco da "menu di scelte" a "simulazione narrativa"
+1. **M2 + M5** (fazioni con peso reale) — dà senso a tutto il sistema fazioni
+2. **M4** (dialoghi) — trasforma il gioco da "menu di scelte" a "simulazione narrativa"
+3. **M8** (mini-eventi giornalieri) — più varietà tra un evento e l'altro
+4. **M11** (tutorial) — fondamentale per nuovi giocatori
+5. **M10** (mobile) — migliora l'esperienza su telefono
