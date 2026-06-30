@@ -123,17 +123,14 @@ Nel pannello laterale, aggiungere una sezione **STORICO** con le ultime scelte:
 - Icona ridimensionata per ogni scelta recente
 - Colore in base alla categoria (COMPLIANCE = blu, RESISTANCE = rosso, NEGOTIATION = giallo, ESCAPE = verde)
 
-### M7 — GRAFO DECISIONALE INTERATTIVO
+### ✅ M7 — GRAFO DECISIONALE INTERATTIVO
 
-Schermata "Statistiche Avanzate" con un grafo delle scelte fatte finora:
+Dialog accessibile dal pulsante `hub` nella barra superiore (gioco) e dal report finale:
 
-```
-[evento_1] ──COMPLIANCE──→ [evento_3]
-    │
-    └──RESISTANCE──→ [evento_2] ──NEGOTIATION──→ [evento_5]
-```
-
-Usabile con la libreria `pyvis` o un canvas HTML.
+- Grafo force-directed ECharts con nodi colorati per categoria evento
+- Archi colorati per categoria scelta (COMPLIANCE blu, RESISTANCE rosso, ecc.)
+- Strumenti: zoom, pan, trascinamento nodi, focus su adiacenza
+- Mostra i percorsi effettivamente percorsi dal giocatore, con connessioni narrativ
 
 ### ✅ M8 — SCENARI GIORNALIERI (MORNING ROUTINE)
 
@@ -195,7 +192,7 @@ Prima partita guidata con overlay modale a 5 step:
 | M4 | Conseguenze narrativi differite | Alto | Alto | ✅ Fatto |
 | M5 | Più finali basati su fazioni | Alto | Medio | ✅ Fatto |
 | M6 | Storico scelte visibile in partita | Medio | Basso | ✅ Fatto |
-| M7 | Grafo decisionale interattivo | Basso | Alto | 🟢 Da fare |
+| M7 | Grafo decisionale interattivo | Basso | Alto | ✅ Fatto |
 | M8 | Mini-eventi giornalieri (routine) | Alto | Medio | ✅ Fatto |
 | M9 | Dashboard analytics globale | Medio | Medio | ✅ Fatto |
 | M10 | Mobile responsive migliorato | Medio | Basso | ✅ Fatto |
@@ -213,4 +210,6 @@ Prima partita guidata con overlay modale a 5 step:
 5. ✅ ~~M10~~ (mobile) — completato
 6. ✅ ~~M12~~ (timer) — completato
 7. ✅ ~~M9~~ (dashboard analytics) — completato
-8. **M7** (grafo decisionale) — unico miglioramento pianificato ancora da fare
+8. ✅ ~~M7~~ (grafo decisionale) — completato
+
+Tutti i 12 miglioramenti pianificati sono stati implementati. 🎉
