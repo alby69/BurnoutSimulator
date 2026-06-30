@@ -111,6 +111,7 @@
         "id": "annuisci",
         "text": "Annuisci e prosegui.",
         "category": "COMPLIANCE",
+        "tags": ["survivor"],
         "effects": {
           "manager_rep": 2,
           "self_esteem": 5

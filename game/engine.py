@@ -83,6 +83,8 @@ class GameEngine:
             return False
 
         choice = self.current_event.choices[choice_index]
+
+        # Update player stats
         self.player.update_stats(choice.effects)
 
         if hasattr(choice, 'tags') and choice.tags:
