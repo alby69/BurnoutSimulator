@@ -1,5 +1,5 @@
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 
 @dataclass
@@ -8,6 +8,7 @@ class Choice:
     text: str
     effects: Dict[str, int]
     category: str  # e.g., COMPLIANCE, RESISTANCE, NEGOTIATION, ESCAPE
+    tags: List[str] = field(default_factory=list)
     next_event_id: Optional[str] = None
 
 @dataclass
@@ -27,9 +28,21 @@ class EventManager:
 
         events = {}
         for event_data in data:
-            choices = [
-                Choice(**choice_data) for choice_data in event_data['choices']
-            ]
+            choices = []
+            for choice_data in event_data['choices']:
+                # Extract tags if they exist, otherwise default to empty list
+                tags = choice_data.get('tags', [])
+                # Ensure all required fields for Choice dataclass are present
+                c = Choice(
+                    id=choice_data['id'],
+                    text=choice_data['text'],
+                    effects=choice_data['effects'],
+                    category=choice_data['category'],
+                    tags=tags,
+                    next_event_id=choice_data.get('next_event_id')
+                )
+                choices.append(c)
+
             events[event_data['id']] = Event(
                 id=event_data['id'],
                 text=event_data['text'],
