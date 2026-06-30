@@ -10,6 +10,7 @@ class Choice:
     category: str  # e.g., COMPLIANCE, RESISTANCE, NEGOTIATION, ESCAPE
     tags: List[str] = field(default_factory=list)
     next_event_id: Optional[str] = None
+    consequences: List[Dict] = field(default_factory=list)
 
 @dataclass
 class Event:
@@ -34,13 +35,14 @@ class EventManager:
                 tags = choice_data.get('tags', [])
                 # Ensure all required fields for Choice dataclass are present
                 c = Choice(
-                    id=choice_data['id'],
-                    text=choice_data['text'],
-                    effects=choice_data['effects'],
-                    category=choice_data['category'],
-                    tags=tags,
-                    next_event_id=choice_data.get('next_event_id')
-                )
+                        id=choice_data['id'],
+                        text=choice_data['text'],
+                        effects=choice_data['effects'],
+                        category=choice_data['category'],
+                        tags=tags,
+                        next_event_id=choice_data.get('next_event_id'),
+                        consequences=choice_data.get('consequences', [])
+                    )
                 choices.append(c)
 
             events[event_data['id']] = Event(

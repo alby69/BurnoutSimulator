@@ -392,6 +392,9 @@
         "text": "Accetti il silenzio e torni alla routine",
         "category": "COMPLIANCE",
         "tags": ["survivor"],
+        "consequences": [
+          {"event_id": "richiamo_formale", "after_turns": 3}
+        ],
         "effects": {
           "stress": 3,
           "manager_rep": 1,
@@ -435,6 +438,9 @@
         "text": "Spieghi che HR è il canale appropriato per certe questioni",
         "category": "RESISTANCE",
         "tags": ["boundary_setter"],
+        "consequences": [
+          {"event_id": "collega_ringrazia", "after_turns": 2}
+        ],
         "effects": {
           "integrity": 4,
           "manager_rep": -5,
@@ -609,6 +615,9 @@
         "text": "Accetti la valutazione senza discutere",
         "category": "COMPLIANCE",
         "tags": ["yes_man", "burnout_risk"],
+        "consequences": [
+          {"event_id": "richiamo_formale", "after_turns": 2}
+        ],
         "effects": {
           "stress": 4,
           "self_esteem": -8,
@@ -928,6 +937,188 @@
           "manager_rep": -1,
           "stress": 2,
           "energy": -3
+        }
+      }
+    ]
+  },
+  {
+    "id": "collega_ringrazia",
+    "text": "Ieri hai difeso pubblicamente un collega. Oggi ti trova in pausa caffè e ti dice: 'Grazie per quello che hai fatto. Nessuno aveva mai avuto il coraggio.' Ti stringe la mano. Per un momento, l'ufficio sembra meno grigio.",
+    "category": "burnout",
+    "choices": [
+      {
+        "id": "accetta_grazie",
+        "text": "Accetti il ringraziamento e gli dici che ci sarà sempre una prossima volta",
+        "category": "NEGOTIATION",
+        "tags": ["boundary_setter"],
+        "effects": {
+          "self_esteem": 5,
+          "stress": -3,
+          "team_rep": 3,
+          "npc_Roberto_trust": 4,
+          "faction_Ribelli": 3
+        }
+      },
+      {
+        "id": "minimizza",
+        "text": "Minimizzi: 'Non è niente, chiunque avrebbe fatto lo stesso'",
+        "category": "ESCAPE",
+        "tags": ["survivor"],
+        "effects": {
+          "self_esteem": 1,
+          "npc_Roberto_trust": 2,
+          "stress": -1
+        }
+      }
+    ]
+  },
+  {
+    "id": "richiamo_formale",
+    "text": "Ricevi una email da Elena di HR: 'A seguito di comportamenti ripetuti non allineati alle policy aziendali, ti comunichiamo un richiamo formale. Ti invitiamo a riflettere sulle tue modalità di comunicazione.' La email è in CC a Marco.",
+    "category": "mobbing",
+    "choices": [
+      {
+        "id": "accetta_richiamo",
+        "text": "Accetti il richiamo e prometti di adeguarti",
+        "category": "COMPLIANCE",
+        "tags": ["yes_man"],
+        "effects": {
+          "manager_rep": 3,
+          "integrity": -3,
+          "stress": 3,
+          "self_esteem": -2,
+          "faction_Fedelissimi": 4
+        }
+      },
+      {
+        "id": "contesta_richiamo",
+        "text": "Contesti il richiamo per iscritto, chiedendo evidenze oggettive",
+        "category": "RESISTANCE",
+        "tags": ["truth_teller", "boundary_setter"],
+        "effects": {
+          "integrity": 4,
+          "manager_rep": -5,
+          "stress": 4,
+          "npc_Elena_trust": -5,
+          "faction_Ribelli": 5
+        },
+        "next_event_id": "ritorsione_manager"
+      }
+    ]
+  },
+  {
+    "id": "progetto_premio",
+    "text": "Marco ti convoca: 'Ho apprezzato il tuo impegno sull'ultimo progetto. Ti assegno un incarico di visibilità — relazione diretta con il cliente principale.' È la prima volta che ricevi un riconoscimento pubblico.",
+    "category": "favoritismo",
+    "choices": [
+      {
+        "id": "accetta_progetto",
+        "text": "Accetti con entusiasmo e ti metti subito al lavoro",
+        "category": "COMPLIANCE",
+        "tags": ["yes_man"],
+        "effects": {
+          "manager_rep": 5,
+          "stress": 3,
+          "energy": -3,
+          "self_esteem": 4,
+          "faction_Fedelissimi": 4,
+          "npc_Marco_trust": 5,
+          "npc_Giulia_fear": 3
+        }
+      },
+      {
+        "id": "negozia_carico",
+        "text": "Accetti ma chiedi una ridistribuzione del carico di lavoro corrente",
+        "category": "NEGOTIATION",
+        "tags": ["boundary_setter"],
+        "effects": {
+          "manager_rep": 2,
+          "stress": -1,
+          "energy": -1,
+          "npc_Marco_trust": 2,
+          "integrity": 2
+        }
+      }
+    ]
+  },
+  {
+    "id": "burnout_startup",
+    "text": "La startup è in fibrillazione: il founder annuncia che i round di finanziamento slittano. 'Dobbiamo stringere i denti per altre 3 settimane' dice. L'aria è tesa, il break room è silenzioso. L'ufficio sembra un dormitorio.",
+    "category": "burnout",
+    "choices": [
+      {
+        "id": "resta_extra",
+        "text": "Resti fino a tardi come tutti, dimostri attaccamento",
+        "category": "COMPLIANCE",
+        "tags": ["yes_man"],
+        "effects": {
+          "manager_rep": 3,
+          "energy": -6,
+          "stress": 5,
+          "health": -2
+        }
+      },
+      {
+        "id": "stacca_orario",
+        "text": "Esci all'orario stabilito — hai diritto a una vita",
+        "category": "RESISTANCE",
+        "tags": ["boundary_setter"],
+        "effects": {
+          "manager_rep": -4,
+          "stress": -3,
+          "integrity": 3,
+          "faction_Ribelli": 3
+        }
+      },
+      {
+        "id": "proponi_rioranizzazione",
+        "text": "Proponi una riorganizzazione delle priorità per gestire il carico ridotto",
+        "category": "NEGOTIATION",
+        "tags": [],
+        "effects": {
+          "manager_rep": 1,
+          "stress": -1,
+          "team_rep": 2,
+          "integrity": 1
+        }
+      }
+    ]
+  },
+  {
+    "id": "passaggio_generazionale",
+    "text": "Il fondatore dell'azienda di famiglia annuncia il ritiro. 'Mio figlio prenderà le redini' dice. I colleghi più anziani si scambiano sguardi preoccupati. L'aria odora di incenso e rimpianti.",
+    "category": "favoritismo",
+    "choices": [
+      {
+        "id": "acclama",
+        "text": "Fai le congratulazioni e ti offri di supportare il passaggio",
+        "category": "COMPLIANCE",
+        "tags": ["yes_man"],
+        "effects": {
+          "manager_rep": 4,
+          "faction_Fedelissimi": 3,
+          "stress": 1
+        }
+      },
+      {
+        "id": "osserva",
+        "text": "Osservi e aspetti di vedere come evolve la situazione",
+        "category": "ESCAPE",
+        "tags": ["survivor"],
+        "effects": {
+          "stress": -2,
+          "faction_Gruppo Silenzioso": 2
+        }
+      },
+      {
+        "id": "preoccupati",
+        "text": "Esprimi preoccupazione con i colleghi fidati",
+        "category": "RESISTANCE",
+        "tags": ["truth_teller"],
+        "effects": {
+          "integrity": 2,
+          "stress": 2,
+          "faction_Ribelli": 2
         }
       }
     ]

@@ -76,6 +76,8 @@ class GameEngine:
         self.hidden_vars["company_crisis"] = 10
         self.current_mini_event = None
         self._last_factions = dict(self.player.factions)
+        self.deferred_events = []
+        self._tutorial_step = 0
 
     def apply_archetype(self, archetype_name):
         if archetype_name in self.COMPANY_ARCHETYPES:
@@ -91,20 +93,21 @@ class GameEngine:
         self.current_mini_event = random.choice(MINI_EVENTS)
         self.player.update_stats(self.current_mini_event[1])
 
-        if self.player.stress > 80 and random.random() < 0.3:
-            self.current_event = self.event_manager.get_event("burnout_warning")
+        # Process deferred events
+        deferred_override = None
+        for d in self.deferred_events:
+            d["due_in"] -= 1
+            if d["due_in"] <= 0:
+                deferred_override = d["event_id"]
+        self.deferred_events = [d for d in self.deferred_events if d["due_in"] > 0]
+
+        if deferred_override:
+            self.current_event = self.event_manager.get_event(deferred_override)
         elif self.next_event_id_override:
             self.current_event = self.event_manager.get_event(self.next_event_id_override)
             self.next_event_id_override = None
         else:
-             # Logic for deferred consequences
-             # We can generalize this by checking if certain tags have high frequency
-             if self.player.tags.get("yes_man", 0) > 3 and random.random() < 0.2:
-                 # This would need a generic way to find 'consequence' events
-                 # For now, keeping it simple but less hardcoded to IDs if possible
-                 pass
-
-             self.current_event = self.event_manager.get_random_event(exclude_ids=self.history[-10:])
+            self.current_event = self.event_manager.get_random_event(exclude_ids=self.history[-10:])
 
         if self.current_event:
             self.history.append(self.current_event.id)
@@ -164,6 +167,14 @@ class GameEngine:
 
         if random.random() < 0.1:
             self.hidden_vars["company_crisis"] += 5
+
+        # Deferred consequences
+        for con in choice.consequences:
+            self.deferred_events.append({
+                "event_id": con["event_id"],
+                "due_in": con["after_turns"],
+                "label": con.get("label", ""),
+            })
 
         if choice.next_event_id:
             if "|" in choice.next_event_id:
