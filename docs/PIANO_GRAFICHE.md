@@ -27,8 +27,6 @@ static/images/                          ← Servito via app.add_static_files('/s
     └── CORP_STATO_Realizzazione_Brutale.png
 ```
 
-~~Gli asset originali in `graphics/` sono stati rimossi perché non più necessari.~~
-
 ## Cosa è stato implementato
 
 | Fase | Descrizione | Stato |
