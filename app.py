@@ -1,4 +1,4 @@
-import uuid, random, json, sqlite3, os
+import uuid, random, json, sqlite3, os, base64
 from io import BytesIO
 from nicegui import app, ui
 from game.engine import (
@@ -1625,29 +1625,82 @@ def _show_stats_dialog():
 
 
 def _export_report():
-    ui.run_javascript("""
-        (function() {
-            const el = document.querySelector('.report-card');
-            if (!el) return;
-            function capture() {
-                html2canvas(el, { backgroundColor: '#0a0a1a', scale: 2 })
-                .then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = 'burnout-report.png';
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                });
-            }
-            if (typeof html2canvas === 'undefined') {
-                const s = document.createElement('script');
-                s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
-                s.onload = capture;
-                s.onerror = function() { alert('Esportazione non disponibile (nessuna connessione)'); };
-                document.head.appendChild(s);
-            } else {
-                capture();
-            }
-        })();
+    player = engine.player
+    stats = get_stats_dict(engine)
+    ending = determine_ending(player)
+    pdata = player.to_dict()
+
+    tags_rows = "".join(
+        f"<tr><td>{tag.replace('_', ' ').title()}</td><td>{count}</td></tr>\n"
+        for tag, count in sorted(player.tags.items(), key=lambda x: x[1], reverse=True)
+        if count
+    )
+    archs_rows = "".join(
+        f"<tr><td>{fname}</td><td>{fscore}%</td></tr>\n"
+        for fname, fscore in pdata["factions"].items()
+    )
+    npcs_rows = "".join(
+        f"<tr><td>{nname}</td><td>{ndata['trust']}%</td><td>{ndata['respect']}%</td><td>{ndata['fear']}%</td></tr>\n"
+        for nname, ndata in pdata["npcs"].items()
+    )
+    status_badge = (
+        "badge-red"
+        if "Burnout" in player.status or "Licenziato" in player.status
+        else "badge-blue"
+    )
+
+    html = f"""<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="utf-8"><title>Burnout Report</title>
+<style>
+body {{ font-family: 'Segoe UI', sans-serif; background: #0a0a1a; color: #e2e8f0; padding: 40px; max-width: 800px; margin: auto; }}
+h1 {{ color: #3b82f6; font-size: 28px; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }}
+h2 {{ color: #94a3b8; font-size: 18px; margin-top: 30px; }}
+table {{ width: 100%; border-collapse: collapse; margin: 10px 0 20px; }}
+th, td {{ text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }}
+th {{ color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; }}
+td {{ color: #cbd5e1; }}
+.badge {{ display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; }}
+.badge-red {{ background: rgba(239,68,68,0.2); color: #f87171; }}
+.badge-blue {{ background: rgba(59,130,246,0.2); color: #60a5fa; }}
+.footer {{ margin-top: 40px; font-size: 11px; color: #475569; text-align: center; }}
+</style></head>
+<body>
+<h1>Burnout Simulator — Report Carriera</h1>
+<p style="color:#94a3b8;font-size:14px;">{player.name} · {player.company_type} · {player.days_survived} giorni</p>
+<h2>Finale: {ending}</h2>
+<p>Stato: <span class="badge {status_badge}">{player.status}</span></p>
+<h2>Statistiche Finali</h2>
+<table>
+<tr><th>Statistica</th><th>Valore</th></tr>
+<tr><td>Energia</td><td>{stats["energy"]}%</td></tr>
+<tr><td>Stress</td><td>{stats["stress"]}%</td></tr>
+<tr><td>Salute</td><td>{stats["health"]}%</td></tr>
+<tr><td>Integrità</td><td>{stats["integrity"]}%</td></tr>
+<tr><td>Autostima</td><td>{stats["self_esteem"]}%</td></tr>
+<tr><td>Occupabilità</td><td>{stats["employability"]}%</td></tr>
+<tr><td>Rep. Manager</td><td>{stats["manager_rep"]}%</td></tr>
+<tr><td>Rep. Team</td><td>{stats["team_rep"]}%</td></tr>
+</table>
+<h2>Fazioni</h2>
+<table><tr><th>Fazione</th><th>Allineamento</th></tr>
+{archs_rows}</table>
+<h2>Relazioni</h2>
+<table><tr><th>NPC</th><th>Fiducia</th><th>Rispetto</th><th>Paura</th></tr>
+{npcs_rows}</table>
+<h2>Profilo Comportamentale</h2>
+<table><tr><th>Tratto</th><th>Conteggio</th></tr>
+{tags_rows}</table>
+<p class="footer">Generato da Burnout Simulator v2.0</p>
+</body></html>"""
+
+    b64 = base64.b64encode(html.encode()).decode()
+    safe_name = player.name.replace(" ", "_")
+    ui.run_javascript(f"""
+        var a = document.createElement('a');
+        a.download = 'burnout-report-{safe_name}.html';
+        a.href = 'data:text/html;base64,{b64}';
+        a.click();
     """)
 
 
