@@ -1,61 +1,77 @@
-import asyncio
-import logging
-from typing import List, Optional, Dict, Any
-from agentmesh.core import MeshConfig
-from agentmesh.core.models import AgentMessage
-from agentmesh.relay import NostrAgent
-from engine.psych_engine import PsychologicalProfile, PsychometricEngine
+from typing import List, Dict, Any, Optional
+from pydantic import BaseModel
+from psychology.profile import PsychologicalProfile
 
-class BurnoutAgent(NostrAgent):
+class Action(BaseModel):
+    type: str
+    parameters: Dict[str, Any]
+
+class Perception(BaseModel):
+    stimuli: Dict[str, Any]
+    interpreted_threat: float
+
+class Situation(BaseModel):
+    context: str
+    available_actions: List[Action]
+
+class Relationship(BaseModel):
+    target_id: str
+    trust: float
+    fear: float
+    respect: float
+
+class Goal(BaseModel):
+    description: str
+    priority: float
+
+class EpisodicMemory(BaseModel):
+    events: List[Dict[str, Any]] = []
+
+class AgentState(BaseModel):
+    current_activity: str
+    location: str
+
+class BaseAgent:
     """
-    Standard agent for BurnoutSimulator v3.0.
-    Integrates psychological profiling with autonomous decision making
-    and P2P coordination via Nostr.
+    Classe base per tutti gli agenti (umani e AI).
+    Ogni agente è un'entità autonoma con:
+    - Profilo psicologico dinamico
+    - Memoria degli eventi
+    - Capacità decisionale
+    - Comunicazione con altri agenti
     """
 
-    def __init__(self, config: MeshConfig, secret_key: Optional[str] = None, profile: Optional[PsychologicalProfile] = None):
-        super().__init__(config, secret_key=secret_key)
-        self.profile = profile or PsychologicalProfile()
-        self.psych_engine = PsychometricEngine()
-        self.memory: List[Dict[str, Any]] = []
-        self.logger.info(f"BurnoutAgent {config.agent_name} initialized with profile.")
+    def __init__(self, agent_id: str, profile: PsychologicalProfile):
+        self.agent_id = agent_id
+        self.profile = profile
+        self.memory = EpisodicMemory()
+        self.current_state = AgentState(current_activity="idle", location="unknown")
+        self.relationships: Dict[str, Relationship] = {}
+        self.goals: List[Goal] = []
 
-    async def perceive(self, event_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Filters the event through the agent's psychological profile."""
-        perceived_event = event_data.copy()
-        if self.profile.neuroticism > 70:
-            perceived_event["perceived_threat_level"] = "high"
-        else:
-            perceived_event["perceived_threat_level"] = "normal"
-        return perceived_event
+    def perceive(self, event: Any) -> Perception:
+        """Filtra l'evento attraverso il profilo psicologico"""
+        # TODO: Implementare logica di percezione
+        pass
 
-    async def decide(self, choices: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Decision making logic based on profile and history."""
-        if not choices:
-            return {}
+    def decide(self, situation: Situation) -> Action:
+        """
+        Prende una decisione basata su:
+        1. Profilo psicologico
+        2. Stato attuale
+        3. Memoria storica
+        4. Relazioni sociali
+        5. Obiettivi personali
+        """
+        # TODO: Implementare logica decisionale
+        pass
 
-        if self.profile.agreeableness > 70:
-            return min(choices, key=lambda c: c.get("effects", {}).get("stress", 0))
+    def act(self, action: Action):
+        """Esegue l'azione e aggiorna lo stato interno"""
+        # TODO: Implementare logica di esecuzione azione
+        pass
 
-        if self.profile.machiavellianism > 60:
-            return max(choices, key=lambda c: c.get("effects", {}).get("manager_rep", 0))
-
-        import random
-        return random.choice(choices)
-
-    async def learn(self, outcome_data: Dict[str, Any]):
-        """Update profile and memory based on outcome."""
-        self.memory.append(outcome_data)
-        self.profile = self.psych_engine.evaluate_choice(
-            self.profile,
-            outcome_data.get("choice", {}),
-            outcome_data.get("context", {})
-        )
-        self.logger.info(f"Agent {self.config.agent_name} learned from outcome. New stress: {self.profile.current_stress}")
-
-    async def handle_message(self, message: AgentMessage):
-        """Handle A2A communication (Kind 29001)."""
-        await super().handle_message(message)
-        if message.message_type == "advice":
-            self.logger.info(f"Received advice from {message.sender}: {message.content}")
-            # Potentially adjust profile or decision weights based on advice
+    def communicate(self, message: Any, target: 'BaseAgent'):
+        """Comunicazione diretta con altri agenti"""
+        # TODO: Implementare protocollo di comunicazione
+        pass
