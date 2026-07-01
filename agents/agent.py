@@ -7,6 +7,7 @@ import json
 from game.engine import GameEngine
 from .personality import PsychologicalProfile, AGENT_PROFILES
 from .memory import AgentMemory
+from database.agent_db import save_agent, save_decision
 
 
 @dataclass
@@ -167,11 +168,13 @@ class Agent:
         if not self.engine or not self.engine.current_event:
             return False
 
-        choice = self.engine.current_event.choices[choice_idx]
+        event = self.engine.current_event
+        choice = event.choices[choice_idx]
+        stats_before = self.engine.player.to_dict()["stats"]
 
         # Registra nella memoria come decisione umana
         self.memory.record_decision(
-            event_id=self.engine.current_event.id,
+            event_id=event.id,
             choice_id=choice.id,
             choice_text=choice.text,
             category=choice.category,
@@ -183,7 +186,7 @@ class Agent:
         if self.possession_history:
             self.possession_history[-1]["decisions_made"].append({
                 "turn": self.engine.player.days_survived,
-                "event_id": self.engine.current_event.id,
+                "event_id": event.id,
                 "choice_id": choice.id,
                 "timestamp": datetime.now().isoformat()
             })
@@ -191,7 +194,26 @@ class Agent:
         self.total_decisions += 1
 
         # Esegui la scelta nel motore di gioco
-        return self.engine.handle_choice(choice_idx)
+        success = self.engine.handle_choice(choice_idx)
+
+        if success:
+            stats_after = self.engine.player.to_dict()["stats"]
+            self.memory.record_outcome(choice.id, stats_before, stats_after)
+
+            # Persistenza DB
+            save_decision({
+                "agent_id": self.agent_id,
+                "turn_number": self.engine.player.days_survived,
+                "event_id": event.id,
+                "choice_id": choice.id,
+                "choice_category": choice.category,
+                "was_auto": False,
+                "human_id": human_id,
+                "stats_before": stats_before,
+                "stats_after": stats_after
+            })
+
+        return success
 
     def auto_play_turn(self) -> Optional[Any]:
         """L'agente gioca un turno in automatico."""
@@ -202,8 +224,25 @@ class Agent:
         if not event:
             return None
 
+        stats_before = self.engine.player.to_dict()["stats"]
         choice_idx = self.decide(event)
+        choice = event.choices[choice_idx]
+
         self.engine.handle_choice(choice_idx)
+        stats_after = self.engine.player.to_dict()["stats"]
+
+        # Registra esito e salva nel DB
+        self.memory.record_outcome(choice.id, stats_before, stats_after)
+        save_decision({
+            "agent_id": self.agent_id,
+            "turn_number": self.engine.player.days_survived,
+            "event_id": event.id,
+            "choice_id": choice.id,
+            "choice_category": choice.category,
+            "was_auto": True,
+            "stats_before": stats_before,
+            "stats_after": stats_after
+        })
 
         if not self.engine.is_game_over():
             self.engine.next_turn()

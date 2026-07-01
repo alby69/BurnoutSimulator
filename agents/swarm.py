@@ -1,11 +1,15 @@
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import random
 import uuid
 
 from .agent import Agent
 from .personality import AGENT_PROFILES, PsychologicalProfile
 from human.human_player import HumanPlayer
+from database.agent_db import (
+    save_agent, save_decision, save_jump, save_human_profile, save_swarm_session,
+    get_all_agents, get_all_human_profiles
+)
 
 
 class AgentSwarm:
@@ -14,6 +18,7 @@ class AgentSwarm:
     i possessi umani e la visualizzazione.
     """
     def __init__(self, num_agents: int = 6):
+        self.session_id: str = f"swarm_{uuid.uuid4().hex[:8]}"
         self.agents: Dict[str, Agent] = {}
         self.humans: Dict[str, HumanPlayer] = {}
         self.simulation_running: bool = False
@@ -21,6 +26,13 @@ class AgentSwarm:
 
         # Inizializza agenti con profili diversi
         self._init_agents(num_agents)
+
+        # Salva sessione swarm
+        save_swarm_session({
+            "session_id": self.session_id,
+            "num_agents": num_agents,
+            "started_at": datetime.now(timezone.utc).isoformat()
+        })
 
     def _init_agents(self, num_agents: int):
         """Crea agenti con profili psicologici diversi."""
@@ -40,11 +52,13 @@ class AgentSwarm:
             )
             agent.initialize_game()
             self.agents[agent_id] = agent
+            save_agent(agent.to_dict())
 
     def register_human(self, name: str = "Osservatore") -> HumanPlayer:
         """Registra un nuovo giocatore umano."""
         human = HumanPlayer(name=name)
         self.humans[human.human_id] = human
+        save_human_profile(human.to_dict())
         return human
 
     def get_available_agents(self, human_id: str) -> List[Dict]:
@@ -124,27 +138,43 @@ class AgentSwarm:
         human = self.humans[human_id]
         agent = self.agents[agent_id]
 
-        # Rilascia agente precedente se ne ha uno
+        # Calcola from_day: il giorno in cui l'umano ha INIZIATO a possedere l'agente precedente
+        # to_day: il giorno attuale dell'agente precedente
+        from_day = human.current_join_day
+        to_day = 0
         if human.current_agent_id and human.current_agent_id in self.agents:
             old_agent = self.agents[human.current_agent_id]
+            to_day = old_agent.engine.player.days_survived if old_agent.engine else 0
             old_agent.release(human_id)
-
-            # Registra il salto
-            from_day = old_agent.engine.player.days_survived if old_agent.engine else 0
-        else:
-            from_day = 0
+            save_agent(old_agent.to_dict())
 
         # Possess nuovo agente
-        to_day = agent.engine.player.days_survived if agent.engine else 0
-        human.jump_to(
+        current_agent_day = agent.engine.player.days_survived if agent.engine else 0
+        jump_record = human.jump_to(
             from_agent_id=human.current_agent_id,
             to_agent_id=agent_id,
             from_day=from_day,
             to_day=to_day,
             reason=reason
         )
+        human.current_join_day = current_agent_day
+
+        # Persistenza salto e profili
+        save_jump({
+            "human_id": human_id,
+            "from_agent_id": jump_record.from_agent_id,
+            "to_agent_id": jump_record.to_agent_id,
+            "from_day": jump_record.from_day,
+            "to_day": jump_record.to_day,
+            "reason": jump_record.reason,
+            "declared_mood": jump_record.declared_mood,
+            "timestamp": jump_record.timestamp
+        })
+        save_human_profile(human.to_dict())
 
         result = agent.possess(human_id)
+        save_agent(agent.to_dict())
+
         return {
             "success": True,
             "jump_recorded": True,
@@ -177,9 +207,14 @@ class AgentSwarm:
                     agent.engine.player.days_survived
                 )
 
+                # Persistenza decisione e profili
+                save_human_profile(human.to_dict())
+                save_agent(agent.to_dict())
+
             # Passa al prossimo turno
             if not agent.engine.is_game_over():
                 agent.engine.next_turn()
+                save_agent(agent.to_dict())
 
             return {
                 "success": True,
@@ -205,8 +240,17 @@ class AgentSwarm:
                     "alive": agent.engine.player.is_alive if agent.engine else False,
                     "event": event.id if event else None
                 })
+                save_agent(agent.to_dict())
 
         self.turn_counter += 1
+
+        # Aggiorna sessione swarm
+        save_swarm_session({
+            "session_id": self.session_id,
+            "num_agents": len(self.agents),
+            "total_turns": self.turn_counter
+        })
+
         return {
             "turn": self.turn_counter,
             "agents_updated": len(results),
@@ -271,6 +315,43 @@ class AgentSwarm:
                 for p in agent.possession_history
             ]
         }
+
+    def load_swarm(self):
+        """Ripristina lo stato dello sciame dal database."""
+        # Carica Agenti
+        db_agents = get_all_agents()
+        if db_agents:
+            self.agents = {}
+            for da in db_agents:
+                profile_name = da["profile_name"]
+                profile = next((p for p in AGENT_PROFILES.values() if p.name == profile_name), list(AGENT_PROFILES.values())[0])
+
+                agent = Agent(
+                    agent_id=da["agent_id"],
+                    name=da["name"],
+                    profile=profile,
+                    company_type=da["company_type"]
+                )
+                # Inizializza engine con lo stato salvato
+                agent.initialize_game()
+                # Se l'agente era vivo e ha stats salvate, dovremmo ripristinarle
+                # Per ora ripartiamo dal giorno salvato o reinizializziamo
+                if da["days_survived"] > 0:
+                     agent.engine.player.days_survived = da["days_survived"]
+
+                self.agents[da["agent_id"]] = agent
+            print(f"Loaded {len(self.agents)} agents from DB")
+
+        # Carica Umani
+        db_humans = get_all_human_profiles()
+        for dh in db_humans:
+            human = HumanPlayer(
+                human_id=dh["human_id"],
+                name=dh["name"]
+            )
+            # Carica dati aggiuntivi se necessario (jump_history etc)
+            self.humans[dh["human_id"]] = human
+            print(f"Loaded human {dh['name']} from DB")
 
     def get_swarm_analytics(self) -> Dict:
         """Statistiche globali del laboratorio."""
