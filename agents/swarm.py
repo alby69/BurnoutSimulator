@@ -7,6 +7,7 @@ from .agent import Agent
 from .personality import AGENT_PROFILES, PsychologicalProfile
 from human.human_player import HumanPlayer
 from database.agent_db import (
+    init_agent_db,
     save_agent,
     save_decision,
     save_jump,
@@ -29,6 +30,8 @@ class AgentSwarm:
         self.humans: Dict[str, HumanPlayer] = {}
         self.simulation_running: bool = False
         self.turn_counter: int = 0
+
+        init_agent_db()
 
         # Inizializza agenti con profili diversi
         self._init_agents(num_agents)
