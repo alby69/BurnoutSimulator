@@ -15,7 +15,7 @@ from database.analytics import (
     record_choice,
     record_tags,
 )
-from database.agent_db import init_agent_db
+from database.agent_db import init_agent_db, save_agent
 from game.events import Choice
 from agents.swarm import AgentSwarm
 
@@ -601,18 +601,28 @@ def _start_possession(agent_id: str):
     """Inizia il possesso di un agente."""
     global current_agent_id, screen, engine, session_id
 
+    if not current_human_id:
+        ui.notify("Nessun umano registrato. Torna al menu e riprova.", type="warning")
+        return
     result = swarm.possess_agent(current_human_id, agent_id)
     if result.get("success"):
         current_agent_id = agent_id
         agent = swarm.agents[agent_id]
         engine = agent.engine
         session_id = f"possession_{agent_id}_{uuid.uuid4().hex[:6]}"
-        screen = "game"  # Usa la schermata gioco esistente ma in modalità possesso
+        screen = "game"
         page.refresh()
+    else:
+        ui.notify(
+            result.get("error", "Impossibile possedere l'agente"), type="negative"
+        )
 
 
 def _continue_possession(agent_id: str):
     global current_agent_id, screen, engine
+    if agent_id not in swarm.agents:
+        ui.notify("Agente non trovato", type="negative")
+        return
     current_agent_id = agent_id
     engine = swarm.agents[agent_id].engine
     screen = "game"
@@ -620,7 +630,8 @@ def _continue_possession(agent_id: str):
 
 
 def _go_to_laboratory():
-    global current_human_id, screen
+    global current_human_id, current_agent_id, screen
+    current_agent_id = None
     if not current_human_id:
         human = swarm.register_human(
             getattr(engine, "player", None) and engine.player.name or "Osservatore"
@@ -656,6 +667,11 @@ def _render_jump_dialog():
     Dialog che appare quando l'umano vuole saltare a un altro agente.
     Mostra gli agenti disponibili filtrati per mood selezionato.
     """
+    if not current_human_id:
+        ui.notify(
+            "Registrati prima nel Laboratorio per usare il salto.", type="warning"
+        )
+        return
     with ui.dialog().props("maximized") as dialog:
         with (
             ui.card()
@@ -691,6 +707,7 @@ def _render_jump_dialog():
                     agents_container.clear()
                     available = swarm.get_available_agents(current_human_id)
                     selected_mood = mood.value
+                    rendered_any = False
                     for agent in available:
                         if agent["agent_id"] == current_agent_id:
                             continue
@@ -698,6 +715,7 @@ def _render_jump_dialog():
                             selected_mood, agent
                         ):
                             continue
+                        rendered_any = True
                         with agents_container:
                             with (
                                 ui.card()
@@ -726,7 +744,7 @@ def _render_jump_dialog():
                                                 _execute_jump(aid, m.value, dialog)
                                             ),
                                         ).props("color=purple size=sm")
-                    if not agents_container.children:
+                    if not rendered_any:
                         with agents_container:
                             ui.label(
                                 "Nessun agente corrisponde al tuo stato d'animo attuale."
@@ -746,11 +764,10 @@ def _execute_jump(to_agent_id: str, mood: Optional[str], dialog):
     """Esegue il salto da un agente all'altro."""
     global current_agent_id, engine, session_id
 
-    # Rilascia corrente
-    if current_agent_id:
-        swarm.agents[current_agent_id].release(current_human_id)
+    if not current_human_id:
+        ui.notify("Nessun umano registrato.", type="warning")
+        return
 
-    # Possess nuovo
     result = swarm.possess_agent(
         current_human_id, to_agent_id, reason=f"Salto emotivo: {mood}" if mood else None
     )
@@ -1281,9 +1298,7 @@ def _render_game():
                 ui.button(
                     "LABORATORIO",
                     icon="biotech",
-                    on_click=lambda: (
-                        globals().update(screen="laboratory") or page.refresh()
-                    ),
+                    on_click=_go_to_laboratory,
                 ).props("flat size=sm").classes("text-white")
 
     mobile_cls = " pb-20" if _layout_mode == "mobile" else ""
@@ -2092,11 +2107,14 @@ def _show_choice_feedback(deltas: dict, category: str):
         def advance():
             global screen
             dialog.close()
-            if engine.is_game_over():
+            if engine and engine.is_game_over():
                 screen = "game_over"
             else:
-                engine.next_turn()
-                screen = "game_over" if engine.is_game_over() else "game"
+                if engine:
+                    engine.next_turn()
+                screen = "game_over" if engine and engine.is_game_over() else "game"
+                if current_agent_id:
+                    save_agent(swarm.agents[current_agent_id].to_dict())
             page.refresh()
 
         ui.button("PROSEGUI", on_click=advance).props("color=blue size=lg").classes(
@@ -2191,10 +2209,18 @@ def _exit_game():
 
 
 def _play_again():
-    global screen, engine, session_id, choice_history
+    global \
+        screen, \
+        engine, \
+        session_id, \
+        choice_history, \
+        current_human_id, \
+        current_agent_id
     engine = None
     session_id = None
     choice_history = []
+    current_human_id = None
+    current_agent_id = None
     screen = "start"
     page.refresh()
 

@@ -251,10 +251,8 @@ class AgentSwarm:
                 save_human_profile(human.to_dict())
                 save_agent(agent.to_dict())
 
-            # Passa al prossimo turno
-            if not agent.engine.is_game_over():
-                agent.engine.next_turn()
-                save_agent(agent.to_dict())
+            # Salva stato agente (il prossimo turno viene gestito da _show_choice_feedback/advance)
+            save_agent(agent.to_dict())
 
             return {
                 "success": True,
