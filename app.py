@@ -334,7 +334,10 @@ def _render_stats_section(stats: dict):
 
                 bar_color = "#ef4444" if is_critical else color
                 ui.linear_progress(
-                    value=stats[key] / 100, size="4px", color=bar_color
+                    value=stats[key] / 100,
+                    size="4px",
+                    color=bar_color,
+                    show_value=False,
                 ).classes("rounded-full bg-white/5")
 
 
@@ -895,6 +898,7 @@ def _render_game():
                 ui.linear_progress(
                     value=min(stats["stress"] / 100, 1.0),
                     size="sm",
+                    show_value=False,
                     color="red"
                     if stats["stress"] > 65
                     else "orange"
@@ -1301,6 +1305,7 @@ def _render_game_over():
                             value=stats[key] / 100,
                             size="md",
                             color=color,
+                            show_value=False,
                         ).classes("w-20")
                         ui.label(f"{label}: {stats[key]}%").classes(
                             "text-xs text-gray-400"
@@ -1323,6 +1328,7 @@ def _render_game_over():
                                 value=perc / 100,
                                 size="sm",
                                 color="amber",
+                                show_value=False,
                             ).classes("w-40")
                             ui.label(
                                 f"{tag.replace('_', ' ').title()}: {perc:.1f}%"
@@ -1613,7 +1619,9 @@ def _show_stats_dialog():
                     else color
                 )
                 ui.label(f"{val}%").style(f"color: {val_color}")
-            ui.linear_progress(value=stats[key] / 100, size="sm", color=color)
+            ui.linear_progress(
+                value=stats[key] / 100, size="sm", color=color, show_value=False
+            )
         ui.label("FAZIONI").classes("text-sm font-bold mt-4 mb-2")
         for fname, fscore in pdata["factions"].items():
             fcol = NPC_FACTION_COLORS.get(fname, "#6b7280")
@@ -1903,7 +1911,7 @@ def _render_analytics():
                         ui.label(name).classes("text-xs text-gray-400 flex-1")
                         ui.label(f"{cnt}").classes("text-xs font-mono text-gray-300")
                         ui.linear_progress(
-                            value=perc / 100, size="xs", color="amber"
+                            value=perc / 100, size="xs", color="amber", show_value=False
                         ).classes("w-16")
 
             with ui.card().classes("p-4 vn-card").props("flat tight"):
@@ -1919,7 +1927,7 @@ def _render_analytics():
                         ui.label(name).classes("text-xs text-gray-400 flex-1")
                         ui.label(f"{cnt}").classes("text-xs font-mono text-gray-300")
                         ui.linear_progress(
-                            value=perc / 100, size="xs", color="amber"
+                            value=perc / 100, size="xs", color="amber", show_value=False
                         ).classes("w-16")
 
         # Tabella sopravvivenza
@@ -1936,7 +1944,10 @@ def _render_analytics():
                         "text-xs font-mono text-gray-300 w-20"
                     )
                     ui.linear_progress(
-                        value=min(float(avg) / 50, 1.0), size="xs", color="primary"
+                        value=min(float(avg) / 50, 1.0),
+                        size="xs",
+                        color="primary",
+                        show_value=False,
                     ).classes("flex-1")
                     ui.label(f"({sessions} partite)").classes("text-xs text-gray-500")
 
