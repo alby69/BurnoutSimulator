@@ -26,6 +26,8 @@ _tutorial_active: bool = False
 _tutorial_step: int = 0
 _timer_active: bool = False
 _decision_start: float = 0.0
+_layout_mode: str = "desktop"
+_skip_tutorial: bool = False
 
 bars_def = [
     ("Energia", "energy", "#4ade80"),
@@ -458,6 +460,18 @@ def _render_start():
                         )
                     real_cases_toggle = ui.switch().props("color=blue-4")
 
+                with ui.row().classes(
+                    "w-full items-center justify-between bg-white/5 p-3 rounded-xl border border-white/10 mt-2"
+                ):
+                    with ui.column().classes("gap-0"):
+                        ui.label("Salta tutorial").classes(
+                            "text-sm font-bold text-gray-200"
+                        )
+                        ui.label("Non mostrare le istruzioni iniziali").classes(
+                            "text-[10px] text-gray-400"
+                        )
+                    skip_tutorial_toggle = ui.switch().props("color=purple-4")
+
             def start_game_cb():
                 global \
                     engine, \
@@ -490,7 +504,7 @@ def _render_start():
                     document.documentElement.style.setProperty('--theme-glow', '{t["glow"]}');
                 """)
 
-                _tutorial_active = True
+                _tutorial_active = not skip_tutorial_toggle.value
                 _tutorial_step = 0
                 screen = "game_over" if engine.is_game_over() else "game"
                 page.refresh()
@@ -503,14 +517,19 @@ def _render_start():
                     ui.label("INIZIA CARRIERA")
 
             with ui.row().classes(
-                "w-full justify-center mt-6 pt-6 border-t border-white/5 gap-4"
+                "w-full justify-center mt-6 pt-6 border-t border-white/5 gap-3"
             ):
                 ui.button(
                     "Analytics", on_click=lambda: _go_analytics(), icon="insights"
                 ).props("flat color=grey-5").classes("text-xs")
-                ui.button("Credits", icon="info").props("flat color=grey-5").classes(
-                    "text-xs"
-                )
+                ui.button("Help", on_click=_show_help, icon="help").props(
+                    "flat color=grey-5"
+                ).classes("text-xs")
+                ui.button(
+                    "Config",
+                    on_click=_show_config,
+                    icon="settings",
+                ).props("flat color=grey-5").classes("text-xs")
 
 
 _help_dialog = None
@@ -625,6 +644,69 @@ def _show_help():
     _help_dialog.open()
 
 
+_config_dialog = None
+
+
+def _show_config():
+    global _config_dialog
+    if _config_dialog is None:
+        _config_dialog = ui.dialog().props("maximized")
+        with _config_dialog:
+            with (
+                ui.card()
+                .classes("w-full h-full bg-gray-900 text-white overflow-y-auto")
+                .props("flat")
+            ):
+                with ui.column().classes("w-full max-w-xl mx-auto p-8 gap-6"):
+                    with ui.row().classes("w-full items-center justify-between"):
+                        ui.label("IMPOSTAZIONI").classes(
+                            "text-2xl font-black tracking-tighter text-blue-400"
+                        )
+                        ui.button(icon="close", on_click=_config_dialog.close).props(
+                            "flat round color=white"
+                        )
+
+                    with ui.column().classes(
+                        "w-full gap-4 p-6 rounded-xl bg-white/5 border border-white/10"
+                    ):
+                        ui.label("LAYOUT").classes(
+                            "text-sm font-black text-blue-300 tracking-tighter"
+                        )
+                        with ui.row().classes("w-full items-center justify-between"):
+                            ui.label("Modalità schermo").classes(
+                                "text-sm text-gray-300"
+                            )
+                            ui.toggle(
+                                ["desktop", "mobile"],
+                                value=_layout_mode,
+                                on_change=lambda e: globals().update(
+                                    _layout_mode=e.value
+                                ),
+                            ).props("color=blue-4 outline")
+
+                    with ui.column().classes(
+                        "w-full gap-4 p-6 rounded-xl bg-white/5 border border-white/10"
+                    ):
+                        ui.label("TUTORIAL").classes(
+                            "text-sm font-black text-blue-300 tracking-tighter"
+                        )
+                        with ui.row().classes("w-full items-center justify-between"):
+                            ui.label("Salta tutorial all'avvio").classes(
+                                "text-sm text-gray-300"
+                            )
+                            ui.switch(
+                                value=_skip_tutorial,
+                                on_change=lambda e: globals().update(
+                                    _skip_tutorial=e.value
+                                ),
+                            ).props("color=purple-4")
+
+                    ui.label(
+                        "Le modifiche al layout si applicano immediatamente."
+                    ).classes("text-xs text-gray-500 text-center w-full")
+    _config_dialog.open()
+
+
 def _render_game():
     player = engine.player
     pdata = player.to_dict()
@@ -633,7 +715,8 @@ def _render_game():
         player.company_type, ARCHETYPE_THEMES["Corporate Tossica"]
     )
 
-    with ui.column().classes("w-full gap-0"):
+    mobile_cls = " pb-20" if _layout_mode == "mobile" else ""
+    with ui.column().classes(f"w-full gap-0{mobile_cls}"):
         # Top bar
         total_events = len(engine.event_manager.events)
         unique_seen = len(set(engine.history))
@@ -1031,6 +1114,44 @@ def _render_game():
                                     ui.label(
                                         f"{_effect_label(effect_key)}: {sign}{effect_val}"
                                     ).classes("text-xs font-mono")
+
+    # Mobile bottom bar
+    if _layout_mode == "mobile":
+        with ui.row().classes("w-full items-center justify-between mobile-bottom-bar"):
+            with ui.row().classes("items-center gap-2"):
+                ui.label("Giorno").classes(
+                    "text-[9px] font-bold text-gray-500 uppercase tracking-widest"
+                )
+                ui.label(str(player.days_survived)).classes(
+                    "text-lg font-black text-white"
+                )
+            with ui.row().classes("items-center gap-2"):
+                ui.icon("speed", size="16px").classes(
+                    "text-red-400"
+                    if stats["stress"] > 65
+                    else "text-yellow-400"
+                    if stats["stress"] > 40
+                    else "text-green-400"
+                )
+                ui.label(f"{stats['stress']}%").classes(
+                    "text-xs font-bold font-mono text-gray-300"
+                )
+            with ui.row().classes("items-center gap-1"):
+                ui.button(
+                    icon="menu",
+                    on_click=lambda: ui.run_javascript(
+                        'document.querySelector(".stats-sidebar").classList.toggle("open")'
+                    ),
+                ).props("flat round color=white dense")
+                ui.button(icon="help", on_click=_show_help).props(
+                    "flat round color=white dense"
+                )
+                ui.button(icon="hub", on_click=_show_decision_graph).props(
+                    "flat round color=blue dense"
+                )
+                ui.button(icon="logout", on_click=_exit_game).props(
+                    "flat round color=red dense"
+                )
 
 
 def _render_game_over():
@@ -1959,6 +2080,30 @@ ui.add_head_html("""
         border-radius: 4px;
     }
     ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+    /* Mobile Bottom Bar */
+    .mobile-bottom-bar {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        z-index: 200;
+        background: rgba(10, 10, 30, 0.95);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-top: 1px solid rgba(255,255,255,0.08);
+        padding: 8px 16px;
+        display: flex;
+    }
+
+    /* Mobile layout: extra bottom padding to avoid overlap with bottom bar */
+    .mobile-layout main, .mobile-layout .q-page {
+        padding-bottom: 60px;
+    }
+
+    /* Choice buttons stack full-width on mobile */
+    @media (max-width: 640px) {
+        .choice-btn { width: 100% !important; }
+        .npc-portrait img { width: 56px !important; height: 56px !important; }
+        .vn-card { padding: 1rem !important; }
+    }
 
     /* Responsive fixes */
     @media (max-width: 1024px) {
