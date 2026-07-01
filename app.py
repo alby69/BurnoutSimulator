@@ -532,179 +532,165 @@ def _render_start():
                 ).props("flat color=grey-5").classes("text-xs")
 
 
-_help_dialog = None
-
-
 def _show_help():
-    global _help_dialog
-    if _help_dialog is None:
-        _help_dialog = ui.dialog().props("maximized")
-        with _help_dialog:
-            with (
-                ui.card()
-                .classes("w-full h-full bg-gray-900 text-white overflow-y-auto")
-                .props("flat")
-            ):
-                with ui.column().classes("w-full max-w-3xl mx-auto p-8 gap-6"):
-                    with ui.row().classes("w-full items-center justify-between"):
-                        ui.label("COME GIOCARE").classes(
-                            "text-2xl font-black tracking-tighter text-blue-400"
-                        )
-                        ui.button(icon="close", on_click=_help_dialog.close).props(
-                            "flat round color=white"
-                        )
-
-                    sections = [
-                        (
-                            "🎯 COSA DEVI FARE",
-                            [
-                                "Sei un impiegato in un'azienda tossica. Ogni giorno riceverai un evento con una descrizione della situazione.",
-                                "Devi scegliere tra 2-4 opzioni di reazione. Ogni scelta ha effetti sulle tue statistiche e sulle relazioni con colleghi e fazioni.",
-                                "L'obiettivo: sopravvivere più giorni possibile senza cadere in burnout, licenziamento o depressione professionale.",
-                            ],
-                        ),
-                        (
-                            "📊 STATISTICHE",
-                            [
-                                "Energia: cala con gli straordinari, si ricarica con scelte di autoconservazione.",
-                                "Stress: aumenta con pressioni e conflitti. Se arriva a 100, burnout mentale.",
-                                "Salute: cala con stress prolungato e mancanza di cure. Se arriva a 0, burnout fisico.",
-                                "Autostima: si erode con umiliazioni e compromessi. A 0, depressione professionale.",
-                                "Integrità: sale quando difendi i tuoi valori, cala quando tradisci te stesso.",
-                                "Occupabilità: la tua attrattiva sul mercato. Tienila alta per poter scappare.",
-                                "Rep. Manager: la tua reputazione col capo. Se cala a 0, sei licenziato.",
-                                "Rep. Team: la tua reputazione tra colleghi. utile per alleanze.",
-                            ],
-                        ),
-                        (
-                            "🏛️ FAZIONI",
-                            [
-                                "Fedelissimi: seguono il manager. Guadagni punti facendo COMPLIANCE.",
-                                "Gruppo Silenzioso: sopravvissuti neutrali. Cresce con scelte di ESCAPE.",
-                                "Ribelli: si oppongono al sistema. Cresce con scelte RESISTANCE.",
-                                "Le fazioni influenzano il finale di gioco e il supporto che riceverai dagli NPC.",
-                            ],
-                        ),
-                        (
-                            "👥 NPC (COLLEGHI)",
-                            [
-                                "Marco: il manager tossico. La sua fiducia sale con COMPLIANCE.",
-                                "Giulia: collega opportunista. Osserva le tue mosse e si allea con chi vince.",
-                                "Roberto: mentor disilluso. Apprezza l'integrità e la resistenza silenziosa.",
-                                "Elena: HR passiva. Può aiutarti se ha fiducia in te, ma teme ritorsioni.",
-                            ],
-                        ),
-                        (
-                            "🔄 TIPI DI SCELTA",
-                            [
-                                "COMPLIANCE (blu): accontenti il sistema. Aumenta rep. manager ma spesso aumenta stress.",
-                                "RESISTANCE (rossa): ti opponi. Alza autostima e integrità ma rischia ritorsioni.",
-                                "NEGOTIATION (gialla): cerchi compromesso. Effetti bilanciati ma a volte nessuno è soddisfatto.",
-                                "ESCAPE (verde): eviti il conflitto. Preserva energia ma non risolve i problemi.",
-                            ],
-                        ),
-                        (
-                            "🏆 FINALI E ACHIEVEMENT",
-                            [
-                                "Ogni partita termina con un finale basato sulle tue statistiche, fazioni e tag comportamentali.",
-                                "I tag (yes_man, boundary_setter, truth_teller, survivor, burnout_risk) si accumulano con le scelte ripetute.",
-                                "Sblocca achievement come 'Sempre Disponibile' (10 scelte yes_man) o 'Indistruttibile' (20 survivor).",
-                                "Esistono oltre 15 finali diversi: da 'IL WHISTLEBLOWER' a 'IL CADUTO'.",
-                            ],
-                        ),
-                        (
-                            "💡 CONSIGLI",
-                            [
-                                "Non puoi sempre compiacere tutti. Scegli le tue battaglie.",
-                                "Tieni d'occhio la salute mentale: stress > 80 è zona pericolo.",
-                                "Le scelte NEGOTIATION a volte aprono percorsi nascosti.",
-                                "I tag comportamentali sbloccano finali speciali. Sperimenta!",
-                                "La fase di carriera cambia gli eventi disponibili.",
-                            ],
-                        ),
-                    ]
-
-                    for title, items in sections:
-                        with ui.column().classes(
-                            "w-full gap-2 p-4 rounded-xl bg-white/5 border border-white/10"
-                        ):
-                            ui.label(title).classes(
-                                "text-sm font-black text-blue-300 tracking-tighter"
-                            )
-                            for item in items:
-                                ui.label(f"• {item}").classes(
-                                    "text-sm text-gray-300 leading-relaxed ml-2"
-                                )
-
-                    ui.label(
-                        "Burnout Simulator v2.0 — Un gioco di antropologia organizzativa"
-                    ).classes(
-                        "text-xs text-gray-500 text-center w-full mt-6 pt-4 border-t border-white/10"
+    d = ui.dialog().props("maximized")
+    with d:
+        with (
+            ui.card()
+            .classes("w-full h-full bg-gray-900 text-white overflow-y-auto")
+            .props("flat")
+        ):
+            with ui.column().classes("w-full max-w-3xl mx-auto p-8 gap-6"):
+                with ui.row().classes("w-full items-center justify-between"):
+                    ui.label("COME GIOCARE").classes(
+                        "text-2xl font-black tracking-tighter text-blue-400"
                     )
-    _help_dialog.open()
+                    ui.button(icon="close", on_click=d.close).props(
+                        "flat round color=white"
+                    )
 
+                sections = [
+                    (
+                        "🎯 COSA DEVI FARE",
+                        [
+                            "Sei un impiegato in un'azienda tossica. Ogni giorno riceverai un evento con una descrizione della situazione.",
+                            "Devi scegliere tra 2-4 opzioni di reazione. Ogni scelta ha effetti sulle tue statistiche e sulle relazioni con colleghi e fazioni.",
+                            "L'obiettivo: sopravvivere più giorni possibile senza cadere in burnout, licenziamento o depressione professionale.",
+                        ],
+                    ),
+                    (
+                        "📊 STATISTICHE",
+                        [
+                            "Energia: cala con gli straordinari, si ricarica con scelte di autoconservazione.",
+                            "Stress: aumenta con pressioni e conflitti. Se arriva a 100, burnout mentale.",
+                            "Salute: cala con stress prolungato e mancanza di cure. Se arriva a 0, burnout fisico.",
+                            "Autostima: si erode con umiliazioni e compromessi. A 0, depressione professionale.",
+                            "Integrità: sale quando difendi i tuoi valori, cala quando tradisci te stesso.",
+                            "Occupabilità: la tua attrattiva sul mercato. Tienila alta per poter scappare.",
+                            "Rep. Manager: la tua reputazione col capo. Se cala a 0, sei licenziato.",
+                            "Rep. Team: la tua reputazione tra colleghi. utile per alleanze.",
+                        ],
+                    ),
+                    (
+                        "🏛️ FAZIONI",
+                        [
+                            "Fedelissimi: seguono il manager. Guadagni punti facendo COMPLIANCE.",
+                            "Gruppo Silenzioso: sopravvissuti neutrali. Cresce con scelte di ESCAPE.",
+                            "Ribelli: si oppongono al sistema. Cresce con scelte RESISTANCE.",
+                            "Le fazioni influenzano il finale di gioco e il supporto che riceverai dagli NPC.",
+                        ],
+                    ),
+                    (
+                        "👥 NPC (COLLEGHI)",
+                        [
+                            "Marco: il manager tossico. La sua fiducia sale con COMPLIANCE.",
+                            "Giulia: collega opportunista. Osserva le tue mosse e si allea con chi vince.",
+                            "Roberto: mentor disilluso. Apprezza l'integrità e la resistenza silenziosa.",
+                            "Elena: HR passiva. Può aiutarti se ha fiducia in te, ma teme ritorsioni.",
+                        ],
+                    ),
+                    (
+                        "🔄 TIPI DI SCELTA",
+                        [
+                            "COMPLIANCE (blu): accontenti il sistema. Aumenta rep. manager ma spesso aumenta stress.",
+                            "RESISTANCE (rossa): ti opponi. Alza autostima e integrità ma rischia ritorsioni.",
+                            "NEGOTIATION (gialla): cerchi compromesso. Effetti bilanciati ma a volte nessuno è soddisfatto.",
+                            "ESCAPE (verde): eviti il conflitto. Preserva energia ma non risolve i problemi.",
+                        ],
+                    ),
+                    (
+                        "🏆 FINALI E ACHIEVEMENT",
+                        [
+                            "Ogni partita termina con un finale basato sulle tue statistiche, fazioni e tag comportamentali.",
+                            "I tag (yes_man, boundary_setter, truth_teller, survivor, burnout_risk) si accumulano con le scelte ripetute.",
+                            "Sblocca achievement come 'Sempre Disponibile' (10 scelte yes_man) o 'Indistruttibile' (20 survivor).",
+                            "Esistono oltre 15 finali diversi: da 'IL WHISTLEBLOWER' a 'IL CADUTO'.",
+                        ],
+                    ),
+                    (
+                        "💡 CONSIGLI",
+                        [
+                            "Non puoi sempre compiacere tutti. Scegli le tue battaglie.",
+                            "Tieni d'occhio la salute mentale: stress > 80 è zona pericolo.",
+                            "Le scelte NEGOTIATION a volte aprono percorsi nascosti.",
+                            "I tag comportamentali sbloccano finali speciali. Sperimenta!",
+                            "La fase di carriera cambia gli eventi disponibili.",
+                        ],
+                    ),
+                ]
 
-_config_dialog = None
+                for title, items in sections:
+                    with ui.column().classes(
+                        "w-full gap-2 p-4 rounded-xl bg-white/5 border border-white/10"
+                    ):
+                        ui.label(title).classes(
+                            "text-sm font-black text-blue-300 tracking-tighter"
+                        )
+                        for item in items:
+                            ui.label(f"• {item}").classes(
+                                "text-sm text-gray-300 leading-relaxed ml-2"
+                            )
+
+                ui.label(
+                    "Burnout Simulator v2.0 — Un gioco di antropologia organizzativa"
+                ).classes(
+                    "text-xs text-gray-500 text-center w-full mt-6 pt-4 border-t border-white/10"
+                )
+    d.open()
 
 
 def _show_config():
-    global _config_dialog
-    if _config_dialog is None:
-        _config_dialog = ui.dialog().props("maximized")
-        with _config_dialog:
-            with (
-                ui.card()
-                .classes("w-full h-full bg-gray-900 text-white overflow-y-auto")
-                .props("flat")
-            ):
-                with ui.column().classes("w-full max-w-xl mx-auto p-8 gap-6"):
+    d = ui.dialog().props("maximized")
+    with d:
+        with (
+            ui.card()
+            .classes("w-full h-full bg-gray-900 text-white overflow-y-auto")
+            .props("flat")
+        ):
+            with ui.column().classes("w-full max-w-xl mx-auto p-8 gap-6"):
+                with ui.row().classes("w-full items-center justify-between"):
+                    ui.label("IMPOSTAZIONI").classes(
+                        "text-2xl font-black tracking-tighter text-blue-400"
+                    )
+                    ui.button(icon="close", on_click=d.close).props(
+                        "flat round color=white"
+                    )
+
+                with ui.column().classes(
+                    "w-full gap-4 p-6 rounded-xl bg-white/5 border border-white/10"
+                ):
+                    ui.label("LAYOUT").classes(
+                        "text-sm font-black text-blue-300 tracking-tighter"
+                    )
                     with ui.row().classes("w-full items-center justify-between"):
-                        ui.label("IMPOSTAZIONI").classes(
-                            "text-2xl font-black tracking-tighter text-blue-400"
-                        )
-                        ui.button(icon="close", on_click=_config_dialog.close).props(
-                            "flat round color=white"
-                        )
+                        ui.label("Modalità schermo").classes("text-sm text-gray-300")
+                        ui.toggle(
+                            ["desktop", "mobile"],
+                            value=_layout_mode,
+                            on_change=lambda e: globals().update(_layout_mode=e.value),
+                        ).props("color=blue-4 outline")
 
-                    with ui.column().classes(
-                        "w-full gap-4 p-6 rounded-xl bg-white/5 border border-white/10"
-                    ):
-                        ui.label("LAYOUT").classes(
-                            "text-sm font-black text-blue-300 tracking-tighter"
+                with ui.column().classes(
+                    "w-full gap-4 p-6 rounded-xl bg-white/5 border border-white/10"
+                ):
+                    ui.label("TUTORIAL").classes(
+                        "text-sm font-black text-blue-300 tracking-tighter"
+                    )
+                    with ui.row().classes("w-full items-center justify-between"):
+                        ui.label("Salta tutorial all'avvio").classes(
+                            "text-sm text-gray-300"
                         )
-                        with ui.row().classes("w-full items-center justify-between"):
-                            ui.label("Modalità schermo").classes(
-                                "text-sm text-gray-300"
-                            )
-                            ui.toggle(
-                                ["desktop", "mobile"],
-                                value=_layout_mode,
-                                on_change=lambda e: globals().update(
-                                    _layout_mode=e.value
-                                ),
-                            ).props("color=blue-4 outline")
+                        ui.switch(
+                            value=_skip_tutorial,
+                            on_change=lambda e: globals().update(
+                                _skip_tutorial=e.value
+                            ),
+                        ).props("color=purple-4")
 
-                    with ui.column().classes(
-                        "w-full gap-4 p-6 rounded-xl bg-white/5 border border-white/10"
-                    ):
-                        ui.label("TUTORIAL").classes(
-                            "text-sm font-black text-blue-300 tracking-tighter"
-                        )
-                        with ui.row().classes("w-full items-center justify-between"):
-                            ui.label("Salta tutorial all'avvio").classes(
-                                "text-sm text-gray-300"
-                            )
-                            ui.switch(
-                                value=_skip_tutorial,
-                                on_change=lambda e: globals().update(
-                                    _skip_tutorial=e.value
-                                ),
-                            ).props("color=purple-4")
-
-                    ui.label(
-                        "Le modifiche al layout si applicano immediatamente."
-                    ).classes("text-xs text-gray-500 text-center w-full")
-    _config_dialog.open()
+                ui.label("Le modifiche al layout si applicano immediatamente.").classes(
+                    "text-xs text-gray-500 text-center w-full"
+                )
+    d.open()
 
 
 def _render_game():
@@ -1162,7 +1148,7 @@ def _render_game_over():
     record_tags(session_id, player.tags)
     stats = get_stats_dict(engine)
 
-    with ui.column().classes("w-full max-w-4xl mx-auto py-12 fade-in"):
+    with ui.column().classes("w-full max-w-4xl mx-auto py-12 fade-in report-card"):
         with (
             ui.card()
             .classes(
@@ -1643,8 +1629,7 @@ def _export_report():
         (function() {
             const el = document.querySelector('.report-card');
             if (!el) return;
-            import('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js')
-            .then(() => {
+            function capture() {
                 html2canvas(el, { backgroundColor: '#0a0a1a', scale: 2 })
                 .then(canvas => {
                     const link = document.createElement('a');
@@ -1652,8 +1637,16 @@ def _export_report():
                     link.href = canvas.toDataURL('image/png');
                     link.click();
                 });
-            })
-            .catch(() => alert('Esportazione non disponibile (nessuna connessione)'));
+            }
+            if (typeof html2canvas === 'undefined') {
+                const s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+                s.onload = capture;
+                s.onerror = function() { alert('Esportazione non disponibile (nessuna connessione)'); };
+                document.head.appendChild(s);
+            } else {
+                capture();
+            }
         })();
     """)
 
