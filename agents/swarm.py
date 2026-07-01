@@ -311,6 +311,28 @@ class AgentSwarm:
                 continue
 
             p = agent.engine.player
+
+            # Recupero ultime decisioni per la timeline
+            recent_decisions = []
+            for d in agent.memory.decisions[-15:]:
+                # Calcolo delta stress se possibile
+                stress_delta = 0
+                if d.choice_id in agent.memory.choice_outcomes:
+                    # Troviamo l'outcome corrispondente a questo timestamp circa o semplicemente l'ultimo
+                    outcomes = agent.memory.choice_outcomes[d.choice_id]
+                    if outcomes:
+                        stress_delta = outcomes[-1].get("stress_delta", 0)
+
+                recent_decisions.append({
+                    "event_id": d.event_id,
+                    "choice_text": d.choice_text,
+                    "category": d.category,
+                    "was_auto": d.was_auto,
+                    "day": d.day,
+                    "stress_delta": stress_delta
+                })
+
+            probs = agent.get_choice_probabilities()
             agents_view.append(
                 {
                     "agent_id": agent_id,
@@ -325,13 +347,29 @@ class AgentSwarm:
                     "stress": p.stress,
                     "energy": p.energy,
                     "health": p.health,
-                    "dominant_faction": max(p.factions, key=p.factions.get),
+                    "self_esteem": p.self_esteem,
+                    "integrity": p.integrity,
+                    "resilience": agent.profile.resilience,
+                    "compliance_bias": agent.profile.compliance_bias,
+                    "dominant_faction": max(p.factions, key=p.factions.get) if p.factions else "Nessuna",
                     "current_event": agent.engine.current_event.id
                     if agent.engine.current_event
                     else None,
+                    "current_event_text": agent.engine.current_event.text if agent.engine.current_event else "",
+                    "current_choices": [
+                        {
+                            "text": c.text,
+                            "category": c.category,
+                            "effects": c.effects,
+                            "probability": probs[i] if i < len(probs) else 0
+                        }
+                        for i, c in enumerate(agent.engine.current_event.choices)
+                    ] if agent.engine.current_event else [],
                     "match_score": self._calculate_match_score(human_id, agent)
                     if human_id
                     else 50,
+                    "stats_history": agent.engine.stats_history[-6:], # Ultime 6 per ghost trail
+                    "recent_decisions": recent_decisions[::-1] # Dalla più recente
                 }
             )
 
@@ -343,6 +381,7 @@ class AgentSwarm:
             "alive_agents": sum(1 for a in agents_view if a["alive"]),
             "possessed_agents": sum(1 for a in agents_view if a["is_possessed"]),
             "agents": agents_view,
+            "analytics": self.get_swarm_analytics(),
             "human_profile": self.humans[human_id].get_emergent_profile()
             if human_id and human_id in self.humans
             else None,

@@ -16,6 +16,7 @@ def verify_v3_1():
 
     # 2. Setup Swarm
     swarm = AgentSwarm(num_agents=3)
+    swarm.load_swarm()
     print(f"[OK] Swarm initialized with {len(swarm.agents)} agents.")
 
     # Verify agents saved in DB
