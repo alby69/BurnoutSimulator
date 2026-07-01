@@ -1,33 +1,42 @@
-from fastapi import FastAPI, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import FastAPI, WebSocket, HTTPException
+from simulation.world import World
 from typing import List, Optional
-from engine.psych_engine import PsychologicalProfile
+import asyncio
+from pydantic import BaseModel
 
-app = FastAPI(title="BurnoutSimulator v3.0 API")
+app = FastAPI(title="Burnout Simulator - Social Lab API")
 
-class SimulationRequest(BaseModel):
-    agent_type: str
-    scenario_id: str
+world = World()
 
-@app.get("/")
-async def root():
-    return {"message": "BurnoutSimulator v3.0 API", "status": "active"}
+class ControlAction(BaseModel):
+    action: str # play, pause, step, speed
+    value: Optional[str] = None
 
-@app.post("/simulate")
-async def run_simulation(request: SimulationRequest):
-    # This would trigger an agent-based simulation
-    return {
-        "status": "success",
-        "agent": request.agent_type,
-        "result": "burnout_avoided",
-        "metrics": {"stress": 45.0, "resilience": 62.0}
-    }
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
 
-@app.get("/profiles/{agent_id}")
-async def get_agent_profile(agent_id: str):
-    # Placeholder for database retrieval
-    return PsychologicalProfile().to_dict()
+@app.websocket("/ws/simulation")
+async def simulation_websocket(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            snapshot = world.get_current_snapshot()
+            await websocket.send_json(snapshot.model_dump(mode='json'))
+            await asyncio.sleep(world.tick_interval)
+    except Exception as e:
+        print(f"WS Disconnected: {e}")
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+@app.post("/api/simulation/control")
+async def control_simulation(action: ControlAction):
+    if action.action == "play":
+        # logic to start simulation
+        return {"message": "Simulation started"}
+    elif action.action == "pause":
+        return {"message": "Simulation paused"}
+    else:
+        raise HTTPException(status_code=400, detail="Invalid action")
+
+@app.get("/api/agents")
+async def list_agents():
+    return [{"id": aid, "type": "ai"} for aid in world.agents]
