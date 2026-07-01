@@ -24,6 +24,7 @@ screen: str = "start"
 engine: GameEngine | None = None
 session_id: str | None = None
 swarm: AgentSwarm = AgentSwarm(num_agents=6)
+swarm.load_swarm()
 current_human_id: str | None = None
 current_agent_id: str | None = None
 stats_before: dict = {}

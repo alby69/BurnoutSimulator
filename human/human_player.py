@@ -33,6 +33,7 @@ class HumanPlayer:
 
     # Agente attualmente posseduto
     current_agent_id: Optional[str] = None
+    current_join_day: int = 0
 
     # Percorso psicologico emergente
     psychological_trace: List[Dict] = field(default_factory=list)
@@ -48,7 +49,10 @@ class HumanPlayer:
     def jump_to(self, from_agent_id: Optional[str], to_agent_id: str,
                 from_day: int, to_day: int, reason: Optional[str] = None,
                 declared_mood: Optional[str] = None) -> JumpRecord:
-        """Esegue un salto da un agente a un altro."""
+        """
+        Esegue un salto da un agente a un altro.
+        from_day / to_day sono l'inizio e la fine della permanenza sull'agente VECCHIO.
+        """
         jump = JumpRecord(
             from_agent_id=from_agent_id,
             to_agent_id=to_agent_id,
@@ -59,12 +63,14 @@ class HumanPlayer:
         )
         self.jump_history.append(jump)
         self.current_agent_id = to_agent_id
+        # Nota: current_join_day deve essere aggiornato dal chiamante (swarm)
 
         # Aggiorna traccia psicologica
         self.psychological_trace.append({
             "timestamp": datetime.now().isoformat(),
-            "agent_id": to_agent_id,
-            "day": to_day,
+            "from_agent_id": from_agent_id,
+            "to_agent_id": to_agent_id,
+            "stay_duration": to_day - from_day,
             "mood": declared_mood,
             "jump_number": len(self.jump_history)
         })
@@ -114,16 +120,11 @@ class HumanPlayer:
         }
 
     def _avg_stay_duration(self) -> float:
-        if not self.jump_history:
+        """Calcola la durata media basata sui salti completati (escluso il primo se nullo)."""
+        durations = [j.to_day - j.from_day for j in self.jump_history if j.from_agent_id is not None]
+        if not durations:
             return 0
-        durations = []
-        for i, jump in enumerate(self.jump_history):
-            if i == 0:
-                durations.append(jump.to_day)  # Primo salto: dal giorno 0
-            else:
-                prev = self.jump_history[i-1]
-                durations.append(jump.from_day - prev.to_day)
-        return sum(durations) / len(durations) if durations else 0
+        return sum(durations) / len(durations)
 
     def _analyze_jump_pattern(self) -> str:
         """Analizza il pattern di salto."""

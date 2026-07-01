@@ -2,6 +2,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 game/sessions/
-database/analytics.db
+database/*.db
 venv/
 .venv/
