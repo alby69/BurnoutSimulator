@@ -102,7 +102,7 @@ Coordinatore centrale del laboratorio.
   Crea un nuovo giocatore umano nel laboratorio.
 - `possess_agent(human_id, agent_id, reason=None) -> Dict`
   Flusso completo di possesso:
-    - Rilascia agente precedente (se esiste)
+    - Rilascia agente precedente (se esiste, gestito internamente)
     - Registra il salto in `HumanPlayer.jump_history`
     - Attiva possesso sull'agente
     - Restituisce stato aggiornato
@@ -111,7 +111,7 @@ Coordinatore centrale del laboratorio.
     - Verifica possesso valido
     - Esegue scelta tramite `agent.human_chooses()`
     - Aggiorna profilo umano con `record_choice_made()`
-    - Avanza al prossimo turno
+    - **Nota:** Il turno NON viene avanzato qui; è gestito da `_show_choice_feedback()`/`advance()` per garantire consistenza con la modalità classica
 - `run_simulation_step() -> Dict`
   Fa avanzare tutti gli agenti NON posseduti di un turno.
 - `get_laboratory_view(human_id) -> Dict`
@@ -249,22 +249,26 @@ _render_jump_dialog():
     # Mostra dialog con:
     # - Mood selector (opzionale)
     # - Lista agenti disponibili con match score
+    # - Filtro: esclude l'agente attualmente posseduto (current_agent_id)
     # - Pulsante "SALTA QUI" per ogni agente
 
 # 2. Utente seleziona agente e mood
 _execute_jump(to_agent_id, mood, dialog):
-    # a. Rilascia agente corrente
-    swarm.agents[current_agent_id].release(current_human_id)
-
-    # b. Possess nuovo agente
+    # a. Possess nuovo agente (possess_agent gestisce internamente
+    #    il rilascio dell'agente precedente — nessun doppio rilascio)
+    if not current_human_id:
+        ui.notify("Nessun umano registrato.", type="warning")
+        return
     result = swarm.possess_agent(current_human_id, to_agent_id,
                                   reason=f"Salto emotivo: {mood}")
 
-    # c. Aggiorna stato globale
-    current_agent_id = to_agent_id
-    engine = swarm.agents[to_agent_id].engine
-
-    # d. Chiude dialog e refresh UI
+    # b. Aggiorna stato globale
+    if result.get("success"):
+        current_agent_id = to_agent_id
+        engine = swarm.agents[to_agent_id].engine
+        session_id = f"possession_{to_agent_id}_{uuid}"
+        dialog.close()
+        page.refresh()
 ```
 
 ### Decisione durante il possesso
@@ -277,7 +281,10 @@ _make_choice(idx, event, choice):
         # Questo internamente:
         # 1. agent.human_chooses(idx, human_id) -> esegue scelta
         # 2. human.record_choice_made(agent_id, category, day) -> aggiorna profilo
-        # 3. engine.next_turn() -> avanza
+        # 3. Salva stato agente (turno NON avanzato qui)
+        #
+        # L'avanzamento turno è gestito da advance() in _show_choice_feedback(),
+        # identico per modalità classica e possesso.
     else:
         # Modalità classica
         engine.handle_choice(idx)
@@ -409,8 +416,9 @@ details = swarm.get_agent_detailed_view("agent_abc123")
 ## Limitazioni Note
 - **Persistenza:** Il database `agents.db` ha lo schema ma non le funzioni di scrittura. I dati del laboratorio si perdono al riavvio dell'app. *(RISOLTO in v3.1)*
 - **Multi-utente:** Lo sciame è globale (variabile globale in `app.py`). Più utenti condividono gli stessi agenti.
-- **Auto-play:** Gli agenti non posseduti non avanzano automaticamente; l'utente deve cliccare "Avanza N turni".
+- **Auto-play:** Gli agenti non posseduti non avanzano automaticamente; l'utente deve cliccare "Avanza N turni" nel laboratorio.
 - **Outcomes:** `memory.record_outcome()` esiste ma non viene mai chiamato. Gli agenti non apprendono dagli esiti reali. *(RISOLTO in v3.1)*
+- **Stato UI:** I pulsanti nella UI (SALTA, Possiedi, LABORATORIO, avanzamento turno) sono stati corretti in v3.1.2 per garantire comportamenti coerenti e impedire doppi avanzamenti o doppi rilasci.
 
 ## Estensioni Consigliate
 
