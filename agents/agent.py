@@ -85,7 +85,8 @@ class Agent:
             choice_id=event.choices[choice_idx].id,
             choice_text=event.choices[choice_idx].text,
             category=event.choices[choice_idx].category,
-            was_auto=True
+            was_auto=True,
+            day=self.engine.player.days_survived if self.engine else 0
         )
 
         return choice_idx
@@ -123,6 +124,22 @@ class Agent:
                     weights[i] *= 0.3
 
         return weights
+
+    def get_choice_probabilities(self) -> List[int]:
+        """Calcola le probabilità percentuali per le scelte dell'evento corrente."""
+        if not self.engine or not self.engine.current_event:
+            return []
+
+        event = self.engine.current_event
+        weights = self.profile.get_choice_weights(event.choices)
+        weights = self._apply_memory_weights(event, weights)
+        weights = self._apply_state_weights(weights)
+
+        total = sum(weights)
+        if total == 0:
+            return [round(100 / len(weights))] * len(weights)
+
+        return [round((w / total) * 100) for w in weights]
 
     def possess(self, human_id: str) -> Dict:
         """
@@ -179,6 +196,7 @@ class Agent:
             choice_text=choice.text,
             category=choice.category,
             was_auto=False,
+            day=self.engine.player.days_survived,
             human_id=human_id
         )
 

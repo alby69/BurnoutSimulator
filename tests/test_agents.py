@@ -32,10 +32,12 @@ class TestAgentFramework(unittest.TestCase):
 
     def test_swarm_initialization(self):
         swarm = AgentSwarm(num_agents=3)
+        swarm.load_swarm()
         self.assertEqual(len(swarm.agents), 3)
 
     def test_human_jump(self):
         swarm = AgentSwarm(num_agents=2)
+        swarm.load_swarm()
         human = swarm.register_human(name="Test Human")
         agent_ids = list(swarm.agents.keys())
 

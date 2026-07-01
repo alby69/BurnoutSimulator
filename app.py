@@ -27,6 +27,8 @@ swarm: AgentSwarm = AgentSwarm(num_agents=6)
 swarm.load_swarm()
 current_human_id: str | None = None
 current_agent_id: str | None = None
+# inspected_agent_id is now per-client to support multi-user safely
+client_inspected_agent: dict[str, str] = {}
 stats_before: dict = {}
 choice_history: list = []
 _tutorial_active: bool = False
@@ -78,6 +80,16 @@ ARCHETYPE_THEMES = {
         "badge": "secondary",
         "glow": "0 0 25px rgba(168,85,247,0.3)",
     },
+}
+
+AGENT_PROFILE_COLORS = {
+    "Il Performante": "#f97316",
+    "Il Protettore": "#ef4444",
+    "Il Sopravvissuto": "#22c55e",
+    "Il Negoziatore": "#eab308",
+    "Il Perfezionista": "#a855f7",
+    "Il Cinico": "#64748b",
+    "L'Idealista": "#3b82f6",
 }
 
 cat_colors = {
@@ -403,192 +415,288 @@ def page():
 
 
 def _render_laboratory():
-    """Vista principale del laboratorio di agenti."""
-    with ui.column().classes("w-full max-w-6xl mx-auto p-4 gap-4"):
-        # Header
-        with ui.row().classes("w-full items-center justify-between"):
-            ui.label("🔬 LABORATORIO AGENTI").classes(
-                "text-3xl font-black tracking-tighter text-white"
-            )
-            ui.label("Osserva, scegli, salta.").classes("text-gray-400 italic")
-            ui.button(
-                "← Torna al Menu",
-                on_click=lambda: globals().update(screen="start") or page.refresh(),
-            ).props("flat").classes("text-gray-400")
+    """Vista principale del laboratorio di agenti migliorata (v3.0)."""
+    client_id = ui.context.client.id
+    inspected_agent_id = client_inspected_agent.get(client_id)
 
-        # Swarm Stats
-        stats = swarm.get_swarm_analytics()
-        with ui.row().classes("w-full gap-4"):
-            with ui.card().classes("flex-1 p-3 vn-card").props("flat"):
-                ui.label("STRESS MEDIO LAB").classes(
-                    "text-[10px] text-gray-500 font-bold"
-                )
-                ui.label(f"{stats.get('avg_stress', 0)}%").classes(
-                    "text-xl font-black text-red-400"
-                )
-            with ui.card().classes("flex-1 p-3 vn-card").props("flat"):
-                ui.label("ARCHETIPO CRITICO").classes(
-                    "text-[10px] text-gray-500 font-bold"
-                )
-                ui.label(str(stats.get("most_stressful_archetype", "-"))).classes(
-                    "text-sm font-bold text-orange-400"
-                )
-            with ui.card().classes("flex-1 p-3 vn-card").props("flat"):
-                ui.label("AGENTI ATTIVI").classes("text-[10px] text-gray-500 font-bold")
-                ui.label(f"{stats.get('alive_count', 0)}/{len(swarm.agents)}").classes(
-                    "text-xl font-black text-green-400"
-                )
+    lab_view = swarm.get_laboratory_view(current_human_id)
+    stats = lab_view["analytics"]
 
-        # Info umano
-        if current_human_id in swarm.humans:
-            human = swarm.humans[current_human_id]
-            profile = human.get_emergent_profile()
+    # Se non c'è un agente ispezionato, scegliamo il primo della lista (spesso quello posseduto)
+    if not inspected_agent_id and lab_view["agents"]:
+        inspected_agent_id = lab_view["agents"][0]["agent_id"]
+        client_inspected_agent[client_id] = inspected_agent_id
 
-            with ui.card().classes("w-full p-4 vn-card").props("flat"):
-                with ui.row().classes("w-full items-center justify-between"):
-                    ui.label("IL TUO PERCORSO PSICOLOGICO").classes(
-                        "text-xs font-black text-purple-400 tracking-widest"
-                    )
-                    ui.label(
-                        f"{profile['total_jumps']} salti · {profile['unique_agents_played']} agenti"
-                    ).classes("text-xs text-gray-500")
+    # Cerchiamo i dati dell'agente ispezionato
+    inspected_agent = next((a for a in lab_view["agents"] if a["agent_id"] == inspected_agent_id), None)
+    if not inspected_agent and lab_view["agents"]:
+        inspected_agent = lab_view["agents"][0]
+        inspected_agent_id = inspected_agent["agent_id"]
 
-                # Radar del profilo emergente
-                cat_dist = profile["category_distribution"]
-                radar_data = [
-                    {"name": "Compliance", "value": cat_dist.get("COMPLIANCE", 0)},
-                    {"name": "Resistance", "value": cat_dist.get("RESISTANCE", 0)},
-                    {"name": "Negotiation", "value": cat_dist.get("NEGOTIATION", 0)},
-                    {"name": "Escape", "value": cat_dist.get("ESCAPE", 0)},
+    with ui.column().classes("w-full max-w-[1600px] mx-auto p-4 gap-4 min-h-screen"):
+
+        # --- HEADER: Emotional Weather + Swarm Stats ---
+        with ui.row().classes("w-full items-center justify-between p-4 vn-card vn-card-highlight").style("background: rgba(10,10,20,0.8)"):
+            with ui.row().classes("items-center gap-6"):
+                # Emotional Weather
+                avg_stress = stats.get('avg_stress', 0)
+                if avg_stress < 40:
+                    weather_icon, weather_label, weather_color = "sunny", "SOLEGGIATO", "text-green-400"
+                elif avg_stress < 60:
+                    weather_icon, weather_label, weather_color = "cloud", "NUVOLOSO", "text-gray-400"
+                elif avg_stress < 75:
+                    weather_icon, weather_label, weather_color = "thunderstorm", "TEMPORALE", "text-yellow-400"
+                else:
+                    weather_icon, weather_label, weather_color = "bolt", "TEMPESTA", "text-red-500"
+
+                if stats.get('alive_count', 0) < stats.get('total_agents', 0):
+                    weather_icon, weather_label, weather_color = "skull", "COLLASSO", "text-red-900"
+
+                with ui.column().classes("items-center gap-0"):
+                    ui.icon(weather_icon, size="32px").classes(weather_color)
+                    ui.label(weather_label).classes(f"text-[10px] font-black {weather_color} tracking-tighter")
+
+                ui.separator().props("vertical").classes("bg-white/10 h-10")
+
+                # Global Stats
+                with ui.column().classes("gap-0"):
+                    ui.label("STRESS MEDIO SCIAME").classes("text-[10px] text-gray-500 font-bold")
+                    ui.label(f"{avg_stress}%").classes("text-2xl font-black text-white")
+
+                with ui.column().classes("gap-0"):
+                    ui.label("SOGGETTI ATTIVI").classes("text-[10px] text-gray-500 font-bold")
+                    ui.label(f"{stats.get('alive_count', 0)}/{len(swarm.agents)}").classes("text-2xl font-black text-green-400")
+
+            ui.label("LABORATORIO ANTROPOLOGICO v3.0").classes("text-xl font-black tracking-[0.2em] text-white/20 absolute left-1/2 -translate-x-1/2")
+
+            with ui.row().classes("items-center gap-4"):
+                ui.button("▶ AVANZA", on_click=_step_simulation).props("color=green size=md icon=play_arrow").classes("font-bold")
+                ui.button("← MENU", on_click=lambda: globals().update(screen="start") or page.refresh()).props("flat color=gray").classes("text-xs")
+
+        # --- MAIN 3-ZONE LAYOUT ---
+        with ui.row().classes("w-full gap-4 items-start no-wrap"):
+
+            # COLONNA SX: Agent Compact List
+            with ui.column().classes("w-80 shrink-0 gap-3"):
+                ui.label("SOGGETTI").classes("text-xs font-black text-gray-500 tracking-widest ml-1")
+                for agent_data in lab_view["agents"]:
+                    is_selected = agent_data["agent_id"] == inspected_agent_id
+                    _render_agent_compact_card(agent_data, is_selected)
+
+            # AREA CENTRALE: Agent Focus
+            with ui.column().classes("flex-1 gap-4"):
+                if inspected_agent:
+                    # Focus Header
+                    with ui.card().classes("w-full p-6 vn-card vn-card-highlight").props("flat"):
+                        with ui.row().classes("w-full items-start justify-between"):
+                            with ui.column().classes("gap-0"):
+                                with ui.row().classes("items-center gap-2"):
+                                    ui.label(inspected_agent["name"]).classes("text-3xl font-black text-white tracking-tighter")
+                                    if inspected_agent["is_possessed"]:
+                                        ui.badge("POSSEDUTO", color="purple").classes("px-2 font-black text-[10px]")
+                                ui.label(f"{inspected_agent['profile_name']} · {inspected_agent['company_type']} · GIORNO {inspected_agent['day']}").classes("text-sm text-blue-400 font-bold")
+
+                            with ui.row().classes("gap-2"):
+                                if inspected_agent["is_possessed"]:
+                                    ui.button("CONTINUA", on_click=lambda aid=inspected_agent["agent_id"]: _continue_possession(aid)).props("color=purple icon=bolt").classes("font-bold")
+                                else:
+                                    ui.button("POSSIEDI", on_click=lambda aid=inspected_agent["agent_id"]: _start_possession(aid)).props("color=blue icon=psychology").classes("font-bold")
+
+                        # Aura Radar Area
+                        with ui.row().classes("w-full gap-6 mt-6"):
+                            # Radar chart
+                            with ui.column().classes("flex-1 items-center"):
+                                ui.label("AURA COMPORTAMENTALE").classes("text-[10px] font-black text-gray-500 tracking-widest mb-4")
+                                _render_aura_radar(inspected_agent)
+
+                            # Event Showcase
+                            with ui.column().classes("w-96 gap-4"):
+                                ui.label("EVENTO CORRENTE").classes("text-[10px] font-black text-gray-500 tracking-widest mb-0")
+                                with ui.card().classes("w-full p-4 vn-card").style("background: rgba(0,0,0,0.3)"):
+                                    ui.label(inspected_agent["current_event"].replace("_", " ").upper() if inspected_agent["current_event"] else "NESSUN EVENTO").classes("text-xs font-black text-orange-400 mb-2")
+                                    ui.markdown(inspected_agent["current_event_text"]).classes("text-sm text-gray-300 italic line-clamp-3")
+
+                                ui.label("SCELTE & PROBABILITÀ").classes("text-[10px] font-black text-gray-500 tracking-widest mt-2")
+                                with ui.column().classes("w-full gap-2"):
+                                    for choice in inspected_agent["current_choices"]:
+                                        prob = choice.get("probability", 0)
+                                        with ui.row().classes("w-full items-center justify-between p-2 bg-white/5 rounded border border-white/10"):
+                                            ui.label(choice["text"][:40] + "...").classes("text-[11px] text-gray-400 truncate flex-1")
+                                            with ui.row().classes("items-center gap-2"):
+                                                ui.label(f"{prob}%").classes("text-[10px] font-black text-gray-500")
+                                                ui.label(choice["category"]).classes(f"text-[9px] font-bold px-1 rounded").style(f"background: {cat_colors.get(choice['category'], '#666')}40; color: {cat_colors.get(choice['category'], '#666')}")
+
+                    # Global Metrics of Inspected Agent
+                    with ui.row().classes("w-full gap-4"):
+                        _metric_card("STRESS", inspected_agent["stress"], "#ef4444")
+                        _metric_card("ENERGIA", inspected_agent["energy"], "#22c55e")
+                        _metric_card("SALUTE", inspected_agent["health"], "#22d3ee")
+                        _metric_card("AUTOSTIMA", inspected_agent["self_esteem"], "#eab308")
+
+            # COLONNA DX: Decision Timeline
+            with ui.column().classes("w-80 shrink-0 gap-3"):
+                ui.label("CRONOLOGIA SCELTE").classes("text-xs font-black text-gray-500 tracking-widest ml-1")
+                with ui.column().classes("w-full gap-1 overflow-y-auto max-h-[80vh] pr-2"):
+                    if inspected_agent and inspected_agent["recent_decisions"]:
+                        for dec in inspected_agent["recent_decisions"]:
+                            _render_timeline_item(dec)
+                    else:
+                        ui.label("Nessuna decisione registrata").classes("text-xs text-gray-600 italic mt-4 text-center w-full")
+
+
+def _render_agent_compact_card(agent, is_selected):
+    # Determine state color
+    status_color = "text-green-400"
+    status_icon = "circle"
+    border_class = "border-white/5"
+
+    if not agent["alive"]:
+        status_color = "text-gray-600"
+        status_icon = "cancel"
+    elif agent["stress"] > 75 or agent["health"] < 30:
+        status_color = "text-red-500"
+        status_icon = "error"
+        border_class = "border-red-500/50 pulse-danger"
+    elif agent["stress"] > 50:
+        status_color = "text-yellow-500"
+        status_icon = "warning"
+
+    if agent["is_possessed"]:
+        status_color = "text-purple-400"
+        status_icon = "visibility"
+
+    card_bg = "background: rgba(30,30,50,0.6)" if is_selected else "background: rgba(15,15,30,0.4)"
+
+    with ui.card().classes(f"w-full p-3 vn-card cursor-pointer {border_class}").style(card_bg).on("click", lambda: _inspect_agent(agent["agent_id"])):
+        with ui.row().classes("w-full items-center justify-between no-wrap"):
+            with ui.row().classes("items-center gap-2 flex-1 min-w-0"):
+                ui.icon(status_icon, size="14px").classes(status_color)
+                ui.label(agent["name"]).classes("text-sm font-bold text-white truncate")
+            ui.label(f"G{agent['day']}").classes("text-[10px] font-mono text-gray-500")
+
+        # Stress bar
+        with ui.row().classes("w-full items-center gap-2 mt-1"):
+            ui.linear_progress(agent["stress"]/100, size="2px", color="red" if agent["stress"] > 75 else "orange" if agent["stress"] > 50 else "blue").classes("flex-1 bg-white/5")
+            ui.label(f"{agent['stress']}%").classes("text-[9px] font-mono text-gray-500")
+
+        with ui.row().classes("w-full items-center justify-between mt-1"):
+            ui.label(agent["profile_name"].upper()).classes("text-[9px] font-black text-gray-600")
+            ui.label(agent["dominant_faction"]).classes("text-[9px] font-bold text-gray-500")
+
+
+def _render_aura_radar(agent):
+    # Radar Axes: Stress, Conformismo (Compliance Bias), Resilienza, Autostima, Salute, Energia
+    axes = [
+        {"name": "Stress", "value": agent["stress"]},
+        {"name": "Conformismo", "value": agent["compliance_bias"]},
+        {"name": "Resilienza", "value": agent["resilience"]},
+        {"name": "Autostima", "value": agent["self_esteem"]},
+        {"name": "Salute", "value": agent["health"]},
+        {"name": "Energia", "value": agent["energy"]},
+    ]
+
+    profile_color = AGENT_PROFILE_COLORS.get(agent["profile_name"], "#3b82f6")
+
+    # Ghost Trail data (past stats)
+    ghost_data = []
+    if "stats_history" in agent and len(agent["stats_history"]) > 1:
+        for hist in agent["stats_history"][:-1]: # All except current
+            ghost_data.append({
+                "value": [
+                    hist.get("stress", 0),
+                    agent["compliance_bias"], # Bias è fisso per ora
+                    agent["resilience"],
+                    hist.get("self_esteem", 50),
+                    hist.get("health", 100),
+                    hist.get("energy", 100),
                 ]
+            })
 
-                radar_option = {
-                    "radar": {
-                        "indicator": [
-                            {"name": r["name"], "max": 100} for r in radar_data
-                        ],
-                        "shape": "circle",
-                    },
-                    "series": [
-                        {
-                            "type": "radar",
-                            "data": [
-                                {
-                                    "value": [s["value"] for s in radar_data],
-                                    "name": "Profilo Umano",
-                                }
-                            ],
-                            "areaStyle": {"color": "rgba(168,85,247,0.3)"},
-                            "lineStyle": {"color": "#a855f7", "width": 2},
-                        }
-                    ],
-                    "backgroundColor": "transparent",
-                }
-                ui.echart(radar_option).classes("w-full h-48")
+    radar_option = {
+        "radar": {
+            "indicator": [
+                {"name": "STRESS", "max": 100},
+                {"name": "CONFORMISMO", "max": 100},
+                {"name": "RESILIENZA", "max": 100},
+                {"name": "AUTOSTIMA", "max": 100},
+                {"name": "SALUTE", "max": 100},
+                {"name": "ENERGIA", "max": 100},
+            ],
+            "shape": "polygon",
+            "splitNumber": 4,
+            "axisName": {"color": "#666", "fontSize": 10, "fontWeight": "bold"},
+            "splitArea": {"show": False},
+            "splitLine": {"lineStyle": {"color": "rgba(255,255,255,0.05)"}},
+            "axisLine": {"lineStyle": {"color": "rgba(255,255,255,0.05)"}}
+        },
+        "series": [
+            # Ghost Trails
+            {
+                "type": "radar",
+                "silent": True,
+                "data": ghost_data,
+                "lineStyle": {"width": 1, "opacity": 0.1, "color": profile_color},
+                "areaStyle": {"opacity": 0.05, "color": profile_color},
+                "symbol": "none"
+            },
+            # Current State
+            {
+                "type": "radar",
+                "data": [
+                    {
+                        "value": [a["value"] for a in axes],
+                        "name": "Stato Attuale",
+                        "areaStyle": {"color": profile_color, "opacity": 0.3},
+                        "lineStyle": {"color": profile_color, "width": 3},
+                        "itemStyle": {"color": profile_color}
+                    }
+                ],
+                "symbol": "circle",
+                "symbolSize": 6
+            }
+        ],
+        "backgroundColor": "transparent",
+    }
 
-                ui.label(f"Pattern: {profile['jump_pattern']}").classes(
-                    "text-xs text-gray-500 mt-2"
-                )
+    ui.echart(radar_option).classes("w-full h-80")
 
-                if profile.get("jump_history"):
-                    ui.separator().classes("bg-white/10 my-2")
-                    ui.label("TIMELINE SALTI").classes(
-                        "text-[10px] font-bold text-gray-500 mb-2"
-                    )
-                    with ui.row().classes("w-full gap-2 overflow-x-auto pb-2 no-wrap"):
-                        for j in profile["jump_history"]:
-                            with ui.column().classes("items-center shrink-0 gap-1"):
-                                ui.icon("alt_route", size="xs").classes(
-                                    "text-purple-400"
-                                )
-                                ui.label(f"G{j['day']}").classes(
-                                    "text-[9px] text-gray-400"
-                                )
-                                with ui.tooltip():
-                                    ui.label(f"Salto a {j['to']}").classes("text-xs")
 
-        # Griglia agenti
-        lab_view = swarm.get_laboratory_view(current_human_id)
+def _render_timeline_item(dec):
+    cat_col = cat_colors.get(dec["category"], "#666")
+    is_auto = dec["was_auto"]
 
-        with ui.grid(columns=3).classes("w-full gap-4"):
-            for agent_data in lab_view["agents"]:
-                with ui.card().classes("p-4 vn-card relative").props("flat"):
-                    # Badge possesso
-                    if agent_data["is_possessed"]:
-                        ui.badge("TUO", color="purple").classes(
-                            "absolute top-2 right-2"
-                        )
+    with ui.row().classes("w-full items-start gap-3 p-2 bg-white/5 rounded border-l-2 mb-1").style(f"border-color: {cat_col}"):
+        with ui.column().classes("gap-0 flex-1"):
+            with ui.row().classes("w-full justify-between items-center"):
+                ui.label(dec["category"]).classes(f"text-[9px] font-black").style(f"color: {cat_col}")
+                ui.label(f"G{dec['day']}").classes("text-[9px] text-gray-600 font-mono")
 
-                    # Header agente
-                    with ui.row().classes("items-center gap-2"):
-                        ui.icon("psychology", size="24px").classes("text-blue-400")
-                        with ui.column().classes("gap-0"):
-                            ui.label(agent_data["name"]).classes(
-                                "text-sm font-bold text-white"
-                            )
-                            ui.label(agent_data["profile_name"]).classes(
-                                "text-xs text-gray-500"
-                            )
+            ui.label(dec["choice_text"]).classes("text-xs text-gray-300 leading-tight mt-1")
 
-                    # Stats
-                    with ui.row().classes("w-full gap-2 mt-2"):
-                        _mini_stat("Stress", agent_data["stress"], "#f87171")
-                        _mini_stat("Energia", agent_data["energy"], "#4ade80")
-                        _mini_stat("Salute", agent_data["health"], "#22d3ee")
+            with ui.row().classes("w-full justify-between items-center mt-2"):
+                # Impact indicator
+                delta = dec.get("stress_delta", 0)
+                if delta != 0:
+                    delta_col = "text-red-400" if delta > 0 else "text-green-400"
+                    delta_sign = "+" if delta > 0 else ""
+                    ui.label(f"STRESS {delta_sign}{delta}").classes(f"text-[9px] font-bold {delta_col}")
+                else:
+                    ui.element("div") # spacer
 
-                    # Fazione dominante
-                    ui.label(f"Fazione: {agent_data['dominant_faction']}").classes(
-                        "text-xs text-gray-400 mt-1"
-                    )
+                ui.icon("smart_toy" if is_auto else "person", size="12px").classes("text-gray-600")
 
-                    # Match score
-                    match = agent_data["match_score"]
-                    match_color = (
-                        "text-green-400"
-                        if match > 70
-                        else "text-yellow-400"
-                        if match > 40
-                        else "text-gray-400"
-                    )
-                    ui.label(f"Affinità: {match}%").classes(
-                        f"text-xs {match_color} font-bold"
-                    )
 
-                    # Azioni
-                    with ui.row().classes("w-full gap-2 mt-3"):
-                        if agent_data["is_possessed"]:
-                            ui.button(
-                                "Continua",
-                                on_click=lambda aid=agent_data["agent_id"]: (
-                                    _continue_possession(aid)
-                                ),
-                            ).props("color=purple size=sm").classes("flex-1")
-                        else:
-                            ui.button(
-                                "Possiedi",
-                                on_click=lambda aid=agent_data["agent_id"]: (
-                                    _start_possession(aid)
-                                ),
-                            ).props("color=blue size=sm").classes("flex-1")
+def _metric_card(label, value, color):
+    with ui.card().classes("flex-1 p-3 vn-card items-center gap-0").props("flat"):
+        ui.label(label).classes("text-[10px] font-black text-gray-500 tracking-tighter")
+        ui.label(f"{value}%").classes("text-xl font-black").style(f"color: {color}")
+        ui.linear_progress(value/100, size="2px", color=color).classes("w-full mt-2 bg-white/5")
 
-                        ui.button(
-                            "Dettagli",
-                            on_click=lambda aid=agent_data["agent_id"]: (
-                                _show_agent_details(aid)
-                            ),
-                        ).props("flat size=sm").classes("text-gray-500")
 
-        # Controlli simulazione
-        with ui.row().classes("w-full justify-center gap-4 mt-4"):
-            ui.button("▶ Avanza 1 turno", on_click=_step_simulation).props(
-                "color=positive"
-            )
-            ui.button("⏩ Avanza 5 turni", on_click=lambda: _step_simulation(5)).props(
-                "outline"
-            )
-            ui.button(
-                "⏸ Pausa", on_click=lambda: ui.notify("Simulazione in pausa")
-            ).props("flat")
+def _inspect_agent(agent_id):
+    client_id = ui.context.client.id
+    client_inspected_agent[client_id] = agent_id
+    page.refresh()
 
 
 def _mini_stat(label: str, value: int, color: str):
@@ -2616,47 +2724,69 @@ def _render_analytics():
 ui.add_head_html("""
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
     :root {
-        --theme-accent: #3b82f6;
-        --theme-header: #2563eb;
-        --theme-glow: 0 0 25px rgba(59,130,246,0.3);
+        --theme-accent: #6366f1;
+        --theme-header: #4f46e5;
+        --theme-glow: 0 0 25px rgba(99,102,241,0.2);
     }
 
-    * { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    * { font-family: 'Inter', system-ui, sans-serif; }
     .font-mono, code, pre { font-family: 'JetBrains Mono', monospace !important; }
     .q-icon, .material-icons { font-family: 'Material Icons' !important; }
 
     body {
-        background: #050510;
+        background: #0a0a0f;
         color: #e2e8f0;
         min-height: 100vh;
         overflow-x: hidden;
+        position: relative;
+    }
+
+    body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0.03;
+        pointer-events: none;
+        z-index: 1000;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
     }
 
     .bg-animation {
         position: fixed; inset: 0; z-index: -1;
         background:
-            radial-gradient(circle at 15% 15%, rgba(59,130,246,0.08) 0%, transparent 40%),
-            radial-gradient(circle at 85% 85%, rgba(239,68,68,0.06) 0%, transparent 40%),
-            radial-gradient(circle at 50% 50%, rgba(15,15,35,1) 0%, #050510 100%);
+            linear-gradient(rgba(10, 10, 15, 0.9), rgba(10, 10, 15, 0.95)),
+            radial-gradient(circle at 50% -20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 0% 100%, rgba(239, 68, 68, 0.05) 0%, transparent 40%);
     }
 
     /* Glassmorphism Cards */
     .vn-card {
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 16px;
-        background: rgba(15, 15, 35, 0.7);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 12px;
+        background: #12121a;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .vn-card-highlight {
-        border-top: 3px solid var(--theme-accent);
+        border-top: 2px solid var(--theme-accent);
         box-shadow: var(--theme-glow);
+    }
+
+    .scan-lines {
+        position: fixed;
+        inset: 0;
+        z-index: 1001;
+        pointer-events: none;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+        background-size: 100% 4px, 3px 100%;
+        opacity: 0.1;
     }
 
     /* Event Card - Visual Novel Style */
@@ -2743,6 +2873,7 @@ ui.add_head_html("""
 
     .pulse-danger {
         animation: pulse-red 2s infinite;
+        border-color: rgba(239, 68, 68, 0.5) !important;
     }
     @keyframes pulse-red {
         0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
@@ -2821,6 +2952,7 @@ ui.add_head_html("""
     }
 </style>
 <div class="bg-animation"></div>
+<div class="scan-lines"></div>
 """)
 
 init_db()

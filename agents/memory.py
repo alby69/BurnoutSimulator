@@ -11,6 +11,7 @@ class DecisionRecord:
     choice_text: str
     category: str
     was_auto: bool
+    day: int = 0
     human_id: Optional[str] = None
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
     outcomes: Dict = field(default_factory=dict)
@@ -28,13 +29,14 @@ class AgentMemory:
         self.category_frequency: Dict[str, int] = defaultdict(int)
 
     def record_decision(self, event_id: str, choice_id: str, choice_text: str,
-                        category: str, was_auto: bool, human_id: Optional[str] = None):
+                        category: str, was_auto: bool, day: int = 0, human_id: Optional[str] = None):
         record = DecisionRecord(
             event_id=event_id,
             choice_id=choice_id,
             choice_text=choice_text,
             category=category,
             was_auto=was_auto,
+            day=day,
             human_id=human_id
         )
         self.decisions.append(record)
