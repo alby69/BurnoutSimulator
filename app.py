@@ -1056,6 +1056,8 @@ def _render_start():
 
             def start_lab_cb():
                 global current_human_id, screen
+                # Allinea tutti gli agenti all'archetipo scelto dall'utente
+                swarm.set_archetype_for_all(arch_select.value)
                 if not current_human_id:
                     human = swarm.register_human(name_input.value or "Osservatore")
                     current_human_id = human.human_id
