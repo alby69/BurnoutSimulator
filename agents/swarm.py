@@ -8,6 +8,7 @@ from .personality import AGENT_PROFILES, PsychologicalProfile
 from human.human_player import HumanPlayer
 from database.agent_db import (
     init_agent_db,
+    clear_agents,
     save_agent,
     save_decision,
     save_jump,
@@ -33,8 +34,7 @@ class AgentSwarm:
 
         init_agent_db()
 
-        # Inizializza agenti con profili diversi
-        self._init_agents(num_agents)
+        self.num_agents = num_agents
 
         # Salva sessione swarm
         save_swarm_session(
@@ -47,6 +47,7 @@ class AgentSwarm:
 
     def _init_agents(self, num_agents: int):
         """Crea agenti con profili psicologici diversi."""
+        clear_agents()
         profiles = list(AGENT_PROFILES.values())
         archetypes = [
             "Startup Caotica",
@@ -397,6 +398,9 @@ class AgentSwarm:
 
                 self.agents[da["agent_id"]] = agent
             print(f"Loaded {len(self.agents)} agents from DB")
+        else:
+            # Nessun agente salvato: crea quelli iniziali
+            self._init_agents(self.num_agents)
 
         # Carica Umani
         db_humans = get_all_human_profiles()
