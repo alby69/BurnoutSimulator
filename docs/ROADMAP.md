@@ -316,3 +316,25 @@ Espressioni:
 | **F3** | **Layout Visual Novel** | Alto | Medio | ✅ Fatto |
 
 **Totale: 23 miglioramenti implementati.**
+
+---
+
+## 🚀 v3.0 — SOCIAL LABORATORY (Agosto 2026)
+
+L'ultima evoluzione trasforma il simulatore in un esperimento sociale multi-agente.
+
+| # | Miglioramento | Descrizione | Stato |
+|---|---|---|---|
+| **L1** | **Core Agent Framework** | 7 archetipi psicologici con bias decisionali dinamici | ✅ |
+| **L2** | **Autonomous Swarm** | 6 agenti giocano simultaneamente in background | ✅ |
+| **L3** | **Human Jump System** | Possesso di agenti e salto tra prospettive psicologiche | ✅ |
+| **L4** | **Observer Analytics** | Tracciamento del profilo psicologico emergente dell'umano | ✅ |
+| **L5** | **Lab UI Overhaul** | Vista a 3 colonne, radar charts, jump timeline, dashboard sciame | ✅ |
+| **L6** | **Agent Persistence** | Schema DB esteso per memoria, decisioni e traccia umana | ✅ |
+
+### Dettaglio L1-L6
+- **L1**: Profili come *Il Performante*, *Il Protettore*, *Il Sopravvissuto* definiscono probabilità pesate per le categorie COMPLIANCE, RESISTANCE, NEGOTIATION, ESCAPE.
+- **L2**: `AgentSwarm` coordina l'avanzamento dei turni per tutti gli agenti non controllati dall'utente.
+- **L3**: L'utente può saltare tra gli agenti in qualsiasi momento. Ogni salto viene registrato con il "mood" dichiarato.
+- **L4**: Analisi del comportamento umano (es. "Stress Avoider", "Explorer") basata sulla scelta degli agenti e delle azioni.
+- **L5**: Dashboard basata su ECharts con radar per il confronto tra profilo attuale e profilo emergente dell'utente.

@@ -1,4 +1,5 @@
 import uuid, random, json, sqlite3, os, base64
+from typing import Optional
 from io import BytesIO
 from nicegui import app, ui
 from game.engine import (
@@ -14,12 +15,17 @@ from database.analytics import (
     record_choice,
     record_tags,
 )
+from database.agent_db import init_agent_db
 from game.events import Choice
+from agents.swarm import AgentSwarm
 
 # ── State ──
 screen: str = "start"
 engine: GameEngine | None = None
 session_id: str | None = None
+swarm: AgentSwarm = AgentSwarm(num_agents=6)
+current_human_id: str | None = None
+current_agent_id: str | None = None
 stats_before: dict = {}
 choice_history: list = []
 _tutorial_active: bool = False
@@ -383,6 +389,8 @@ def _render_relationships_section(npcs: dict):
 def page():
     if screen == "start":
         _render_start()
+    elif screen == "laboratory":
+        _render_laboratory()
     elif screen == "game":
         _render_game()
         if _tutorial_active:
@@ -392,6 +400,370 @@ def page():
     elif screen == "analytics":
         _render_analytics()
 
+
+def _render_laboratory():
+    """Vista principale del laboratorio di agenti."""
+    with ui.column().classes("w-full max-w-6xl mx-auto p-4 gap-4"):
+        # Header
+        with ui.row().classes("w-full items-center justify-between"):
+            ui.label("🔬 LABORATORIO AGENTI").classes(
+                "text-3xl font-black tracking-tighter text-white"
+            )
+            ui.label("Osserva, scegli, salta.").classes(
+                "text-gray-400 italic"
+            )
+            ui.button("← Torna al Menu", on_click=lambda: globals().update(screen="start") or page.refresh()).props("flat").classes("text-gray-400")
+
+        # Swarm Stats
+        stats = swarm.get_swarm_analytics()
+        with ui.row().classes("w-full gap-4"):
+            with ui.card().classes("flex-1 p-3 vn-card").props("flat"):
+                ui.label("STRESS MEDIO LAB").classes("text-[10px] text-gray-500 font-bold")
+                ui.label(f"{stats.get('avg_stress', 0)}%").classes("text-xl font-black text-red-400")
+            with ui.card().classes("flex-1 p-3 vn-card").props("flat"):
+                ui.label("ARCHETIPO CRITICO").classes("text-[10px] text-gray-500 font-bold")
+                ui.label(str(stats.get('most_stressful_archetype', '-'))).classes("text-sm font-bold text-orange-400")
+            with ui.card().classes("flex-1 p-3 vn-card").props("flat"):
+                ui.label("AGENTI ATTIVI").classes("text-[10px] text-gray-500 font-bold")
+                ui.label(f"{stats.get('alive_count', 0)}/{len(swarm.agents)}").classes("text-xl font-black text-green-400")
+
+        # Info umano
+        if current_human_id in swarm.humans:
+            human = swarm.humans[current_human_id]
+            profile = human.get_emergent_profile()
+
+            with ui.card().classes("w-full p-4 vn-card").props("flat"):
+                with ui.row().classes("w-full items-center justify-between"):
+                    ui.label("IL TUO PERCORSO PSICOLOGICO").classes(
+                        "text-xs font-black text-purple-400 tracking-widest"
+                    )
+                    ui.label(f"{profile['total_jumps']} salti · {profile['unique_agents_played']} agenti").classes(
+                        "text-xs text-gray-500"
+                    )
+
+                # Radar del profilo emergente
+                cat_dist = profile["category_distribution"]
+                radar_data = [
+                    {"name": "Compliance", "value": cat_dist.get("COMPLIANCE", 0)},
+                    {"name": "Resistance", "value": cat_dist.get("RESISTANCE", 0)},
+                    {"name": "Negotiation", "value": cat_dist.get("NEGOTIATION", 0)},
+                    {"name": "Escape", "value": cat_dist.get("ESCAPE", 0)},
+                ]
+
+                radar_option = {
+                    "radar": {
+                        "indicator": [
+                            {"name": r["name"], "max": 100} for r in radar_data
+                        ],
+                        "shape": "circle",
+                    },
+                    "series": [
+                        {
+                            "type": "radar",
+                            "data": [
+                                {
+                                    "value": [s["value"] for s in radar_data],
+                                    "name": "Profilo Umano",
+                                }
+                            ],
+                            "areaStyle": {"color": "rgba(168,85,247,0.3)"},
+                            "lineStyle": {"color": "#a855f7", "width": 2},
+                        }
+                    ],
+                    "backgroundColor": "transparent",
+                }
+                ui.echart(radar_option).classes("w-full h-48")
+
+                ui.label(f"Pattern: {profile['jump_pattern']}").classes(
+                    "text-xs text-gray-500 mt-2"
+                )
+
+                if profile.get("jump_history"):
+                    ui.separator().classes("bg-white/10 my-2")
+                    ui.label("TIMELINE SALTI").classes("text-[10px] font-bold text-gray-500 mb-2")
+                    with ui.row().classes("w-full gap-2 overflow-x-auto pb-2 no-wrap"):
+                        for j in profile["jump_history"]:
+                            with ui.column().classes("items-center shrink-0 gap-1"):
+                                ui.icon("alt_route", size="xs").classes("text-purple-400")
+                                ui.label(f"G{j['day']}").classes("text-[9px] text-gray-400")
+                                with ui.tooltip():
+                                    ui.label(f"Salto a {j['to']}").classes("text-xs")
+
+        # Griglia agenti
+        lab_view = swarm.get_laboratory_view(current_human_id)
+
+        with ui.grid(columns=3).classes("w-full gap-4"):
+            for agent_data in lab_view["agents"]:
+                with ui.card().classes("p-4 vn-card relative").props("flat"):
+                    # Badge possesso
+                    if agent_data["is_possessed"]:
+                        ui.badge("TUO", color="purple").classes(
+                            "absolute top-2 right-2"
+                        )
+
+                    # Header agente
+                    with ui.row().classes("items-center gap-2"):
+                        ui.icon("psychology", size="24px").classes(
+                            "text-blue-400"
+                        )
+                        with ui.column().classes("gap-0"):
+                            ui.label(agent_data["name"]).classes(
+                                "text-sm font-bold text-white"
+                            )
+                            ui.label(agent_data["profile_name"]).classes(
+                                "text-xs text-gray-500"
+                            )
+
+                    # Stats
+                    with ui.row().classes("w-full gap-2 mt-2"):
+                        _mini_stat("Stress", agent_data["stress"], "#f87171")
+                        _mini_stat("Energia", agent_data["energy"], "#4ade80")
+                        _mini_stat("Salute", agent_data["health"], "#22d3ee")
+
+                    # Fazione dominante
+                    ui.label(
+                        f"Fazione: {agent_data['dominant_faction']}"
+                    ).classes("text-xs text-gray-400 mt-1")
+
+                    # Match score
+                    match = agent_data["match_score"]
+                    match_color = "text-green-400" if match > 70 else "text-yellow-400" if match > 40 else "text-gray-400"
+                    ui.label(f"Affinità: {match}%").classes(f"text-xs {match_color} font-bold")
+
+                    # Azioni
+                    with ui.row().classes("w-full gap-2 mt-3"):
+                        if agent_data["is_possessed"]:
+                            ui.button(
+                                "Continua",
+                                on_click=lambda aid=agent_data["agent_id"]: _continue_possession(aid)
+                            ).props("color=purple size=sm").classes("flex-1")
+                        else:
+                            ui.button(
+                                "Possiedi",
+                                on_click=lambda aid=agent_data["agent_id"]: _start_possession(aid)
+                            ).props("color=blue size=sm").classes("flex-1")
+
+                        ui.button(
+                            "Dettagli",
+                            on_click=lambda aid=agent_data["agent_id"]: _show_agent_details(aid)
+                        ).props("flat size=sm").classes("text-gray-500")
+
+        # Controlli simulazione
+        with ui.row().classes("w-full justify-center gap-4 mt-4"):
+            ui.button(
+                "▶ Avanza 1 turno",
+                on_click=_step_simulation
+            ).props("color=positive")
+            ui.button(
+                "⏩ Avanza 5 turni",
+                on_click=lambda: _step_simulation(5)
+            ).props("outline")
+            ui.button(
+                "⏸ Pausa",
+                on_click=lambda: ui.notify("Simulazione in pausa")
+            ).props("flat")
+
+
+def _mini_stat(label: str, value: int, color: str):
+    with ui.column().classes("items-center flex-1"):
+        ui.circular_progress(value / 100, size="32px", color=color)
+        ui.label(label).classes("text-[9px] text-gray-500 mt-1")
+
+
+def _start_possession(agent_id: str):
+    """Inizia il possesso di un agente."""
+    global current_agent_id, screen, engine, session_id
+
+    result = swarm.possess_agent(current_human_id, agent_id)
+    if result.get("success"):
+        current_agent_id = agent_id
+        agent = swarm.agents[agent_id]
+        engine = agent.engine
+        session_id = f"possession_{agent_id}_{uuid.uuid4().hex[:6]}"
+        screen = "game"  # Usa la schermata gioco esistente ma in modalità possesso
+        page.refresh()
+
+def _continue_possession(agent_id: str):
+    global current_agent_id, screen, engine
+    current_agent_id = agent_id
+    engine = swarm.agents[agent_id].engine
+    screen = "game"
+    page.refresh()
+
+
+def _render_jump_dialog():
+    """
+    Dialog che appare quando l'umano vuole saltare a un altro agente.
+    Mostra tutti gli agenti disponibili con il loro stato attuale.
+    """
+    with ui.dialog().props("maximized") as dialog:
+        with ui.card().classes("w-full h-full bg-gray-900 text-white overflow-y-auto").props("flat"):
+            with ui.column().classes("w-full max-w-3xl mx-auto p-8 gap-6"):
+                ui.label("🔄 SALTA A UN ALTRO AGENTE").classes(
+                    "text-2xl font-black text-white mb-4"
+                )
+                ui.label(
+                    "Scegli un agente che rispecchia il tuo stato d'animo attuale."
+                ).classes("text-gray-400 mb-6")
+
+                # Mood selector (opzionale, per analytics)
+                mood = ui.select(
+                    ["Stressato", "Arrabbiato", "Stanco", "Motivato", "Cinico", "Speranzoso", "Confuso"],
+                    label="Come ti senti in questo momento?"
+                ).classes("w-full max-w-md mb-6")
+
+                # Lista agenti
+                available = swarm.get_available_agents(current_human_id)
+                for agent in available:
+                    if agent["agent_id"] == current_agent_id:
+                        continue  # Salta quello attuale
+
+                    with ui.card().classes("w-full p-4 mb-3 vn-card").props("flat"):
+                        with ui.row().classes("w-full items-center justify-between"):
+                            with ui.column():
+                                ui.label(agent["name"]).classes("font-bold")
+                                ui.label(f"Giorno {agent['current_day']} · {agent['company_type']}").classes("text-xs text-gray-500")
+
+                            with ui.column().classes("items-end"):
+                                ui.label(f"Affinità: {agent['match_score']}%").classes(
+                                    "text-sm font-bold text-green-400" if agent["match_score"] > 60 else "text-sm text-gray-400"
+                                )
+                                ui.button(
+                                    "SALTA QUI",
+                                    on_click=lambda aid=agent["agent_id"], m=mood: _execute_jump(aid, m.value, dialog)
+                                ).props("color=purple size=sm")
+
+                ui.button("Annulla", on_click=dialog.close).props("flat").classes("mt-4")
+
+    dialog.open()
+
+
+def _execute_jump(to_agent_id: str, mood: Optional[str], dialog):
+    """Esegue il salto da un agente all'altro."""
+    global current_agent_id, engine, session_id
+
+    # Rilascia corrente
+    if current_agent_id:
+        swarm.agents[current_agent_id].release(current_human_id)
+
+    # Possess nuovo
+    result = swarm.possess_agent(
+        current_human_id,
+        to_agent_id,
+        reason=f"Salto emotivo: {mood}" if mood else None
+    )
+
+    if result.get("success"):
+        current_agent_id = to_agent_id
+        agent = swarm.agents[to_agent_id]
+        engine = agent.engine
+        session_id = f"possession_{to_agent_id}_{uuid.uuid4().hex[:6]}"
+        dialog.close()
+        page.refresh()
+
+
+def _show_agent_details(agent_id: str):
+    """Mostra dettagli completi di un agente per aiutare la scelta."""
+    details = swarm.get_agent_detailed_view(agent_id)
+
+    with ui.dialog().props("maximized") as dialog:
+        with ui.card().classes("w-full h-full bg-gray-900 text-white overflow-y-auto").props("flat"):
+            with ui.column().classes("w-full max-w-4xl mx-auto p-8 gap-6"):
+                with ui.row().classes("w-full items-center justify-between"):
+                    with ui.row().classes("items-center gap-4"):
+                        ui.icon("psychology", size="48px").classes("text-blue-400")
+                        with ui.column().classes("gap-0"):
+                            ui.label(details['agent']['name']).classes("text-3xl font-black")
+                            ui.label(details['agent']['profile_name']).classes("text-xl text-blue-400")
+                    ui.button(icon="close", on_click=dialog.close).props("flat round color=white size=lg")
+
+                with ui.grid(columns=2).classes("w-full gap-6"):
+                    # Colonna 1: Profilo e Stats
+                    with ui.column().classes("gap-4"):
+                        ui.label("PROFILO PSICOLOGICO").classes("text-xs font-black tracking-widest text-gray-500")
+                        ui.label(details['agent']['company_type']).classes("text-sm text-gray-300 italic")
+
+                        # Radar Stats attuali
+                        state = details['agent']['current_state']
+                        stats = state['stats']['stats'] if state and state['stats'] else None
+                        if stats:
+                            radar_data = [
+                                {"name": "Stress", "value": stats.get("stress", 0)},
+                                {"name": "Energia", "value": stats.get("energy", 0)},
+                                {"name": "Salute", "value": stats.get("health", 0)},
+                                {"name": "Integrità", "value": stats.get("integrity", 0)},
+                                {"name": "Autostima", "value": stats.get("self_esteem", 0)},
+                                {"name": "Occupabilità", "value": stats.get("employability", 0)},
+                            ]
+                            radar_option = {
+                                "radar": {
+                                    "indicator": [{"name": r["name"], "max": 100} for r in radar_data],
+                                    "shape": "circle",
+                                },
+                                "series": [{
+                                    "type": "radar",
+                                    "data": [{"value": [s["value"] for s in radar_data], "name": "Stato Attuale"}],
+                                    "areaStyle": {"color": "rgba(59,130,246,0.2)"},
+                                    "lineStyle": {"color": "#3b82f6", "width": 2},
+                                }],
+                                "backgroundColor": "transparent",
+                            }
+                            ui.echart(radar_option).classes("w-full h-64")
+
+                    # Colonna 2: Memoria e Analisi
+                    with ui.column().classes("gap-4"):
+                        ui.label("ANALISI COMPORTAMENTALE").classes("text-xs font-black tracking-widest text-gray-500")
+                        summary = details['memory_summary']
+
+                        # Heatmap/Bar chart categorie
+                        cat_data = summary['category_distribution']
+                        bar_option = {
+                            "xAxis": {"type": "category", "data": list(cat_data.keys()), "axisLabel": {"color": "#999"}},
+                            "yAxis": {"type": "value", "axisLabel": {"color": "#999"}},
+                            "series": [{
+                                "data": list(cat_data.values()),
+                                "type": "bar",
+                                "itemStyle": {"color": "#a855f7"}
+                            }],
+                            "backgroundColor": "transparent",
+                            "grid": {"top": 20, "bottom": 40, "left": 40, "right": 20}
+                        }
+                        ui.echart(bar_option).classes("w-full h-48")
+
+                        with ui.row().classes("w-full justify-around mt-2"):
+                            with ui.column().classes("items-center"):
+                                ui.label(str(summary['total_decisions'])).classes("text-2xl font-black text-white")
+                                ui.label("DECISIONI").classes("text-[10px] text-gray-500")
+                            with ui.column().classes("items-center"):
+                                ui.label(str(summary['unique_events'])).classes("text-2xl font-black text-white")
+                                ui.label("EVENTI").classes("text-[10px] text-gray-500")
+                            with ui.column().classes("items-center"):
+                                hv_auto = summary['human_vs_auto']
+                                ui.label(f"{hv_auto['human_decisions']}/{hv_auto['auto_decisions']}").classes("text-2xl font-black text-purple-400")
+                                ui.label("UMANO/IA").classes("text-[10px] text-gray-500")
+
+                ui.separator().classes("bg-white/10 my-4")
+
+                # Storia
+                ui.label("STORIA DEL SOGGETTO").classes("text-xs font-black tracking-widest text-gray-500")
+                with ui.column().classes("w-full gap-2 max-h-48 overflow-y-auto pr-2"):
+                    for p in reversed(details['possession_history']):
+                        status = "CONCLUSA" if p['ended'] else "IN CORSO"
+                        color = "text-gray-400" if p['ended'] else "text-green-400"
+                        with ui.row().classes("w-full justify-between items-center p-2 bg-white/5 rounded"):
+                            ui.label(f"Possessione {status}").classes(f"text-xs font-bold {color}")
+                            ui.label(f"Decisioni: {p['decisions']}").classes("text-xs text-gray-500")
+                            ui.label(f"Inizio: {p['started'][:16].replace('T', ' ')}").classes("text-[10px] text-gray-600")
+
+                if not details['agent']['is_possessed']:
+                    ui.button("POSSIEDI QUESTO AGENTE", on_click=lambda: [_start_possession(agent_id), dialog.close()]).classes("w-full py-4 mt-4 bg-blue-600 font-bold")
+
+        dialog.open()
+
+def _step_simulation(steps=1):
+    for _ in range(steps):
+        swarm.run_simulation_step()
+    page.refresh()
 
 def _render_start():
     with ui.column().classes("w-full items-center justify-center min-h-[80vh] fade-in"):
@@ -518,6 +890,21 @@ def _render_start():
                 with ui.row().classes("items-center gap-3 no-wrap"):
                     ui.icon("rocket_launch", size="md")
                     ui.label("INIZIA CARRIERA")
+
+            def start_lab_cb():
+                global current_human_id, screen
+                if not current_human_id:
+                    human = swarm.register_human(name_input.value or "Osservatore")
+                    current_human_id = human.human_id
+                screen = "laboratory"
+                page.refresh()
+
+            with ui.button(on_click=start_lab_cb).classes(
+                "w-full mt-2 py-4 text-lg font-bold rounded-xl shadow-lg hover:scale-102 transition-transform bg-purple-600 text-white"
+            ):
+                with ui.row().classes("items-center gap-3 no-wrap"):
+                    ui.icon("psychology", size="md")
+                    ui.label("ENTRA NEL LABORATORIO")
 
             with ui.row().classes(
                 "w-full justify-center mt-6 pt-6 border-t border-white/5 gap-3"
@@ -703,6 +1090,13 @@ def _render_game():
     theme = ARCHETYPE_THEMES.get(
         player.company_type, ARCHETYPE_THEMES["Corporate Tossica"]
     )
+
+    if current_agent_id:
+        with ui.row().classes("w-full bg-purple-900/30 p-2 items-center justify-between border-b border-purple-500/50 mb-4"):
+            ui.label(f"POSSESSO AGENTE: {player.name}").classes("text-xs font-black text-purple-300")
+            with ui.row().classes("gap-2"):
+                ui.button("SALTA", icon="swap_horiz", on_click=_render_jump_dialog).props("flat size=sm").classes("text-white")
+                ui.button("LABORATORIO", icon="biotech", on_click=lambda: globals().update(screen="laboratory") or page.refresh()).props("flat size=sm").classes("text-white")
 
     mobile_cls = " pb-20" if _layout_mode == "mobile" else ""
     with ui.column().classes(f"w-full gap-0{mobile_cls}"):
@@ -1376,7 +1770,7 @@ def _render_game_over():
 
 
 def _make_choice(idx: int, event, choice):
-    global stats_before, choice_history, _decision_start
+    global stats_before, choice_history, _decision_start, current_agent_id
     decision_time = (
         int((__import__("time").time() - _decision_start) * 1000)
         if _decision_start > 0
@@ -1384,7 +1778,17 @@ def _make_choice(idx: int, event, choice):
     )
 
     stats_before = get_stats_dict(engine)
-    engine.handle_choice(idx)
+
+    if current_agent_id and current_human_id:
+        # Modalità laboratorio/possesso
+        res = swarm.human_make_choice(current_human_id, idx)
+        if "error" in res:
+            ui.notify(res["error"], type="negative")
+            return
+    else:
+        # Modalità classica
+        engine.handle_choice(idx)
+
     stats_after = get_stats_dict(engine)
 
     if decision_time > 0:
@@ -2203,6 +2607,7 @@ ui.add_head_html("""
 """)
 
 init_db()
+init_agent_db()
 
 # Serve immagini dalla cartella graphics
 if os.path.isdir(GRAPHICS_DIR):

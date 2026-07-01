@@ -1,75 +1,67 @@
-# BurnoutSimulator
+# BurnoutSimulator v3.0: Social Laboratory
 
-Gioco di simulazione narrativa a scelte multiplesulle dinamiche delle culture aziendali tossiche, attraverso la lente dell'antropologia organizzativa. Progetto accademico per tesina magistrale in HR — Sapienza Università di Roma.
+Gioco di simulazione narrativa sulle dinamiche delle culture aziendali tossiche, attraverso la lente dell'antropologia organizzativa. Progetto accademico per tesina magistrale in HR — Sapienza Università di Roma.
+
+La versione 3.0 introduce il **Social Laboratory**, un framework di agenti autonomi e meta-gameplay psicologico.
 
 ## Avvio rapido
 
 ```bash
-pip install nicegui
-python app.py          # Web UI su http://localhost:8080
-python main.py --cli   # CLI alternativa
+pip install -r requirements.txt
+python app.py          # Web UI su http://localhost:8080 (Modalità Laboratorio)
+python main.py --cli   # CLI classica
 ```
 
-## Panoramica
+## Novità v3.0: Social Laboratory
 
-| Caratteristica | Dettaglio |
+Il simulatore non è più solo un gioco single-player, ma un laboratorio di osservazione:
+
+- **Agenti Autonomi**: 6 agenti con profili psicologici distinti (Il Performante, L'Idealista, Il Cinico, ecc.) giocano simultaneamente nel laboratorio.
+- **Sistema di Possesso (Jump)**: L'utente umano può osservare lo sciame e "possedere" un agente in qualsiasi momento, prendendo il controllo delle sue decisioni.
+- **Percorso Psicologico Emergente**: Il sistema traccia i "salti" dell'utente tra gli agenti, costruendo un profilo psicologico dell'osservatore basato sulle affinità elettive con i diversi archetipi.
+- **Dashboard Analitica**: Visualizzazione in tempo reale di stress, energia e salute dello sciame, con grafici radar e tracciamento delle decisioni.
+
+## Panoramica Caratteristiche
+
+| Area | Dettaglio |
 |---|---|
-| **Piattaforme** | Web UI (NiceGUI), CLI |
-| **Categorie tossicità** | Micromanagement, mobbing, favoritismo, burnout, scapegoating |
+| **Framework Agenti** | 7 Profili psicologici basati su bias comportamentali |
 | **Strategie adattamento** | COMPLIANCE, RESISTANCE, NEGOTIATION, ESCAPE |
-| **Finali** | 20+ (classici, fazioni, narrativi, ibridi) |
 | **Archetipi aziendali** | Startup Caotica, Corporate Tossica, Azienda Familiare, Consulting |
-| **Personalità manager** | Micromanager Iperattivo, Narcisista Burocratico, Padre/Padrone Paternalista, Perfezionista Senza Tregua |
-| **NPC** | 4 (Marco, Giulia, Roberto, Elena) con ritratti dinamici PNG |
-| **Fazioni** | Fedelissimi, Gruppo Silenzioso, Ribelli |
-| **Tracciamento** | SQLite analytics, grafo decisionale, tempo decisione, achievement |
-| **Grafica** | VN glassmorphism, ritratti PNG, icone eventi/stati, emote overlay |
+| **Finali** | 20+ (classici, fazioni, narrativi, ibridi) |
+| **NPC & Fazioni** | Trust/Fear/Respect system; Fedelissimi, Gruppo Silenzioso, Ribelli |
+| **Analytics** | Database SQLite per agenti, decisioni e traccia psicologica umana |
+| **UI** | Glassmorphism, ECharts integration, responsive mobile, jump system |
 
-## Struttura
+## Struttura Progetto
 
 ```
 burnout-simulator/
-├── app.py                 ← Web UI (~2200 righe)
-├── main.py                ← CLI / Tkinter entry point
-├── requirements.txt       ← Dipendenze
-├── Dockerfile             ← Container
-├── docs/                  ← Documentazione
-│   ├── INSTALL.md         ← Installazione dettagliata
-│   ├── ROADMAP.md         ← Roadmap completa (23 milestone)
-│   └── PIANO_GRAFICHE.md  ← Asset grafici e mappature
-├── game/
-│   ├── engine.py          ← Motore di gioco (eventi, fazioni, NPC, fasi carriera)
-│   ├── player.py          ← Player + NPC dataclass
-│   ├── events.py          ← Event/Choice dataclass + EventManager
-│   ├── graph.py           ← Grafo decisionale
-│   ├── save_manager.py    ← Salvataggio sessioni
-│   └── data/events.json   ← 31 eventi narrativi
-├── database/
-│   └── analytics.py       ← SQLite: sessioni, scelte, tag
-├── static/images/         ← 39 PNG (personaggi, eventi, stati)
-│
-├── agents/                ← [v3.0] Framework agenti autonomi
-├── api/                   ← [v3.0] FastAPI backend
-├── engine/                ← [v3.0] Motore psicometrico
-├── ml/                    ← [v3.0] ML federato
-├── mesh/                  ← [v3.0] P2P mesh networking
-├── reflex_app/            ← [v3.0] Porting Reflex
-└── tests/                 ← [v3.0] Test suite
+├── app.py                 ← Web UI (Social Laboratory & Game)
+├── agents/                ← Framework agenti autonomi (v3.0)
+│   ├── agent.py           ← Classe Agente
+│   ├── personality.py     ← Profili psicologici
+│   ├── swarm.py           ← Gestione dello sciame
+│   └── memory.py          ← Memoria decisionale agenti
+├── human/                 ← Layer giocatore umano (v3.0)
+│   ├── human_player.py    ← Traccia psicologica e salti
+├── game/                  ← Motore di gioco core (v2.0)
+│   ├── engine.py          ← Logica narrativa e fasi carriera
+│   └── data/events.json   ← Database eventi narrativi
+├── database/              ← Persistenza dati
+│   ├── agent_db.py        ← DB per agenti e laboratorio
+│   └── analytics.py       ← DB per analytics di gioco
+├── tests/                 ← Test suite (v3.0 baseline)
+└── docs/                  ← Documentazione aggiuntiva
 ```
 
 ## Documentazione
 
 | Documento | Contenuto |
 |---|---|
-| [docs/INSTALL.md](docs/INSTALL.md) | Installazione locale, Docker, Render, VPS |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | 23 milestone completati (M1-M12, E1-E8, F1-F3) |
-| [docs/PIANO_GRAFICHE.md](docs/PIANO_GRAFICHE.md) | Asset grafici, mappature emote/eventi/stati |
-
-## Deploy
-
-```bash
-docker build -t burnout-sim . && docker run -p 8080:8080 burnout-sim
-```
+| [docs/INSTALL.md](docs/INSTALL.md) | Installazione locale, Docker, Deploy |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Evoluzione del progetto dalla v1.0 alla v3.0 |
+| [docs/PIANO_GRAFICHE.md](docs/PIANO_GRAFICHE.md) | Asset grafici e mappature |
 
 ---
 
