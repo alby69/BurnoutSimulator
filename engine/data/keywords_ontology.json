@@ -1,0 +1,68 @@
+{
+  "COMPORTAMENTALE": {
+    "Adattamento": [
+      "compliance_passiva", "yes_man", "overcommitting", "perfectionism",
+      "camouflage", "mirroring_manager", "emotional_labor", "learned_helplessness",
+      "dissociation", "compartmentalization", "avoidance", "submission",
+      "role_overload", "standardization", "ritualism", "norm_internalization"
+    ],
+    "Resistenza": [
+      "assertive_communication", "boundary_setting", "whistleblowing", "passive_aggressive",
+      "sabotage", "work_to_rule", "unionizing", "collective_action", "exit_voice",
+      "dissent", "counter_culture", "information_retention", "malicious_compliance",
+      "moral_objection", "strategic_failure", "group_solidarity"
+    ],
+    "Fuga": [
+      "job_searching", "side_hustle", "quiet_quitting", "burnout_leave",
+      "therapy_seeking", "substance_abuse", "complete_withdrawal", "ghosting",
+      "absenteeism", "presenteeism", "identity_separation", "professional_detachment",
+      "early_retirement", "career_pivot", "sabbatical_planning"
+    ]
+  },
+  "COGNITIVO": {
+    "Ristrutturazione": [
+      "positive_reframing", "radical_acceptance", "cognitive_distancing", "depersonalization_strategy",
+      "it's_just_a_job", "meaning_making", "selective_perception", "value_realignment"
+    ],
+    "Ruminazione": [
+      "worry_loop", "catastrophizing", "self_blame", "revenge_fantasy", "justice_seeking",
+      "counterfactual_thinking", "intrusive_thoughts", "mental_exhaustion"
+    ],
+    "Apprendimento": [
+      "pattern_recognition", "strategic_learning", "mentor_seeking", "skill_building",
+      "certification_hunting", "political_awareness", "system_mapping", "power_dynamics_analysis"
+    ]
+  },
+  "RELAZIONALE": {
+    "Networking": [
+      "alliance_building", "mentor_relationship", "peer_support", "information_brokering",
+      "favor_trading", "gossip_leverage", "isolation", "self_reliance", "paranoia",
+      "coalition_formation", "trust_building", "boundary_spanning", "social_capital_investment"
+    ],
+    "Conflitto": [
+      "direct_confrontation", "mediation", "escalation", "triangulation",
+      "scapegoating", "gaslighting_response", "stonewalling", "grey_rock_method",
+      "deflection", "blame_shifting", "emotional_blackmail", "exclusionary_tactics"
+    ]
+  },
+  "EMOZIONALE": {
+    "Regolazione": [
+      "mindfulness", "emotional_granularity", "self_compassion", "suppression",
+      "venting", "dark_humor", "emotional_intelligence", "affect_labeling"
+    ],
+    "Espressione": [
+      "authentic_expression", "strategic_vulnerability", "masking", "surface_acting",
+      "deep_acting", "emotional_outburst", "crying_at_work", "stiff_upper_lip"
+    ]
+  },
+  "IDENTITARIO": {
+    "Senso di Sè": [
+      "work_identity_fusion", "careerism", "calling", "role_confusion",
+      "impostor_syndrome", "moral_injury", "identity_reconstruction", "values_clarification"
+    ],
+    "Appartenenza": [
+      "organizational_citizenship", "culture_fit", "tribalism", "alienation",
+      "othering", "marginalization", "counter_culture", "subculture_formation"
+    ]
+  }
+}
