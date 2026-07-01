@@ -1,14 +1,23 @@
 import uuid, random, json, sqlite3, os
 from io import BytesIO
-from nicegui import ui
-from game.engine import GameEngine, NPC_FACTION_MAP, MANAGER_PERSONALITIES, CAREER_PHASES
+from nicegui import app, ui
+from game.engine import (
+    GameEngine,
+    NPC_FACTION_MAP,
+    MANAGER_PERSONALITIES,
+    CAREER_PHASES,
+)
 from database.analytics import (
-    init_db, create_session, end_session, record_choice, record_tags,
+    init_db,
+    create_session,
+    end_session,
+    record_choice,
+    record_tags,
 )
 from game.events import Choice
 
 # ── State ──
-screen: str = 'start'
+screen: str = "start"
 engine: GameEngine | None = None
 session_id: str | None = None
 stats_before: dict = {}
@@ -19,62 +28,235 @@ _timer_active: bool = False
 _decision_start: float = 0.0
 
 bars_def = [
-    ('Energia', 'energy', '#4ade80'),
-    ('Stress', 'stress', '#f87171'),
-    ('Salute', 'health', '#22d3ee'),
-    ('Integrità', 'integrity', '#a78bfa'),
-    ('Autostima', 'self_esteem', '#fbbf24'),
-    ('Occupabilità', 'employability', '#34d399'),
-    ('Rep. Manager', 'manager_rep', '#fb923c'),
-    ('Rep. Team', 'team_rep', '#60a5fa'),
+    ("Energia", "energy", "#4ade80"),
+    ("Stress", "stress", "#f87171"),
+    ("Salute", "health", "#22d3ee"),
+    ("Integrità", "integrity", "#a78bfa"),
+    ("Autostima", "self_esteem", "#fbbf24"),
+    ("Occupabilità", "employability", "#34d399"),
+    ("Rep. Manager", "manager_rep", "#fb923c"),
+    ("Rep. Team", "team_rep", "#60a5fa"),
 ]
 
 NPC_FACTION_COLORS = {
-    'Fedelissimi': '#7c3aed',
-    'Gruppo Silenzioso': '#64748b',
-    'Ribelli': '#f87171',
+    "Fedelissimi": "#7c3aed",
+    "Gruppo Silenzioso": "#64748b",
+    "Ribelli": "#f87171",
 }
 
 ARCHETYPE_THEMES = {
     "Startup Caotica": {
-        "accent": "#f97316", "header": "#ea580c", "badge": "warning",
+        "accent": "#f97316",
+        "header": "#ea580c",
+        "badge": "warning",
         "glow": "0 0 25px rgba(249,115,22,0.3)",
     },
     "Corporate Tossica": {
-        "accent": "#3b82f6", "header": "#2563eb", "badge": "primary",
+        "accent": "#3b82f6",
+        "header": "#2563eb",
+        "badge": "primary",
         "glow": "0 0 25px rgba(59,130,246,0.3)",
     },
     "Azienda Familiare": {
-        "accent": "#22c55e", "header": "#16a34a", "badge": "positive",
+        "accent": "#22c55e",
+        "header": "#16a34a",
+        "badge": "positive",
         "glow": "0 0 25px rgba(34,197,94,0.3)",
     },
     "Consulting": {
-        "accent": "#a855f7", "header": "#9333ea", "badge": "secondary",
+        "accent": "#a855f7",
+        "header": "#9333ea",
+        "badge": "secondary",
         "glow": "0 0 25px rgba(168,85,247,0.3)",
     },
 }
 
 cat_colors = {
-    'COMPLIANCE': '#3b82f6',
-    'RESISTANCE': '#ef4444',
-    'NEGOTIATION': '#eab308',
-    'ESCAPE': '#22c55e',
+    "COMPLIANCE": "#3b82f6",
+    "RESISTANCE": "#ef4444",
+    "NEGOTIATION": "#eab308",
+    "ESCAPE": "#22c55e",
+}
+
+# ── Graphics ──
+GRAPHICS_DIR = "static/images"
+GFX_PATH = "/static/images"
+
+NPC_DEFAULT = {
+    "Marco": "CORP_Manager_Passivo_Aggressivo.png",
+    "Giulia": "CORP_Collega_Favorito_Arrogante.png",
+    "Roberto": "CORP_Dipendente_Senior_Cinico.png",
+    "Elena": "CORP_HR_Falsa_Empatia.png",
+}
+NPC_SCARED = {
+    "Marco": "CORP_Direttore_Furioso.png",
+    "Giulia": "CORP_Dipendente_Sconvolto.png",
+    "Roberto": "CORP_Dipendente_Scioccato.png",
+    "Elena": "CORP_Dipendente_Spento.png",
+}
+NPC_ANGRY = {
+    "Marco": "CORP_Capo_Arrabbiato.png",
+    "Giulia": "CORP_Collega_Tossico_Sabotatore.png",
+    "Roberto": "CORP_Team_Lead_Pressante.png",
+    "Elena": "CORP_Dipendente_Deluso.png",
+}
+NPC_STRESSED = {
+    "Marco": "CORP_Dipendente_Stressato.png",
+    "Giulia": "CORP_Dipendente_Stressato.png",
+    "Roberto": "CORP_Dipendente_Stanco.png",
+    "Elena": "CORP_Dipendente_Spento.png",
+}
+NPC_WORRIED = {
+    "Marco": "CORP_Dipendente_Deluso.png",
+    "Giulia": "CORP_Dipendente_Spento.png",
+    "Roberto": "CORP_Dipendente_Rassegnato.png",
+    "Elena": "CORP_Dipendente_Spento.png",
+}
+NPC_HAPPY = {
+    "Marco": "CORP_Soddisfazione_Cinica.png",
+    "Giulia": "CORP_Neoassunto_Sereno.png",
+    "Roberto": "CORP_Neoassunto_Confuso.png",
+    "Elena": "CORP_Sorpresa_Ufficio.png",
+}
+
+EVENT_ICONS = {
+    "riunione_inutile": "CORP_EVENTO_Riunione_Inutile.png",
+    "esclusione_riunione": "CORP_EVENTO_Riunione_Inutile.png",
+    "scadenza_impossibile": "CORP_EVENTO_Straordinario_Forzato.png",
+    "compito_extra_non_pagato": "CORP_EVENTO_Straordinario_Forzato.png",
+    "doppio_incarico": "CORP_EVENTO_Straordinario_Forzato.png",
+    "messaggio_weekend": "CORP_EVENTO_Email_Fuori_Orario.png",
+    "commento_reperibilita": "CORP_EVENTO_Email_Fuori_Orario.png",
+    "reperibilita_forzata": "CORP_EVENTO_Email_Fuori_Orario.png",
+    "capro_espiatorio": "CORP_EVENTO_Licenziamento.png",
+    "ritorsione_manager": "CORP_EVENTO_Licenziamento.png",
+    "appropriazione_idea": "CORP_EVENTO_Promozione_Finta.png",
+    "progetto_premio": "CORP_EVENTO_Promozione_Finta.png",
+    "taglio_benefit": "CORP_EVENTO_Bonus_Rifiutato.png",
+    "cultura_presenza": "CORP_EVENTO_Festa_Aziendale_Obbligatoria.png",
+    "pettegolezzi_ufficio": "CORP_EVENTO_Festa_Aziendale_Obbligatoria.png",
+    "sabotaggio_progetto": "CORP_EVENTO_Team_Building_Forzato.png",
+    "valutazione_ingiusta": "CORP_EVENTO_Feedback_Anonimo_Trasparente.png",
+    "hr_risposta_elusiva": "CORP_EVENTO_Feedback_Anonimo_Trasparente.png",
+    "richiamo_formale": "CORP_EVENTO_Corso_Formazione_Inutile.png",
+    "commento_inappropriate": "CORP_EVENTO_Corso_Formazione_Inutile.png",
+    "passaggio_generazionale": "CORP_EVENTO_Dimissioni_Impossibili.png",
+    "commento_scarso_impegno": "CORP_EVENTO_Pausa_Caffe_Obbligatoria.png",
+    "commento_agitazione_sindacale": "CORP_EVENTO_Pausa_Caffe_Obbligatoria.png",
+}
+
+STATE_ICONS = {
+    "Burnout": "CORP_STATO_BURNOUT.png",
+    "Crollo_Nervoso": "CORP_STATO_Crollo_Nervoso.png",
+    "Rivolta_Silenziosa": "CORP_STATO_Rivolta_Silenziosa.png",
+    "Cinismo_Galoppante": "CORP_STATO_Cinismo_Galoppante.png",
+    "Realizzazione_Brutale": "CORP_STATO_Realizzazione_Brutale.png",
+}
+
+EMOTE_ICONS = {
+    "COMPLIANCE": "CORP_Soddisfazione_Cinica.png",
+    "RESISTANCE": "CORP_Dipendente_Stressato.png",
+    "NEGOTIATION": "CORP_Neoassunto_Confuso.png",
+    "ESCAPE": "CORP_Sorpresa_Ufficio.png",
+}
+
+EFFECT_LABELS = {
+    "stress": "Stress",
+    "energy": "Energia",
+    "health": "Salute",
+    "self_esteem": "Autostima",
+    "manager_rep": "Rep. Manager",
+    "team_rep": "Rep. Team",
+    "integrity": "Integrità",
+    "employability": "Occupabilità",
+    "npc_Marco_trust": "Fiducia Marco",
+    "npc_Marco_fear": "Paura Marco",
+    "npc_Marco_respect": "Rispetto Marco",
+    "npc_Giulia_trust": "Fiducia Giulia",
+    "npc_Giulia_fear": "Paura Giulia",
+    "npc_Giulia_respect": "Rispetto Giulia",
+    "npc_Roberto_trust": "Fiducia Roberto",
+    "npc_Roberto_fear": "Paura Roberto",
+    "npc_Roberto_respect": "Rispetto Roberto",
+    "npc_Elena_trust": "Fiducia Elena",
+    "npc_Elena_fear": "Paura Elena",
+    "npc_Elena_respect": "Rispetto Elena",
+    "faction_Fedelissimi": "Fedelissimi",
+    "faction_Gruppo Silenzioso": "Gruppo Silenzioso",
+    "faction_Ribelli": "Ribelli",
 }
 
 
+def _effect_label(key: str) -> str:
+    return EFFECT_LABELS.get(key, key.replace("_", " ").title())
+
+
+def _npc_portrait(nname: str, ndata: dict) -> str:
+    trust = ndata.get("trust", 50)
+    fear = ndata.get("fear", 0)
+    stress = getattr(engine, "player", None) and engine.player.stress or 0
+
+    if fear > trust and fear > 40:
+        img = NPC_SCARED.get(nname) or NPC_DEFAULT.get(
+            nname, "CORP_Dipendente_Sconvolto.png"
+        )
+    elif trust < 30 and fear < 20:
+        img = NPC_ANGRY.get(nname) or NPC_DEFAULT.get(
+            nname, "CORP_Dipendente_Rassegnato.png"
+        )
+    elif stress > 70:
+        img = NPC_STRESSED.get(nname) or NPC_DEFAULT.get(
+            nname, "CORP_Dipendente_Stressato.png"
+        )
+    elif trust < 40:
+        img = NPC_WORRIED.get(nname) or NPC_DEFAULT.get(
+            nname, "CORP_Dipendente_Stanco.png"
+        )
+    elif trust >= 75:
+        img = NPC_HAPPY.get(nname) or NPC_DEFAULT.get(
+            nname, "CORP_Neoassunto_Sereno.png"
+        )
+    else:
+        img = NPC_DEFAULT.get(nname, "CORP_Dipendente_Rassegnato.png")
+
+    return f"{GFX_PATH}/personaggi/{img}"
+
+
+def _event_icon(event) -> str | None:
+    if not hasattr(event, "id") or not event.id:
+        return None
+    path = EVENT_ICONS.get(event.id)
+    if path:
+        return f"{GFX_PATH}/eventi/{path}"
+    return None
+
+
+def _state_icon(status: str) -> str | None:
+    if not status:
+        return None
+    s_lower = status.lower()
+    for key, path in STATE_ICONS.items():
+        key_lower = key.lower().replace("_", " ")
+        if key_lower in s_lower or s_lower in key_lower:
+            return f"{GFX_PATH}/stati/{path}"
+    if "burnout" in s_lower:
+        return f"{GFX_PATH}/stati/{STATE_ICONS['Burnout']}"
+    return None
+
+
 def get_stats_dict(eng: GameEngine) -> dict:
-    return eng.player.to_dict()['stats']
+    return eng.player.to_dict()["stats"]
 
 
 def determine_ending(player) -> str:
     endings = []
 
     # Finali basati sulle fazioni (priorità alta)
-    if player.factions['Ribelli'] >= 70 and player.integrity >= 60:
+    if player.factions["Ribelli"] >= 70 and player.integrity >= 60:
         endings.append(("IL WHISTLEBLOWER", 7))
-    if player.factions['Fedelissimi'] >= 70 and player.manager_rep >= 80:
+    if player.factions["Fedelissimi"] >= 70 and player.manager_rep >= 80:
         endings.append(("IL BRACCIO DESTRO", 7))
-    if player.factions['Gruppo Silenzioso'] >= 70:
+    if player.factions["Gruppo Silenzioso"] >= 70:
         endings.append(("LO SPETTATORE", 6))
     if all(v >= 50 for v in player.factions.values()):
         endings.append(("IL CAMALEONTE", 5))
@@ -84,7 +266,11 @@ def determine_ending(player) -> str:
     t = player.tags
     if arch == "Startup Caotica" and t.get("burnout_risk", 0) >= 5:
         endings.append(("IL FONDATORE ESAURITO", 6))
-    if arch == "Azienda Familiare" and t.get("truth_teller", 0) >= 5 and player.manager_rep <= 30:
+    if (
+        arch == "Azienda Familiare"
+        and t.get("truth_teller", 0) >= 5
+        and player.manager_rep <= 30
+    ):
         endings.append(("IL PECORA NERA", 6))
     if arch == "Consulting" and t.get("yes_man", 0) >= 10:
         endings.append(("L'INGRANAGGIO PERFETTO", 5))
@@ -122,402 +308,655 @@ def determine_ending(player) -> str:
 
 # ── UI ──
 
+
 def _render_stats_section(stats: dict):
-    with ui.column().classes('w-full gap-3 mt-2'):
+    with ui.column().classes("w-full gap-3 mt-2"):
         for label, key, color in bars_def:
-            is_critical = stats[key] <= 20 or (key == 'stress' and stats[key] >= 80)
-            pulse_class = ' pulse-danger rounded-lg' if is_critical else ''
+            is_critical = stats[key] <= 20 or (key == "stress" and stats[key] >= 80)
+            pulse_class = " pulse-danger rounded-lg" if is_critical else ""
 
-            with ui.column().classes(f'w-full gap-1 p-2 {pulse_class}'):
-                with ui.row().classes('w-full items-center justify-between'):
-                    ui.label(label.upper()).classes('text-[10px] font-bold text-gray-400 tracking-tighter')
+            with ui.column().classes(f"w-full gap-1 p-2 {pulse_class}"):
+                with ui.row().classes("w-full items-center justify-between"):
+                    ui.label(label.upper()).classes(
+                        "text-[10px] font-bold text-gray-400 tracking-tighter"
+                    )
                     val = stats[key]
-                    val_color = '#f87171' if (val <= 20 or (key == 'stress' and val >= 80)) else '#e2e8f0'
-                    ui.label(f'{val}%').style(f'color: {val_color}').classes('text-[10px] font-black font-mono')
+                    val_color = (
+                        "#f87171"
+                        if (val <= 20 or (key == "stress" and val >= 80))
+                        else "#e2e8f0"
+                    )
+                    ui.label(f"{val}%").style(f"color: {val_color}").classes(
+                        "text-[10px] font-black font-mono"
+                    )
 
-                bar_color = '#ef4444' if is_critical else color
-                ui.linear_progress(value=stats[key] / 100, size='4px', color=bar_color).classes('rounded-full bg-white/5')
+                bar_color = "#ef4444" if is_critical else color
+                ui.linear_progress(
+                    value=stats[key] / 100, size="4px", color=bar_color
+                ).classes("rounded-full bg-white/5")
 
 
 def _render_factions_section(factions: dict):
-    ui.label('FAZIONI').classes('text-xs font-bold text-gray-500 uppercase tracking-wider mt-4 mb-1')
+    ui.label("FAZIONI").classes(
+        "text-xs font-bold text-gray-500 uppercase tracking-wider mt-4 mb-1"
+    )
     for fname, fscore in factions.items():
-        fcol = NPC_FACTION_COLORS.get(fname, '#6b7280')
+        fcol = NPC_FACTION_COLORS.get(fname, "#6b7280")
         aligned = [n for n, f in NPC_FACTION_MAP.items() if f == fname]
-        aligned_str = f' ({", ".join(aligned)})' if aligned else ''
-        with ui.row().classes('w-full items-center justify-between'):
-            with ui.row().classes('items-center gap-1'):
-                ui.icon('circle', size='8px').style(f'color: {fcol}')
-                ui.label(f'{fname}{aligned_str}').classes('text-xs text-gray-400')
-            ui.label(f'{fscore}%').classes('text-xs text-gray-300')
+        aligned_str = f" ({', '.join(aligned)})" if aligned else ""
+        with ui.row().classes("w-full items-center justify-between"):
+            with ui.row().classes("items-center gap-1"):
+                ui.icon("circle", size="8px").style(f"color: {fcol}")
+                ui.label(f"{fname}{aligned_str}").classes("text-xs text-gray-400")
+            ui.label(f"{fscore}%").classes("text-xs text-gray-300")
 
 
 def _render_relationships_section(npcs: dict):
-    ui.label('RELAZIONI').classes('text-xs font-bold text-gray-500 uppercase tracking-wider mt-4 mb-1')
+    ui.label("RELAZIONI").classes(
+        "text-xs font-bold text-gray-500 uppercase tracking-wider mt-4 mb-1"
+    )
     for nname, ndata in npcs.items():
-        nfaction = NPC_FACTION_MAP.get(nname, '')
-        avi_color = NPC_FACTION_COLORS.get(nfaction, '#6b7280')
-        trust = ndata['trust']
-        trust_color = '#4ade80' if trust >= 60 else '#f87171' if trust < 35 else '#eab308'
-        with ui.row().classes('w-full items-center gap-2'):
-            ui.html(_npc_svg_face(nname, ndata)).style(f'background: {avi_color}').classes('npc-avatar')
-            with ui.column().classes('gap-0 flex-1'):
-                ui.label(nname).classes('text-xs text-gray-300')
+        nfaction = NPC_FACTION_MAP.get(nname, "")
+        avi_color = NPC_FACTION_COLORS.get(nfaction, "#6b7280")
+        trust = ndata["trust"]
+        trust_color = (
+            "#4ade80" if trust >= 60 else "#f87171" if trust < 35 else "#eab308"
+        )
+        with ui.row().classes("w-full items-center gap-2"):
+            portrait_url = _npc_portrait(nname, ndata)
+            ui.image(portrait_url).style(
+                f"border-color: {avi_color}; width: 40px; height: 40px; border-radius: 10px; border: 2px solid"
+            ).classes("npc-avatar")
+            with ui.column().classes("gap-0 flex-1"):
+                ui.label(nname).classes("text-xs text-gray-300")
                 ui.label(
-                    f'Fiducia {trust}%  Rispetto {ndata["respect"]}%  Paura {ndata["fear"]}%'
-                ).style(f'color: {trust_color}').classes('text-[10px]')
+                    f"Fiducia {trust}%  Rispetto {ndata['respect']}%  Paura {ndata['fear']}%"
+                ).style(f"color: {trust_color}").classes("text-[10px]")
 
 
 @ui.refreshable
 def page():
-    if screen == 'start':
+    if screen == "start":
         _render_start()
-    elif screen == 'game':
+    elif screen == "game":
         _render_game()
         if _tutorial_active:
             _render_tutorial()
-    elif screen == 'game_over':
+    elif screen == "game_over":
         _render_game_over()
-    elif screen == 'analytics':
+    elif screen == "analytics":
         _render_analytics()
 
 
-def _npc_svg_face(nname: str, ndata: dict) -> str:
-    trust = ndata.get('trust', 50)
-    fear = ndata.get('fear', 0)
-    stress = getattr(engine, 'player', None) and engine.player.stress or 0
-
-    if fear > trust and fear > 40:
-        expr = 'scared'
-    elif trust < 30 and fear < 20:
-        expr = 'angry'
-    elif stress > 70:
-        expr = 'stressed'
-    elif trust < 40:
-        expr = 'worried'
-    elif trust >= 75:
-        expr = 'happy'
-    else:
-        expr = 'neutral'
-
-    eyes = {
-        'neutral': 'M8 18 Q10 16 12 18 M16 18 Q18 16 20 18',
-        'happy': 'M8 17 Q10 15 12 17 M16 17 Q18 15 20 17',
-        'worried': 'M8 18 Q10 17 12 18 M16 18 Q18 17 20 18',
-        'angry': 'M8 16 L12 18 M16 16 L20 18',
-        'stressed': 'M8 19 Q10 18 12 19 M16 19 Q18 18 20 19',
-        'scared': 'M8 19 Q10 20 12 19 M16 19 Q18 20 20 19',
-    }
-    mouth = {
-        'neutral': 'M10 25 Q14 23 18 25',
-        'happy': 'M10 25 Q14 28 18 25',
-        'worried': 'M10 25 Q14 26 18 25',
-        'angry': 'M10 25 L14 24 L18 25',
-        'stressed': 'M11 26 Q14 25 17 26',
-        'scared': 'M10 26 Q14 28 18 26',
-    }
-    brows = {
-        'neutral': 'M6 13 Q8 12 10 13 M18 13 Q20 12 22 13',
-        'happy': 'M6 13 Q8 12 10 13 M18 13 Q20 12 22 13',
-        'worried': 'M6 14 Q8 13 10 14 M18 14 Q20 13 22 14',
-        'angry': 'M6 11 L10 12 M18 11 L22 12',
-        'stressed': 'M6 15 Q8 14 10 15 M18 15 Q20 14 22 15',
-        'scared': 'M6 15 Q8 16 10 15 M18 15 Q20 16 22 15',
-    }
-
-    return f'''<svg viewBox="0 0 28 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="14" cy="16" r="12" fill="rgba(255,255,255,0.08)"/>
-        <path d="{eyes[expr]}" stroke="rgba(255,255,255,0.8)" stroke-width="1.4" stroke-linecap="round"/>
-        <path d="{mouth[expr]}" stroke="rgba(255,255,255,0.7)" stroke-width="1.3" stroke-linecap="round"/>
-        <path d="{brows[expr]}" stroke="rgba(255,255,255,0.5)" stroke-width="1.2" stroke-linecap="round"/>
-    </svg>'''
-
-
 def _render_start():
-    with ui.column().classes('w-full items-center justify-center min-h-[80vh] fade-in'):
-        with ui.card().classes('w-full max-w-xl p-12 text-center vn-card vn-card-highlight mt-10').props('flat'):
-            theme = ARCHETYPE_THEMES['Corporate Tossica']
-            ui.label('BURNOUT SIMULATOR').classes('text-5xl font-black tracking-tighter mb-2').style(f'color: {theme["header"]}; text-shadow: 0 0 30px {theme["accent"]}60')
-            ui.label('Simulatore di Antropologia delle Organizzazioni').classes('text-lg text-gray-400 mb-10 italic')
+    with ui.column().classes("w-full items-center justify-center min-h-[80vh] fade-in"):
+        with (
+            ui.card()
+            .classes("w-full max-w-xl p-12 text-center vn-card vn-card-highlight mt-10")
+            .props("flat")
+        ):
+            theme = ARCHETYPE_THEMES["Corporate Tossica"]
+            ui.label("BURNOUT SIMULATOR").classes(
+                "text-5xl font-black tracking-tighter mb-2"
+            ).style(
+                f"color: {theme['header']}; text-shadow: 0 0 30px {theme['accent']}60"
+            )
+            ui.label("Simulatore di Antropologia delle Organizzazioni").classes(
+                "text-lg text-gray-400 mb-10 italic"
+            )
 
-            with ui.column().classes('w-full gap-6 items-center'):
-                with ui.column().classes('w-full items-start'):
-                    ui.label('ARCHETIPO AZIENDALE').classes('text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1 ml-1')
+            with ui.column().classes("w-full gap-6 items-center"):
+                with ui.column().classes("w-full items-start"):
+                    ui.label("ARCHETIPO AZIENDALE").classes(
+                        "text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1 ml-1"
+                    )
                     arch_options = {
                         k: f"{k} — {v['description']}"
                         for k, v in GameEngine.COMPANY_ARCHETYPES.items()
                     }
-                    arch_select = ui.select(
-                        arch_options, value='Corporate Tossica',
-                    ).classes('w-full').props('outlined standout dark color=blue')
+                    arch_select = (
+                        ui.select(
+                            arch_options,
+                            value="Corporate Tossica",
+                        )
+                        .classes("w-full")
+                        .props("outlined standout dark color=blue")
+                    )
 
                 def on_arch_change():
-                    t = ARCHETYPE_THEMES.get(arch_select.value, ARCHETYPE_THEMES['Corporate Tossica'])
-                    ui.run_javascript(f'''
+                    t = ARCHETYPE_THEMES.get(
+                        arch_select.value, ARCHETYPE_THEMES["Corporate Tossica"]
+                    )
+                    ui.run_javascript(f"""
                         document.documentElement.style.setProperty('--theme-accent', '{t["accent"]}');
                         document.documentElement.style.setProperty('--theme-header', '{t["header"]}');
                         document.documentElement.style.setProperty('--theme-glow', '{t["glow"]}');
-                    ''')
+                    """)
 
-                arch_select.on('change', on_arch_change)
+                arch_select.on("change", on_arch_change)
 
-                with ui.column().classes('w-full items-start'):
-                    ui.label('IL TUO NOME').classes('text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1 ml-1')
-                    name_input = ui.input(placeholder='E.g. Mario Rossi').classes('w-full').props('outlined standout dark color=blue')
-                    name_input.value = 'Impiegato Anonimo'
+                with ui.column().classes("w-full items-start"):
+                    ui.label("IL TUO NOME").classes(
+                        "text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1 ml-1"
+                    )
+                    name_input = (
+                        ui.input(placeholder="E.g. Mario Rossi")
+                        .classes("w-full")
+                        .props("outlined standout dark color=blue")
+                    )
+                    name_input.value = "Impiegato Anonimo"
 
-                with ui.row().classes('w-full items-center justify-between bg-white/5 p-4 rounded-xl border border-white/10 mt-2'):
-                    with ui.column().classes('gap-0'):
-                        ui.label('Modalità "Casi Reali"').classes('text-sm font-bold text-gray-200')
-                        ui.label('Eventi ispirati a storie vere').classes('text-[10px] text-gray-400')
-                    real_cases_toggle = ui.switch().props('color=blue-4')
+                with ui.row().classes(
+                    "w-full items-center justify-between bg-white/5 p-4 rounded-xl border border-white/10 mt-2"
+                ):
+                    with ui.column().classes("gap-0"):
+                        ui.label('Modalità "Casi Reali"').classes(
+                            "text-sm font-bold text-gray-200"
+                        )
+                        ui.label("Eventi ispirati a storie vere").classes(
+                            "text-[10px] text-gray-400"
+                        )
+                    real_cases_toggle = ui.switch().props("color=blue-4")
 
             def start_game_cb():
-                global engine, session_id, stats_before, screen, choice_history, _tutorial_active, _tutorial_step
+                global \
+                    engine, \
+                    session_id, \
+                    stats_before, \
+                    screen, \
+                    choice_history, \
+                    _tutorial_active, \
+                    _tutorial_step
                 session_id = uuid.uuid4().hex[:12]
                 choice_history = []
                 engine = GameEngine(
-                    name_input.value or "Impiegato Anonimo", 'game/data/events.json',
+                    name_input.value or "Impiegato Anonimo",
+                    "game/data/events.json",
                     company_type=arch_select.value,
                 )
                 engine.real_cases_mode = real_cases_toggle.value
                 stats_before = get_stats_dict(engine)
-                create_session(session_id, engine.player.name, engine.player.company_type)
+                create_session(
+                    session_id, engine.player.name, engine.player.company_type
+                )
                 engine.next_turn()
 
-                t = ARCHETYPE_THEMES.get(arch_select.value, ARCHETYPE_THEMES['Corporate Tossica'])
-                ui.run_javascript(f'''
+                t = ARCHETYPE_THEMES.get(
+                    arch_select.value, ARCHETYPE_THEMES["Corporate Tossica"]
+                )
+                ui.run_javascript(f"""
                     document.documentElement.style.setProperty('--theme-accent', '{t["accent"]}');
                     document.documentElement.style.setProperty('--theme-header', '{t["header"]}');
                     document.documentElement.style.setProperty('--theme-glow', '{t["glow"]}');
-                ''')
+                """)
 
                 _tutorial_active = True
                 _tutorial_step = 0
-                screen = 'game_over' if engine.is_game_over() else 'game'
+                screen = "game_over" if engine.is_game_over() else "game"
                 page.refresh()
 
-            with ui.button(on_click=start_game_cb).classes('w-full mt-10 py-6 text-xl font-bold rounded-xl shadow-xl hover:scale-102 transition-transform bg-blue-600 text-white'):
-                with ui.row().classes('items-center gap-3 no-wrap'):
-                    ui.icon('rocket_launch', size='md')
-                    ui.label('INIZIA CARRIERA')
+            with ui.button(on_click=start_game_cb).classes(
+                "w-full mt-10 py-6 text-xl font-bold rounded-xl shadow-xl hover:scale-102 transition-transform bg-blue-600 text-white"
+            ):
+                with ui.row().classes("items-center gap-3 no-wrap"):
+                    ui.icon("rocket_launch", size="md")
+                    ui.label("INIZIA CARRIERA")
 
-            with ui.row().classes('w-full justify-center mt-6 pt-6 border-t border-white/5 gap-4'):
-                ui.button('Analytics', on_click=lambda: _go_analytics(), icon='insights').props('flat color=grey-5').classes('text-xs')
-                ui.button('Credits', icon='info').props('flat color=grey-5').classes('text-xs')
+            with ui.row().classes(
+                "w-full justify-center mt-6 pt-6 border-t border-white/5 gap-4"
+            ):
+                ui.button(
+                    "Analytics", on_click=lambda: _go_analytics(), icon="insights"
+                ).props("flat color=grey-5").classes("text-xs")
+                ui.button("Credits", icon="info").props("flat color=grey-5").classes(
+                    "text-xs"
+                )
+
+
+_help_dialog = None
+
+
+def _show_help():
+    global _help_dialog
+    if _help_dialog is None:
+        _help_dialog = ui.dialog().props("maximized")
+        with _help_dialog:
+            with (
+                ui.card()
+                .classes("w-full h-full bg-gray-900 text-white overflow-y-auto")
+                .props("flat")
+            ):
+                with ui.column().classes("w-full max-w-3xl mx-auto p-8 gap-6"):
+                    with ui.row().classes("w-full items-center justify-between"):
+                        ui.label("COME GIOCARE").classes(
+                            "text-2xl font-black tracking-tighter text-blue-400"
+                        )
+                        ui.button(icon="close", on_click=_help_dialog.close).props(
+                            "flat round color=white"
+                        )
+
+                    sections = [
+                        (
+                            "🎯 COSA DEVI FARE",
+                            [
+                                "Sei un impiegato in un'azienda tossica. Ogni giorno riceverai un evento con una descrizione della situazione.",
+                                "Devi scegliere tra 2-4 opzioni di reazione. Ogni scelta ha effetti sulle tue statistiche e sulle relazioni con colleghi e fazioni.",
+                                "L'obiettivo: sopravvivere più giorni possibile senza cadere in burnout, licenziamento o depressione professionale.",
+                            ],
+                        ),
+                        (
+                            "📊 STATISTICHE",
+                            [
+                                "Energia: cala con gli straordinari, si ricarica con scelte di autoconservazione.",
+                                "Stress: aumenta con pressioni e conflitti. Se arriva a 100, burnout mentale.",
+                                "Salute: cala con stress prolungato e mancanza di cure. Se arriva a 0, burnout fisico.",
+                                "Autostima: si erode con umiliazioni e compromessi. A 0, depressione professionale.",
+                                "Integrità: sale quando difendi i tuoi valori, cala quando tradisci te stesso.",
+                                "Occupabilità: la tua attrattiva sul mercato. Tienila alta per poter scappare.",
+                                "Rep. Manager: la tua reputazione col capo. Se cala a 0, sei licenziato.",
+                                "Rep. Team: la tua reputazione tra colleghi. utile per alleanze.",
+                            ],
+                        ),
+                        (
+                            "🏛️ FAZIONI",
+                            [
+                                "Fedelissimi: seguono il manager. Guadagni punti facendo COMPLIANCE.",
+                                "Gruppo Silenzioso: sopravvissuti neutrali. Cresce con scelte di ESCAPE.",
+                                "Ribelli: si oppongono al sistema. Cresce con scelte RESISTANCE.",
+                                "Le fazioni influenzano il finale di gioco e il supporto che riceverai dagli NPC.",
+                            ],
+                        ),
+                        (
+                            "👥 NPC (COLLEGHI)",
+                            [
+                                "Marco: il manager tossico. La sua fiducia sale con COMPLIANCE.",
+                                "Giulia: collega opportunista. Osserva le tue mosse e si allea con chi vince.",
+                                "Roberto: mentor disilluso. Apprezza l'integrità e la resistenza silenziosa.",
+                                "Elena: HR passiva. Può aiutarti se ha fiducia in te, ma teme ritorsioni.",
+                            ],
+                        ),
+                        (
+                            "🔄 TIPI DI SCELTA",
+                            [
+                                "COMPLIANCE (blu): accontenti il sistema. Aumenta rep. manager ma spesso aumenta stress.",
+                                "RESISTANCE (rossa): ti opponi. Alza autostima e integrità ma rischia ritorsioni.",
+                                "NEGOTIATION (gialla): cerchi compromesso. Effetti bilanciati ma a volte nessuno è soddisfatto.",
+                                "ESCAPE (verde): eviti il conflitto. Preserva energia ma non risolve i problemi.",
+                            ],
+                        ),
+                        (
+                            "🏆 FINALI E ACHIEVEMENT",
+                            [
+                                "Ogni partita termina con un finale basato sulle tue statistiche, fazioni e tag comportamentali.",
+                                "I tag (yes_man, boundary_setter, truth_teller, survivor, burnout_risk) si accumulano con le scelte ripetute.",
+                                "Sblocca achievement come 'Sempre Disponibile' (10 scelte yes_man) o 'Indistruttibile' (20 survivor).",
+                                "Esistono oltre 15 finali diversi: da 'IL WHISTLEBLOWER' a 'IL CADUTO'.",
+                            ],
+                        ),
+                        (
+                            "💡 CONSIGLI",
+                            [
+                                "Non puoi sempre compiacere tutti. Scegli le tue battaglie.",
+                                "Tieni d'occhio la salute mentale: stress > 80 è zona pericolo.",
+                                "Le scelte NEGOTIATION a volte aprono percorsi nascosti.",
+                                "I tag comportamentali sbloccano finali speciali. Sperimenta!",
+                                "La fase di carriera cambia gli eventi disponibili.",
+                            ],
+                        ),
+                    ]
+
+                    for title, items in sections:
+                        with ui.column().classes(
+                            "w-full gap-2 p-4 rounded-xl bg-white/5 border border-white/10"
+                        ):
+                            ui.label(title).classes(
+                                "text-sm font-black text-blue-300 tracking-tighter"
+                            )
+                            for item in items:
+                                ui.label(f"• {item}").classes(
+                                    "text-sm text-gray-300 leading-relaxed ml-2"
+                                )
+
+                    ui.label(
+                        "Burnout Simulator v2.0 — Un gioco di antropologia organizzativa"
+                    ).classes(
+                        "text-xs text-gray-500 text-center w-full mt-6 pt-4 border-t border-white/10"
+                    )
+    _help_dialog.open()
 
 
 def _render_game():
     player = engine.player
     pdata = player.to_dict()
     event = engine.current_event
-    theme = ARCHETYPE_THEMES.get(player.company_type, ARCHETYPE_THEMES['Corporate Tossica'])
+    theme = ARCHETYPE_THEMES.get(
+        player.company_type, ARCHETYPE_THEMES["Corporate Tossica"]
+    )
 
-    with ui.column().classes('w-full gap-0'):
+    with ui.column().classes("w-full gap-0"):
         # Top bar
         total_events = len(engine.event_manager.events)
         unique_seen = len(set(engine.history))
         is_repeat = event and event.id in engine.history[:-1]
 
-        with ui.row().classes('w-full items-center justify-between mb-6 pb-4 border-b border-white/5'):
-            with ui.row().classes('items-center gap-4 flex-wrap'):
-                with ui.column().classes('gap-0'):
-                    ui.label('GIORNO').classes('text-[10px] font-bold text-gray-500 uppercase tracking-widest')
-                    ui.label(str(player.days_survived)).classes('text-3xl font-black text-white leading-none')
+        with ui.row().classes(
+            "w-full items-center justify-between mb-6 pb-4 border-b border-white/5"
+        ):
+            with ui.row().classes("items-center gap-4 flex-wrap"):
+                with ui.column().classes("gap-0"):
+                    ui.label("GIORNO").classes(
+                        "text-[10px] font-bold text-gray-500 uppercase tracking-widest"
+                    )
+                    ui.label(str(player.days_survived)).classes(
+                        "text-3xl font-black text-white leading-none"
+                    )
 
-                ui.separator().props('vertical').classes('bg-white/10 h-8')
+                ui.separator().props("vertical").classes("bg-white/10 h-8")
 
-                with ui.column().classes('gap-1'):
-                    ui.badge(player.company_type.upper(), color=theme['badge']).classes('px-3 py-1 font-bold tracking-tighter')
-                    ui.label(f'Evento {unique_seen}/{total_events}').classes('text-[10px] text-gray-400 font-mono')
+                with ui.column().classes("gap-1"):
+                    ui.badge(player.company_type.upper(), color=theme["badge"]).classes(
+                        "px-3 py-1 font-bold tracking-tighter"
+                    )
+                    ui.label(f"Evento {unique_seen}/{total_events}").classes(
+                        "text-[10px] text-gray-400 font-mono"
+                    )
 
-            with ui.row().classes('items-center gap-2'):
-                ui.button(icon='menu', on_click=lambda: ui.run_javascript('document.querySelector(".stats-sidebar").classList.toggle("open")')) \
-                    .props('flat round color=white').classes('lg:hidden')
-                ui.button(icon='hub', on_click=_show_decision_graph) \
-                    .props('flat round color=blue').classes('hover:bg-blue-500/10')
-                ui.button(icon='logout', on_click=_exit_game) \
-                    .props('flat round color=red').classes('hover:bg-red-500/10')
+            with ui.row().classes("items-center gap-2"):
+                ui.button(
+                    icon="menu",
+                    on_click=lambda: ui.run_javascript(
+                        'document.querySelector(".stats-sidebar").classList.toggle("open")'
+                    ),
+                ).props("flat round color=white").classes("lg:hidden")
+                ui.button(icon="help", on_click=_show_help).props(
+                    "flat round color=white"
+                ).classes("hover:bg-white/10")
+                ui.button(icon="hub", on_click=_show_decision_graph).props(
+                    "flat round color=blue"
+                ).classes("hover:bg-blue-500/10")
+                ui.button(icon="logout", on_click=_exit_game).props(
+                    "flat round color=red"
+                ).classes("hover:bg-red-500/10")
 
         # Main area
-        with ui.row().classes('w-full gap-6 items-start'):
+        with ui.row().classes("w-full gap-6 items-start"):
             # Stats sidebar
-            with ui.card().classes('w-full lg:w-80 p-6 gap-4 stats-sidebar-card stats-sidebar vn-card') \
-                    .props('flat'):
-                ui.label('STATISTICHE').classes('text-xs font-bold text-gray-500 uppercase tracking-wider mb-2')
-                stats = pdata['stats']
+            with (
+                ui.card()
+                .classes(
+                    "w-full lg:w-80 p-6 gap-4 stats-sidebar-card stats-sidebar vn-card"
+                )
+                .props("flat")
+            ):
+                ui.label("STATISTICHE").classes(
+                    "text-xs font-bold text-gray-500 uppercase tracking-wider mb-2"
+                )
+                stats = pdata["stats"]
 
                 # Radar chart
                 radar_data = [
-                    {'name': 'Energia', 'value': stats['energy']},
-                    {'name': 'Stress', 'value': stats['stress']},
-                    {'name': 'Salute', 'value': stats['health']},
-                    {'name': 'Integrità', 'value': stats['integrity']},
-                    {'name': 'Autostima', 'value': stats['self_esteem']},
-                    {'name': 'Occupabilità', 'value': stats['employability']},
+                    {"name": "Energia", "value": stats["energy"]},
+                    {"name": "Stress", "value": stats["stress"]},
+                    {"name": "Salute", "value": stats["health"]},
+                    {"name": "Integrità", "value": stats["integrity"]},
+                    {"name": "Autostima", "value": stats["self_esteem"]},
+                    {"name": "Occupabilità", "value": stats["employability"]},
                 ]
                 radar_option = {
-                    'radar': {
-                        'indicator': [{'name': r['name'], 'max': 100} for r in radar_data],
-                        'shape': 'circle',
-                        'splitArea': {'areaStyle': {'color': ['rgba(255,255,255,0.02)', 'rgba(255,255,255,0.05)']}},
-                        'axisLine': {'lineStyle': {'color': 'rgba(255,255,255,0.1)'}},
-                        'splitLine': {'lineStyle': {'color': 'rgba(255,255,255,0.1)'}},
+                    "radar": {
+                        "indicator": [
+                            {"name": r["name"], "max": 100} for r in radar_data
+                        ],
+                        "shape": "circle",
+                        "splitArea": {
+                            "areaStyle": {
+                                "color": [
+                                    "rgba(255,255,255,0.02)",
+                                    "rgba(255,255,255,0.05)",
+                                ]
+                            }
+                        },
+                        "axisLine": {"lineStyle": {"color": "rgba(255,255,255,0.1)"}},
+                        "splitLine": {"lineStyle": {"color": "rgba(255,255,255,0.1)"}},
                     },
-                    'series': [{
-                        'type': 'radar',
-                        'data': [{'value': [s['value'] for s in radar_data], 'name': 'Profilo'}],
-                        'areaStyle': {'color': theme['accent'] + '40'},
-                        'lineStyle': {'color': theme['accent'], 'width': 2},
-                        'itemStyle': {'color': theme['accent']},
-                    }],
-                    'backgroundColor': 'transparent',
+                    "series": [
+                        {
+                            "type": "radar",
+                            "data": [
+                                {
+                                    "value": [s["value"] for s in radar_data],
+                                    "name": "Profilo",
+                                }
+                            ],
+                            "areaStyle": {"color": theme["accent"] + "40"},
+                            "lineStyle": {"color": theme["accent"], "width": 2},
+                            "itemStyle": {"color": theme["accent"]},
+                        }
+                    ],
+                    "backgroundColor": "transparent",
                 }
-                ui.echart(radar_option).classes('w-full h-44')
+                ui.echart(radar_option).classes("w-full h-44")
 
                 # Stat bars with pulse on critical
                 _render_stats_section(stats)
 
                 # FAZIONI
-                _render_factions_section(pdata['factions'])
+                _render_factions_section(pdata["factions"])
 
                 # RELAZIONI con avatar
-                _render_relationships_section(pdata['npcs'])
+                _render_relationships_section(pdata["npcs"])
 
                 # ULTIME SCELTE
                 if choice_history:
-                    ui.separator().classes('my-3 bg-gray-700')
-                    ui.label('ULTIME SCELTE').classes('text-xs font-bold text-gray-500 uppercase tracking-wider mb-2')
+                    ui.separator().classes("my-3 bg-gray-700")
+                    ui.label("ULTIME SCELTE").classes(
+                        "text-xs font-bold text-gray-500 uppercase tracking-wider mb-2"
+                    )
                     for h in choice_history[-5:]:
-                        cat_color = cat_colors.get(h['category'], '#6b7280')
-                        with ui.row().classes('items-center gap-1'):
-                            ui.icon('circle', size='6px').style(f'color: {cat_color}')
-                            ui.label(h['text'][:40] + ('…' if len(h['text']) > 40 else '')).classes(
-                                'text-xs text-gray-400 truncate'
-                            )
+                        cat_color = cat_colors.get(h["category"], "#6b7280")
+                        with ui.row().classes("items-center gap-1"):
+                            ui.icon("circle", size="6px").style(f"color: {cat_color}")
+                            ui.label(
+                                h["text"][:40] + ("…" if len(h["text"]) > 40 else "")
+                            ).classes("text-xs text-gray-400 truncate")
 
                 # Personalità Manager
-                mp = getattr(engine, 'manager_personality', {})
+                mp = getattr(engine, "manager_personality", {})
                 if mp:
-                    ui.separator().classes('my-3 bg-gray-700')
-                    ui.label('MANAGER').classes('text-sm font-bold text-gray-400 mb-1')
-                    with ui.row().classes('items-center gap-1'):
-                        ui.icon('person', size='14px').classes('text-gray-500')
-                        ui.label(mp.get('type', '')).classes('text-xs text-gray-300')
-                    ui.label(mp.get('description', '')).classes('text-[10px] text-gray-500 italic')
+                    ui.separator().classes("my-3 bg-gray-700")
+                    ui.label("MANAGER").classes("text-sm font-bold text-gray-400 mb-1")
+                    with ui.row().classes("items-center gap-1"):
+                        ui.icon("person", size="14px").classes("text-gray-500")
+                        ui.label(mp.get("type", "")).classes("text-xs text-gray-300")
+                    ui.label(mp.get("description", "")).classes(
+                        "text-[10px] text-gray-500 italic"
+                    )
 
                 # Fase Carriera
                 phase = engine.get_career_phase()
-                ui.separator().classes('my-3 bg-gray-700')
-                ui.label('FASE').classes('text-xs font-bold text-gray-500 uppercase tracking-wider mb-1')
-                with ui.row().classes('items-center gap-1'):
-                    ui.icon('timeline', size='14px').classes('text-gray-500')
-                    ui.label(phase[1]).classes('text-xs text-gray-300')
-                ui.label(phase[2]).classes('text-[10px] text-gray-500 italic')
+                ui.separator().classes("my-3 bg-gray-700")
+                ui.label("FASE").classes(
+                    "text-xs font-bold text-gray-500 uppercase tracking-wider mb-1"
+                )
+                with ui.row().classes("items-center gap-1"):
+                    ui.icon("timeline", size="14px").classes("text-gray-500")
+                    ui.label(phase[1]).classes("text-xs text-gray-300")
+                ui.label(phase[2]).classes("text-[10px] text-gray-500 italic")
 
                 # STATO
-                ui.separator().classes('my-3 bg-gray-700')
-                ui.label('STATO').classes('text-xs font-bold text-gray-500 uppercase tracking-wider mb-2')
+                ui.separator().classes("my-3 bg-gray-700")
+                ui.label("STATO").classes(
+                    "text-xs font-bold text-gray-500 uppercase tracking-wider mb-2"
+                )
 
-                risk_critical = sum(1 for s in stats.values() if s <= 20) + (1 if stats['stress'] >= 80 else 0)
-                risk_warning = sum(1 for s in stats.values() if 20 < s <= 35 or 65 <= s < 80)
+                risk_critical = sum(1 for s in stats.values() if s <= 20) + (
+                    1 if stats["stress"] >= 80 else 0
+                )
+                risk_warning = sum(
+                    1 for s in stats.values() if 20 < s <= 35 or 65 <= s < 80
+                )
 
                 if not engine.player.is_alive:
-                    risk_label = 'Terminato'
-                    risk_color = 'text-gray-500'
-                elif risk_critical >= 3 or stats['stress'] >= 85 or stats['health'] <= 15:
-                    risk_label = 'Pericolo Imminente'
-                    risk_color = 'text-red-400 font-bold'
+                    risk_label = "Terminato"
+                    risk_color = "text-gray-500"
+                elif (
+                    risk_critical >= 3 or stats["stress"] >= 85 or stats["health"] <= 15
+                ):
+                    risk_label = "Pericolo Imminente"
+                    risk_color = "text-red-400 font-bold"
                 elif risk_critical >= 1 or risk_warning >= 3:
-                    risk_label = 'Critico'
-                    risk_color = 'text-orange-400 font-bold'
+                    risk_label = "Critico"
+                    risk_color = "text-orange-400 font-bold"
                 elif risk_warning >= 1:
-                    risk_label = 'Moderato'
-                    risk_color = 'text-yellow-400'
+                    risk_label = "Moderato"
+                    risk_color = "text-yellow-400"
                 else:
-                    risk_label = 'Stabile'
-                    risk_color = 'text-green-400'
+                    risk_label = "Stabile"
+                    risk_color = "text-green-400"
 
-                ui.label(risk_label).classes(f'{risk_color} text-base')
+                with ui.row().classes("items-center gap-2"):
+                    state_img = _state_icon(risk_label)
+                    if not state_img:
+                        state_img = _state_icon(engine.player.status)
+                    if state_img:
+                        ui.image(state_img).style(
+                            "width: 36px; height: 36px; border-radius: 6px"
+                        )
+                    ui.label(risk_label).classes(f"{risk_color} text-base")
                 ui.linear_progress(
-                    value=min(stats['stress'] / 100, 1.0),
-                    size='sm',
-                    color='red' if stats['stress'] > 65 else 'orange' if stats['stress'] > 40 else 'green',
-                ).classes('w-full mt-1')
-                ui.label('Stress').classes('text-xs text-gray-500')
+                    value=min(stats["stress"] / 100, 1.0),
+                    size="sm",
+                    color="red"
+                    if stats["stress"] > 65
+                    else "orange"
+                    if stats["stress"] > 40
+                    else "green",
+                ).classes("w-full mt-1")
+                ui.label("Stress").classes("text-xs text-gray-500")
 
                 danger_stats = []
-                if stats['stress'] >= 75:
-                    danger_stats.append('Stress: rischio burnout')
-                if stats['health'] <= 25:
-                    danger_stats.append('Salute: critica')
-                if stats['energy'] <= 20:
-                    danger_stats.append('Energia: esaurita')
-                if stats['self_esteem'] <= 20:
-                    danger_stats.append('Autostima: a terra')
-                if stats['manager_rep'] <= 20:
-                    danger_stats.append('Rep. Manager: rischio licenziamento')
+                if stats["stress"] >= 75:
+                    danger_stats.append("Stress: rischio burnout")
+                if stats["health"] <= 25:
+                    danger_stats.append("Salute: critica")
+                if stats["energy"] <= 20:
+                    danger_stats.append("Energia: esaurita")
+                if stats["self_esteem"] <= 20:
+                    danger_stats.append("Autostima: a terra")
+                if stats["manager_rep"] <= 20:
+                    danger_stats.append("Rep. Manager: rischio licenziamento")
                 for msg in danger_stats[:2]:
-                    ui.label(f'⚠ {msg}').classes('text-xs text-red-400 mt-1')
+                    ui.label(f"⚠ {msg}").classes("text-xs text-red-400 mt-1")
 
             # Event + Choices
-            with ui.column().classes('flex-1 gap-6 min-w-0 fade-in'):
+            with ui.column().classes("flex-1 gap-6 min-w-0 fade-in"):
                 # Mini-evento giornaliero
                 if engine.current_mini_event:
                     mini_text, mini_effects = engine.current_mini_event
-                    with ui.card().classes('w-full p-4 border-l-4 border-blue-500/50 vn-card').props('flat'):
-                        with ui.row().classes('items-center justify-between'):
-                            with ui.row().classes('items-center gap-2'):
-                                ui.icon('coffee', size='18px').classes('text-blue-400')
-                                ui.label('DAILY ROUTINE').classes('text-xs font-black text-blue-400 tracking-tighter')
-                            with ui.row().classes('gap-1'):
+                    with (
+                        ui.card()
+                        .classes("w-full p-4 border-l-4 border-blue-500/50 vn-card")
+                        .props("flat")
+                    ):
+                        with ui.row().classes("items-center justify-between"):
+                            with ui.row().classes("items-center gap-2"):
+                                ui.icon("coffee", size="18px").classes("text-blue-400")
+                                ui.label("DAILY ROUTINE").classes(
+                                    "text-xs font-black text-blue-400 tracking-tighter"
+                                )
+                            with ui.row().classes("gap-1"):
                                 for k, v in mini_effects.items():
-                                    color = 'text-green-400' if v > 0 else 'text-red-400'
-                                    sign = '+' if v > 0 else ''
-                                    ui.label(f'{k[:3].upper()} {sign}{v}').classes(f'text-[10px] font-bold {color} px-1.5 py-0.5 rounded bg-black/20')
+                                    color = (
+                                        "text-green-400" if v > 0 else "text-red-400"
+                                    )
+                                    sign = "+" if v > 0 else ""
+                                    label = _effect_label(k)[:6]
+                                    ui.label(f"{label} {sign}{v}").classes(
+                                        f"text-[10px] font-bold {color} px-1.5 py-0.5 rounded bg-black/20"
+                                    )
 
-                        ui.label(mini_text).classes('text-sm text-gray-300 italic mt-2 leading-relaxed')
+                        ui.label(mini_text).classes(
+                            "text-sm text-gray-300 italic mt-2 leading-relaxed"
+                        )
 
                 if event:
-                    with ui.column().classes('w-full gap-2'):
-                        with ui.row().classes('items-center justify-between'):
+                    with ui.column().classes("w-full gap-2"):
+                        with ui.row().classes("items-center justify-between"):
                             ui.badge(
-                                event.category.replace('_', ' ').upper(),
-                                color='amber-9',
-                            ).classes('px-3 py-1 text-[10px] font-bold tracking-widest')
+                                event.category.replace("_", " ").upper(),
+                                color="amber-9",
+                            ).classes("px-3 py-1 text-[10px] font-bold tracking-widest")
 
-                            with ui.row().classes('gap-2'):
+                            with ui.row().classes("gap-2"):
                                 if engine.real_cases_mode:
-                                    ui.badge('CASO REALE', color='orange-10').classes('px-2 py-0.5 text-[9px] font-black')
+                                    ui.badge("CASO REALE", color="orange-10").classes(
+                                        "px-2 py-0.5 text-[9px] font-black"
+                                    )
                                 if is_repeat:
-                                    ui.label('🔄 DÉJÀ VU').classes('text-[9px] text-gray-500 font-bold')
+                                    ui.label("🔄 DÉJÀ VU").classes(
+                                        "text-[9px] text-gray-500 font-bold"
+                                    )
 
                         # NPC portrait + narrative card (Visual Novel style)
-                        npc_names = list(pdata['npcs'].keys())
-                        npc_idx = (len(engine.history)) % max(len(npc_names), 1) if npc_names else 0
-                        npc_trigger = npc_names[npc_idx] if npc_names else ''
+                        npc_names = list(pdata["npcs"].keys())
+                        npc_idx = (
+                            (len(engine.history)) % max(len(npc_names), 1)
+                            if npc_names
+                            else 0
+                        )
+                        npc_trigger = npc_names[npc_idx] if npc_names else ""
 
-                        with ui.row().classes('w-full gap-4 items-end'):
+                        with ui.row().classes("w-full gap-4 items-end"):
                             # NPC portrait
-                            with ui.column().classes('items-center gap-1 shrink-0'):
-                                nd = pdata['npcs'].get(npc_trigger, {})
-                                nf = NPC_FACTION_MAP.get(npc_trigger, '')
-                                nc = NPC_FACTION_COLORS.get(nf, '#6b7280')
-                                ui.html(_npc_svg_face(npc_trigger, nd)).style(f'border-color: {nc}').classes('npc-portrait')
-                                ui.label(npc_trigger.upper()).classes('text-[9px] font-black text-gray-500 tracking-tighter')
-
-                            # Narrative Card
-                            with ui.card().classes('flex-1 p-6 event-card vn-card-highlight min-h-[140px]').props('flat'):
-                                ui.markdown(event.text).classes(
-                                    'narrative-text prose prose-invert max-w-none'
-                                    ' [&_strong]:text-blue-300 [&_strong]:font-bold'
+                            with ui.column().classes("items-center gap-1 shrink-0"):
+                                nd = pdata["npcs"].get(npc_trigger, {})
+                                nf = NPC_FACTION_MAP.get(npc_trigger, "")
+                                nc = NPC_FACTION_COLORS.get(nf, "#6b7280")
+                                portrait_url = _npc_portrait(npc_trigger, nd)
+                                with ui.element("div").classes("relative inline-block"):
+                                    ui.image(portrait_url).style(
+                                        f"border-color: {nc}; width: 80px; height: 80px; border-radius: 20px; border: 2px solid; object-fit: cover"
+                                    ).classes("npc-portrait")
+                                    # Emote bubble overlay
+                                    if event.choices:
+                                        emote_icon = EMOTE_ICONS.get(
+                                            event.choices[0].category
+                                        )
+                                        if emote_icon:
+                                            emote_url = (
+                                                f"{GFX_PATH}/personaggi/{emote_icon}"
+                                            )
+                                            ui.image(emote_url).style(
+                                                "width: 28px; height: 28px; position: absolute; top: -8px; right: -8px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.5); background: rgba(0,0,0,0.6)"
+                                            )
+                                ui.label(npc_trigger.upper()).classes(
+                                    "text-[9px] font-black text-gray-500 tracking-tighter"
                                 )
 
+                            # Narrative Card
+                            with (
+                                ui.card()
+                                .classes(
+                                    "flex-1 p-6 event-card vn-card-highlight min-h-[140px]"
+                                )
+                                .props("flat")
+                            ):
+                                with ui.row().classes("items-start gap-3"):
+                                    ev_icon = _event_icon(event)
+                                    if ev_icon:
+                                        ui.image(ev_icon).style(
+                                            "width: 48px; height: 48px; border-radius: 8px; flex-shrink: 0"
+                                        )
+                                    ui.markdown(event.text).classes(
+                                        "narrative-text prose prose-invert max-w-none flex-1"
+                                        " [&_strong]:text-blue-300 [&_strong]:font-bold"
+                                    )
+
                     n_choices = len(event.choices)
-                    with ui.column().classes('w-full gap-3 mt-2'):
+                    with ui.column().classes("w-full gap-3 mt-2"):
                         if n_choices > 1:
-                            ui.label('PRENDI UNA DECISIONE').classes(
-                                'text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1'
+                            ui.label("PRENDI UNA DECISIONE").classes(
+                                "text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1"
                             )
 
                     # Timer per scelte critiche (M12)
@@ -527,43 +966,46 @@ def _render_game():
 
                     # Track decision time (start counting from event render)
                     global _decision_start
-                    _decision_start = __import__('time').time()
+                    _decision_start = __import__("time").time()
 
                     for i, choice in enumerate(event.choices):
+
                         def handle_choice_cb(idx=0, evt=None, ch=None):
                             return lambda: _make_choice(idx, evt, ch)
 
-                        timer_class = ''
+                        timer_class = ""
                         if i == _timer_choice_idx and n_choices > 1:
-                            timer_class = ' timer-choice'
+                            timer_class = " timer-choice"
 
-                        label = f'{chr(65 + i)}. {choice.text}'
+                        label = f"{chr(65 + i)}. {choice.text}"
                         if n_choices == 1:
-                            label = 'Continua →'
+                            label = "Continua →"
 
-                        with ui.button(
-                            on_click=handle_choice_cb(i, event, choice),
-                        ).classes(
-                            'w-full choice-btn '
-                            f'{timer_class} '
-                            'fade-in'
-                        ).props('flat no-caps'):
-                            with ui.column().classes('w-full items-start gap-1'):
-                                ui.label(label).classes('text-left')
+                        with (
+                            ui.button(
+                                on_click=handle_choice_cb(i, event, choice),
+                            )
+                            .classes(f"w-full choice-btn {timer_class} fade-in")
+                            .props("flat no-caps")
+                        ):
+                            with ui.column().classes("w-full items-start gap-1"):
+                                ui.label(label).classes("text-left")
 
                                 # Effetti sempre visibili (chip)
                                 if choice.effects:
-                                    with ui.row().classes('gap-1 mt-1 flex-wrap'):
+                                    with ui.row().classes("gap-1 mt-1 flex-wrap"):
                                         for ek, ev in list(choice.effects.items())[:4]:
-                                            cls = 'pos' if ev > 0 else 'neg'
-                                            sign = '+' if ev > 0 else ''
-                                            ui.label(f'{ek}: {sign}{ev}').classes(f'effect-chip {cls}')
+                                            cls = "pos" if ev > 0 else "neg"
+                                            sign = "+" if ev > 0 else ""
+                                            ui.label(
+                                                f"{_effect_label(ek)}: {sign}{ev}"
+                                            ).classes(f"effect-chip {cls}")
 
                             # Timer su scelta critica
                             if i == _timer_choice_idx and n_choices > 1:
-                                timer_id = f'timer_{uuid.uuid4().hex[:6]}'
-                                ui.label().classes('timer-ring').props(f'id={timer_id}')
-                                ui.run_javascript(f'''
+                                timer_id = f"timer_{uuid.uuid4().hex[:6]}"
+                                ui.label().classes("timer-ring").props(f"id={timer_id}")
+                                ui.run_javascript(f"""
                                     (function() {{
                                         let sec = 15;
                                         const el = document.getElementById('{timer_id}');
@@ -578,13 +1020,17 @@ def _render_game():
                                             }}
                                         }}, 1000);
                                     }})();
-                                ''')
+                                """)
 
                             # Tooltip (M3)
-                            with ui.tooltip().classes('p-2 bg-gray-800 border border-gray-600 rounded'):
+                            with ui.tooltip().classes(
+                                "p-2 bg-gray-800 border border-gray-600 rounded"
+                            ):
                                 for effect_key, effect_val in choice.effects.items():
-                                    sign = '+' if effect_val > 0 else ''
-                                    ui.label(f'{effect_key}: {sign}{effect_val}').classes('text-xs font-mono')
+                                    sign = "+" if effect_val > 0 else ""
+                                    ui.label(
+                                        f"{_effect_label(effect_key)}: {sign}{effect_val}"
+                                    ).classes("text-xs font-mono")
 
 
 def _render_game_over():
@@ -595,148 +1041,234 @@ def _render_game_over():
     record_tags(session_id, player.tags)
     stats = get_stats_dict(engine)
 
-    with ui.column().classes('w-full max-w-4xl mx-auto py-12 fade-in'):
-        with ui.card().classes('w-full p-12 text-center vn-card vn-card-highlight overflow-hidden relative').props('flat'):
+    with ui.column().classes("w-full max-w-4xl mx-auto py-12 fade-in"):
+        with (
+            ui.card()
+            .classes(
+                "w-full p-12 text-center vn-card vn-card-highlight overflow-hidden relative"
+            )
+            .props("flat")
+        ):
             # Background effect for game over
-            ui.html(f'<div style="position:absolute; top:-50px; right:-50px; width:200px; height:200px; background:var(--theme-accent); opacity:0.1; border-radius:50%; filter:blur(60px);"></div>')
+            ui.html(
+                f'<div style="position:absolute; top:-50px; right:-50px; width:200px; height:200px; background:var(--theme-accent); opacity:0.1; border-radius:50%; filter:blur(60px);"></div>'
+            )
 
-            ui.label('VALUTAZIONE CARRIERA CONCLUSO').classes('text-[10px] font-black text-gray-500 tracking-[0.3em] mb-2')
-            ui.label(ending).classes('text-5xl font-black text-white mt-2 mb-2 tracking-tighter')
-            ui.badge(player.status.upper(), color='red-10' if 'Burnout' in player.status or 'Licenziato' in player.status else 'blue-10').classes('px-4 py-1 text-xs font-bold')
+            ui.label("VALUTAZIONE CARRIERA CONCLUSO").classes(
+                "text-[10px] font-black text-gray-500 tracking-[0.3em] mb-2"
+            )
+            ui.label(ending).classes(
+                "text-5xl font-black text-white mt-2 mb-2 tracking-tighter"
+            )
+            with ui.row().classes("items-center justify-center gap-3 mt-2"):
+                state_img = _state_icon(player.status)
+                if state_img:
+                    ui.image(state_img).style(
+                        "width: 48px; height: 48px; border-radius: 8px"
+                    )
+                ui.badge(
+                    player.status.upper(),
+                    color="red-10"
+                    if "Burnout" in player.status or "Licenziato" in player.status
+                    else "blue-10",
+                ).classes("px-4 py-1 text-xs font-bold")
 
             ui.label(
-                f'Hai resistito {player.days_survived} giorni operativi presso {player.company_type}.'
-            ).classes('text-gray-400 mt-6 text-lg italic')
+                f"Hai resistito {player.days_survived} giorni operativi presso {player.company_type}."
+            ).classes("text-gray-400 mt-6 text-lg italic")
 
             # Grafico storico stress/tempo
-            hist = getattr(engine, 'stats_history', [])
+            hist = getattr(engine, "stats_history", [])
             if len(hist) >= 3:
-                stress_series = [s.get('stress', 0) for s in hist]
-                energy_series = [s.get('energy', 0) for s in hist]
+                stress_series = [s.get("stress", 0) for s in hist]
+                energy_series = [s.get("energy", 0) for s in hist]
                 days_labels = list(range(len(hist)))
                 stress_chart = {
-                    'tooltip': {'trigger': 'axis'},
-                    'legend': {'data': ['Stress', 'Energia'], 'textStyle': {'color': '#999'}},
-                    'xAxis': {'type': 'category', 'data': days_labels, 'axisLabel': {'color': '#666', 'fontSize': 9}},
-                    'yAxis': {'type': 'value', 'max': 100, 'axisLabel': {'color': '#666'}, 'splitLine': {'lineStyle': {'color': 'rgba(255,255,255,0.05)'}}},
-                    'series': [
-                        {'name': 'Stress', 'type': 'line', 'data': stress_series, 'smooth': True, 'lineStyle': {'color': '#f87171', 'width': 2}, 'areaStyle': {'color': 'rgba(248,113,113,0.1)'}, 'symbol': 'none'},
-                        {'name': 'Energia', 'type': 'line', 'data': energy_series, 'smooth': True, 'lineStyle': {'color': '#4ade80', 'width': 2}, 'areaStyle': {'color': 'rgba(74,222,128,0.1)'}, 'symbol': 'none'},
+                    "tooltip": {"trigger": "axis"},
+                    "legend": {
+                        "data": ["Stress", "Energia"],
+                        "textStyle": {"color": "#999"},
+                    },
+                    "xAxis": {
+                        "type": "category",
+                        "data": days_labels,
+                        "axisLabel": {"color": "#666", "fontSize": 9},
+                    },
+                    "yAxis": {
+                        "type": "value",
+                        "max": 100,
+                        "axisLabel": {"color": "#666"},
+                        "splitLine": {"lineStyle": {"color": "rgba(255,255,255,0.05)"}},
+                    },
+                    "series": [
+                        {
+                            "name": "Stress",
+                            "type": "line",
+                            "data": stress_series,
+                            "smooth": True,
+                            "lineStyle": {"color": "#f87171", "width": 2},
+                            "areaStyle": {"color": "rgba(248,113,113,0.1)"},
+                            "symbol": "none",
+                        },
+                        {
+                            "name": "Energia",
+                            "type": "line",
+                            "data": energy_series,
+                            "smooth": True,
+                            "lineStyle": {"color": "#4ade80", "width": 2},
+                            "areaStyle": {"color": "rgba(74,222,128,0.1)"},
+                            "symbol": "none",
+                        },
                     ],
-                    'backgroundColor': 'transparent',
-                    'grid': {'left': '10%', 'right': '5%', 'top': '15%', 'bottom': '10%'},
+                    "backgroundColor": "transparent",
+                    "grid": {
+                        "left": "10%",
+                        "right": "5%",
+                        "top": "15%",
+                        "bottom": "10%",
+                    },
                 }
-                ui.echart(stress_chart).classes('w-full h-36 mt-4')
+                ui.echart(stress_chart).classes("w-full h-36 mt-4")
 
             # Radar finale
             radar_data = [
-                {'name': 'Energia', 'value': stats['energy']},
-                {'name': 'Stress', 'value': stats['stress']},
-                {'name': 'Salute', 'value': stats['health']},
-                {'name': 'Integrità', 'value': stats['integrity']},
-                {'name': 'Autostima', 'value': stats['self_esteem']},
-                {'name': 'Occupabilità', 'value': stats['employability']},
+                {"name": "Energia", "value": stats["energy"]},
+                {"name": "Stress", "value": stats["stress"]},
+                {"name": "Salute", "value": stats["health"]},
+                {"name": "Integrità", "value": stats["integrity"]},
+                {"name": "Autostima", "value": stats["self_esteem"]},
+                {"name": "Occupabilità", "value": stats["employability"]},
             ]
             radar_option = {
-                'radar': {
-                    'indicator': [{'name': r['name'], 'max': 100} for r in radar_data],
-                    'shape': 'circle',
-                    'splitArea': {'areaStyle': {'color': ['rgba(255,255,255,0.02)', 'rgba(255,255,255,0.05)']}},
-                    'axisLine': {'lineStyle': {'color': 'rgba(255,255,255,0.1)'}},
-                    'splitLine': {'lineStyle': {'color': 'rgba(255,255,255,0.1)'}},
+                "radar": {
+                    "indicator": [{"name": r["name"], "max": 100} for r in radar_data],
+                    "shape": "circle",
+                    "splitArea": {
+                        "areaStyle": {
+                            "color": [
+                                "rgba(255,255,255,0.02)",
+                                "rgba(255,255,255,0.05)",
+                            ]
+                        }
+                    },
+                    "axisLine": {"lineStyle": {"color": "rgba(255,255,255,0.1)"}},
+                    "splitLine": {"lineStyle": {"color": "rgba(255,255,255,0.1)"}},
                 },
-                'series': [{
-                    'type': 'radar',
-                    'data': [{'value': [s['value'] for s in radar_data], 'name': 'Profilo'}],
-                    'areaStyle': {'color': 'rgba(168,85,247,0.3)'},
-                    'lineStyle': {'color': '#a855f7', 'width': 2},
-                    'itemStyle': {'color': '#a855f7'},
-                }],
-                'backgroundColor': 'transparent',
+                "series": [
+                    {
+                        "type": "radar",
+                        "data": [
+                            {
+                                "value": [s["value"] for s in radar_data],
+                                "name": "Profilo",
+                            }
+                        ],
+                        "areaStyle": {"color": "rgba(168,85,247,0.3)"},
+                        "lineStyle": {"color": "#a855f7", "width": 2},
+                        "itemStyle": {"color": "#a855f7"},
+                    }
+                ],
+                "backgroundColor": "transparent",
             }
-            ui.echart(radar_option).classes('w-full h-48 mt-4')
+            ui.echart(radar_option).classes("w-full h-48 mt-4")
 
             # Tempi di decisione
-            dt = getattr(player, 'decision_times', [])
+            dt = getattr(player, "decision_times", [])
             if dt:
                 avg_dt = sum(dt) / len(dt) / 1000
                 fast = sum(1 for t in dt if t < 5000)
                 slow = sum(1 for t in dt if t >= 15000)
-                ui.label(f'Tempo medio decisione: {avg_dt:.1f}s · Rapide: {fast} · Lente (>15s): {slow}').classes(
-                    'text-xs text-gray-500 mt-2'
-                )
+                ui.label(
+                    f"Tempo medio decisione: {avg_dt:.1f}s · Rapide: {fast} · Lente (>15s): {slow}"
+                ).classes("text-xs text-gray-500 mt-2")
 
-            with ui.row().classes('w-full justify-center gap-6 mt-6'):
+            with ui.row().classes("w-full justify-center gap-6 mt-6"):
                 for key, label, color in [
-                    ('energy', 'Energia', '#4ade80'),
-                    ('stress', 'Stress', '#f87171'),
-                    ('health', 'Salute', '#22d3ee'),
-                    ('integrity', 'Integrità', '#a78bfa'),
+                    ("energy", "Energia", "#4ade80"),
+                    ("stress", "Stress", "#f87171"),
+                    ("health", "Salute", "#22d3ee"),
+                    ("integrity", "Integrità", "#a78bfa"),
                 ]:
-                    with ui.column().classes('items-center'):
+                    with ui.column().classes("items-center"):
                         ui.linear_progress(
-                            value=stats[key] / 100, size='md', color=color,
-                        ).classes('w-20')
-                        ui.label(f'{label}: {stats[key]}%').classes('text-xs text-gray-400')
+                            value=stats[key] / 100,
+                            size="md",
+                            color=color,
+                        ).classes("w-20")
+                        ui.label(f"{label}: {stats[key]}%").classes(
+                            "text-xs text-gray-400"
+                        )
 
         tags = player.tags
         total_tags = sum(tags.values())
         if total_tags > 0:
-            with ui.card().classes('w-full p-6 mt-4 vn-card').props('flat'):
-                ui.label('PROFILO COMPORTAMENTALE').classes(
-                    'text-lg font-bold text-gray-300 mb-4'
+            with ui.card().classes("w-full p-6 mt-4 vn-card").props("flat"):
+                ui.label("PROFILO COMPORTAMENTALE").classes(
+                    "text-lg font-bold text-gray-300 mb-4"
                 )
-                for tag, count in sorted(tags.items(), key=lambda x: x[1], reverse=True):
+                for tag, count in sorted(
+                    tags.items(), key=lambda x: x[1], reverse=True
+                ):
                     if count > 0:
                         perc = (count / total_tags) * 100
-                        with ui.row().classes('items-center gap-3'):
+                        with ui.row().classes("items-center gap-3"):
                             ui.linear_progress(
-                                value=perc / 100, size='sm', color='amber',
-                            ).classes('w-40')
+                                value=perc / 100,
+                                size="sm",
+                                color="amber",
+                            ).classes("w-40")
                             ui.label(
-                                f'{tag.replace("_", " ").title()}: {perc:.1f}%'
-                            ).classes('text-sm text-gray-400')
+                                f"{tag.replace('_', ' ').title()}: {perc:.1f}%"
+                            ).classes("text-sm text-gray-400")
 
         if player.achievements:
-            with ui.card().classes('w-full p-6 mt-4').props('flat'):
-                ui.label('ACHIEVEMENT').classes('text-lg font-bold text-gray-300 mb-3')
+            with ui.card().classes("w-full p-6 mt-4").props("flat"):
+                ui.label("ACHIEVEMENT").classes("text-lg font-bold text-gray-300 mb-3")
                 for ach in player.achievements:
-                    ui.badge(f'\U0001f3c6 {ach}', color='positive').classes('mr-2 mb-2')
+                    ui.badge(f"\U0001f3c6 {ach}", color="positive").classes("mr-2 mb-2")
 
-        with ui.card().classes('w-full p-6 mt-4').props('flat'):
-            ui.label('ANALISI ANTROPOLOGICA').classes(
-                'text-lg font-bold text-gray-300 mb-3'
+        with ui.card().classes("w-full p-6 mt-4").props("flat"):
+            ui.label("ANALISI ANTROPOLOGICA").classes(
+                "text-lg font-bold text-gray-300 mb-3"
             )
-            if player.factions['Ribelli'] > 30:
+            if player.factions["Ribelli"] > 30:
                 ui.label(
-                    '- Hai mostrato una forte tendenza alla resistenza attiva, '
-                    'prioritizzando l\'integrità individuale.'
-                ).classes('text-sm text-gray-400')
-            if player.factions['Fedelissimi'] > 30:
+                    "- Hai mostrato una forte tendenza alla resistenza attiva, "
+                    "prioritizzando l'integrità individuale."
+                ).classes("text-sm text-gray-400")
+            if player.factions["Fedelissimi"] > 30:
                 ui.label(
-                    '- Il tuo adattamento è stato di tipo opportunistico, '
-                    'integrando i valori dominanti dell\'organizzazione.'
-                ).classes('text-sm text-gray-400')
+                    "- Il tuo adattamento è stato di tipo opportunistico, "
+                    "integrando i valori dominanti dell'organizzazione."
+                ).classes("text-sm text-gray-400")
             if player.stress > 70:
                 ui.label(
-                    '- L\'esposizione prolungata a dinamiche tossiche ha eroso '
-                    'le tue barriere psicologiche (Burnout Alert).'
-                ).classes('text-sm text-gray-400')
+                    "- L'esposizione prolungata a dinamiche tossiche ha eroso "
+                    "le tue barriere psicologiche (Burnout Alert)."
+                ).classes("text-sm text-gray-400")
 
-        with ui.row().classes('w-full justify-center mt-6 mb-12 gap-3'):
-            ui.button('Gioca Ancora', icon='replay', on_click=_play_again) \
-                .props('color=positive size=lg')
-            ui.button('📷 Esporta Report', icon='download', on_click=_export_report) \
-                .props('flat size=lg').classes('text-gray-400')
-            ui.button('🕸 Grafo Decisionale', icon='hub', on_click=_show_decision_graph) \
-                .props('flat size=lg').classes('text-gray-400')
+        with ui.row().classes("w-full justify-center mt-6 mb-12 gap-3"):
+            ui.button("Gioca Ancora", icon="replay", on_click=_play_again).props(
+                "color=positive size=lg"
+            )
+            ui.button(
+                "📷 Esporta Report", icon="download", on_click=_export_report
+            ).props("flat size=lg").classes("text-gray-400")
+            ui.button(
+                "🕸 Grafo Decisionale", icon="hub", on_click=_show_decision_graph
+            ).props("flat size=lg").classes("text-gray-400")
 
 
 # ── Actions ──
 
+
 def _make_choice(idx: int, event, choice):
     global stats_before, choice_history, _decision_start
-    decision_time = int((__import__('time').time() - _decision_start) * 1000) if _decision_start > 0 else 0
+    decision_time = (
+        int((__import__("time").time() - _decision_start) * 1000)
+        if _decision_start > 0
+        else 0
+    )
 
     stats_before = get_stats_dict(engine)
     engine.handle_choice(idx)
@@ -746,16 +1278,23 @@ def _make_choice(idx: int, event, choice):
         engine.player.decision_times.append(decision_time)
 
     record_choice(
-        session_id, engine.player.days_survived,
-        event.id, choice.id, choice.text, choice.category,
-        stats_before, stats_after,
+        session_id,
+        engine.player.days_survived,
+        event.id,
+        choice.id,
+        choice.text,
+        choice.category,
+        stats_before,
+        stats_after,
         decision_time=decision_time,
     )
 
-    choice_history.append({
-        'text': choice.text,
-        'category': choice.category,
-    })
+    choice_history.append(
+        {
+            "text": choice.text,
+            "category": choice.category,
+        }
+    )
 
     # Update career phase
     phase = engine.get_career_phase()
@@ -772,103 +1311,153 @@ def _make_choice(idx: int, event, choice):
 
 def _show_choice_feedback(deltas: dict, category: str):
     stat_labels = {
-        'energy': 'Energia', 'stress': 'Stress', 'health': 'Salute',
-        'integrity': 'Integrità', 'self_esteem': 'Autostima',
-        'employability': 'Occupabilità', 'manager_rep': 'Rep. Manager',
-        'team_rep': 'Rep. Team',
+        "energy": "Energia",
+        "stress": "Stress",
+        "health": "Salute",
+        "integrity": "Integrità",
+        "self_esteem": "Autostima",
+        "employability": "Occupabilità",
+        "manager_rep": "Rep. Manager",
+        "team_rep": "Rep. Team",
     }
     stat_colors = {
-        'energy': '#4ade80', 'stress': '#f87171', 'health': '#22d3ee',
-        'integrity': '#a78bfa', 'self_esteem': '#fbbf24',
-        'employability': '#34d399', 'manager_rep': '#fb923c', 'team_rep': '#60a5fa',
+        "energy": "#4ade80",
+        "stress": "#f87171",
+        "health": "#22d3ee",
+        "integrity": "#a78bfa",
+        "self_esteem": "#fbbf24",
+        "employability": "#34d399",
+        "manager_rep": "#fb923c",
+        "team_rep": "#60a5fa",
     }
 
-    with ui.dialog().props('persistent transition-show=scale transition-hide=scale') as dialog, ui.card().classes('p-8 min-w-[320px] vn-card border-t-4 border-blue-500'):
-        ui.label('CONSEGUENZE').classes('text-[10px] font-black text-blue-400 tracking-[0.3em] mb-1')
-        ui.label(category.upper()).classes('text-xl font-bold text-white mb-6 tracking-tight')
+    with (
+        ui.dialog().props(
+            "persistent transition-show=scale transition-hide=scale"
+        ) as dialog,
+        ui.card().classes("p-8 min-w-[320px] vn-card border-t-4 border-blue-500"),
+    ):
+        ui.label("CONSEGUENZE").classes(
+            "text-[10px] font-black text-blue-400 tracking-[0.3em] mb-1"
+        )
+        ui.label(category.upper()).classes(
+            "text-xl font-bold text-white mb-6 tracking-tight"
+        )
 
         has_effects = False
-        with ui.column().classes('w-full gap-2'):
+        with ui.column().classes("w-full gap-2"):
             for key in deltas:
                 has_effects = True
                 delta = deltas[key]
-                sign = '+' if delta > 0 else ''
-                color = stat_colors.get(key, '#9ca3af')
+                sign = "+" if delta > 0 else ""
+                color = stat_colors.get(key, "#9ca3af")
                 label = stat_labels.get(key, key)
 
-                is_pos = (delta > 0 and key != 'stress') or (delta < 0 and key == 'stress')
-                bg_color = 'rgba(74, 222, 128, 0.1)' if is_pos else 'rgba(248, 113, 113, 0.1)'
-                text_color = '#4ade80' if is_pos else '#f87171'
-                arrow = '▲' if delta > 0 else '▼'
+                is_pos = (delta > 0 and key != "stress") or (
+                    delta < 0 and key == "stress"
+                )
+                bg_color = (
+                    "rgba(74, 222, 128, 0.1)" if is_pos else "rgba(248, 113, 113, 0.1)"
+                )
+                text_color = "#4ade80" if is_pos else "#f87171"
+                arrow = "▲" if delta > 0 else "▼"
 
-                with ui.row().classes('w-full items-center justify-between px-4 py-3 rounded-xl border border-white/5').style(f'background: {bg_color}'):
-                    ui.label(label.upper()).classes('text-[10px] font-extrabold text-gray-300 tracking-tighter')
-                    ui.label(f'{arrow} {sign}{delta}').style(f'color: {text_color}').classes('text-sm font-black font-mono')
+                with (
+                    ui.row()
+                    .classes(
+                        "w-full items-center justify-between px-4 py-3 rounded-xl border border-white/5"
+                    )
+                    .style(f"background: {bg_color}")
+                ):
+                    ui.label(label.upper()).classes(
+                        "text-[10px] font-extrabold text-gray-300 tracking-tighter"
+                    )
+                    ui.label(f"{arrow} {sign}{delta}").style(
+                        f"color: {text_color}"
+                    ).classes("text-sm font-black font-mono")
 
         if not has_effects:
-            ui.label('Nessun impatto sistemico rilevato.').classes('text-sm text-gray-500 italic text-center w-full my-4')
+            ui.label("Nessun impatto sistemico rilevato.").classes(
+                "text-sm text-gray-500 italic text-center w-full my-4"
+            )
 
         def advance():
             global screen
             dialog.close()
             if engine.is_game_over():
-                screen = 'game_over'
+                screen = "game_over"
             else:
                 engine.next_turn()
-                screen = 'game_over' if engine.is_game_over() else 'game'
+                screen = "game_over" if engine.is_game_over() else "game"
             page.refresh()
 
-        ui.button('PROSEGUI', on_click=advance).props('color=blue size=lg').classes('mt-8 w-full font-bold rounded-xl shadow-lg shadow-blue-500/20')
+        ui.button("PROSEGUI", on_click=advance).props("color=blue size=lg").classes(
+            "mt-8 w-full font-bold rounded-xl shadow-lg shadow-blue-500/20"
+        )
     dialog.open()
 
 
 def _render_tutorial():
     steps = [
         {
-            'title': 'Benvenuto in Burnout Simulator',
-            'icon': 'auto_awesome',
-            'text': 'Questa è una simulazione di antropologia organizzativa. <b>Ogni scelta conta:</b> le tue decisioni influenzeranno le tue statistiche, i rapporti con i colleghi e il finale della partita.',
+            "title": "Benvenuto in Burnout Simulator",
+            "icon": "auto_awesome",
+            "text": "Questa è una simulazione di antropologia organizzativa. <b>Ogni scelta conta:</b> le tue decisioni influenzeranno le tue statistiche, i rapporti con i colleghi e il finale della partita.",
         },
         {
-            'title': 'Le Statistiche',
-            'icon': 'query_stats',
-            'text': 'A sinistra trovi il <b>radar psicologico</b> e le barre numeriche. Tienile d\'occhio: stress alto e salute bassa possono portare al burnout. Le barre pulsano quando sono in zona critica.',
+            "title": "Le Statistiche",
+            "icon": "query_stats",
+            "text": "A sinistra trovi il <b>radar psicologico</b> e le barre numeriche. Tienile d'occhio: stress alto e salute bassa possono portare al burnout. Le barre pulsano quando sono in zona critica.",
         },
         {
-            'title': 'Fazioni e NPC',
-            'icon': 'groups',
-            'text': 'I tuoi colleghi appartengono a fazioni (Fedelissimi, Gruppo Silenzioso, Ribelli). Guadagnare o perdere fiducia con loro cambia il gioco. Ogni NPC ha un avatar colorato in base alla fazione.',
+            "title": "Fazioni e NPC",
+            "icon": "groups",
+            "text": "I tuoi colleghi appartengono a fazioni (Fedelissimi, Gruppo Silenzioso, Ribelli). Guadagnare o perdere fiducia con loro cambia il gioco. Ogni NPC ha un avatar colorato in base alla fazione.",
         },
         {
-            'title': 'Le Scelte',
-            'icon': 'ads_click',
-            'text': 'Le scelte mostrano gli effetti direttamente nel bottone (+/-). Su alcune scelte critiche parte un <b>timer di 15 secondi</b> per simulare la pressione lavorativa. Non farti prendere dal panico!',
+            "title": "Le Scelte",
+            "icon": "ads_click",
+            "text": "Le scelte mostrano gli effetti direttamente nel bottone (+/-). Su alcune scelte critiche parte un <b>timer di 15 secondi</b> per simulare la pressione lavorativa. Non farti prendere dal panico!",
         },
         {
-            'title': 'Pronto?',
-            'icon': 'rocket_launch',
-            'text': 'Ricorda: non esiste la scelta giusta. Esiste la scelta <b>coerente</b> con il tuo stile. Buona fortuna.',
+            "title": "Pronto?",
+            "icon": "rocket_launch",
+            "text": "Ricorda: non esiste la scelta giusta. Esiste la scelta <b>coerente</b> con il tuo stile. Buona fortuna.",
         },
     ]
     if _tutorial_step >= len(steps):
         return
     step = steps[_tutorial_step]
-    with ui.column().classes('tutorial-overlay fade-in'):
-        with ui.card().classes('tutorial-card vn-card border-t-4 border-purple-500').props('flat'):
-            ui.icon(step['icon'], size='48px').classes('text-purple-400 mb-4')
-            ui.label(step['title']).classes('text-2xl font-black text-white mb-4 tracking-tight')
-            ui.html(step['text']).classes('text-base text-gray-300 leading-relaxed text-center')
+    with ui.column().classes("tutorial-overlay fade-in"):
+        with (
+            ui.card()
+            .classes("tutorial-card vn-card border-t-4 border-purple-500")
+            .props("flat")
+        ):
+            ui.icon(step["icon"], size="48px").classes("text-purple-400 mb-4")
+            ui.label(step["title"]).classes(
+                "text-2xl font-black text-white mb-4 tracking-tight"
+            )
+            ui.html(step["text"]).classes(
+                "text-base text-gray-300 leading-relaxed text-center"
+            )
 
-            with ui.row().classes('w-full items-center justify-center mt-8 gap-1'):
+            with ui.row().classes("w-full items-center justify-center mt-8 gap-1"):
                 for i in range(len(steps)):
-                    color = 'bg-purple-500' if i == _tutorial_step else 'bg-gray-700'
+                    color = "bg-purple-500" if i == _tutorial_step else "bg-gray-700"
                     ui.html(f'<div class="w-2 h-2 rounded-full {color}"></div>')
 
-            with ui.row().classes('justify-center gap-4 mt-8 w-full'):
+            with ui.row().classes("justify-center gap-4 mt-8 w-full"):
                 if _tutorial_step > 0:
-                    ui.button('INDIETRO', on_click=lambda: _tutorial_prev()).props('flat').classes('text-gray-500 font-bold')
-                btn_label = 'INIZIA ORA' if _tutorial_step == len(steps) - 1 else 'AVANTI'
-                ui.button(btn_label, on_click=_tutorial_next).props('color=purple-10 elevation=0').classes('px-8 font-black rounded-xl')
+                    ui.button("INDIETRO", on_click=lambda: _tutorial_prev()).props(
+                        "flat"
+                    ).classes("text-gray-500 font-bold")
+                btn_label = (
+                    "INIZIA ORA" if _tutorial_step == len(steps) - 1 else "AVANTI"
+                )
+                ui.button(btn_label, on_click=_tutorial_next).props(
+                    "color=purple-10 elevation=0"
+                ).classes("px-8 font-black rounded-xl")
 
 
 def _tutorial_next():
@@ -889,7 +1478,7 @@ def _tutorial_prev():
 
 def _exit_game():
     global screen
-    screen = 'game_over'
+    screen = "game_over"
     page.refresh()
 
 
@@ -898,34 +1487,38 @@ def _play_again():
     engine = None
     session_id = None
     choice_history = []
-    screen = 'start'
+    screen = "start"
     page.refresh()
 
 
 def _show_stats_dialog():
     stats = get_stats_dict(engine)
     pdata = engine.player.to_dict()
-    with ui.dialog() as dialog, ui.card().classes('p-6 vn-card'):
-        ui.label('Statistiche Dettagliate').classes('text-lg font-bold mb-4')
+    with ui.dialog() as dialog, ui.card().classes("p-6 vn-card"):
+        ui.label("Statistiche Dettagliate").classes("text-lg font-bold mb-4")
         for label, key, color in bars_def:
-            with ui.row().classes('w-full items-center justify-between'):
-                ui.label(label).classes('text-sm')
+            with ui.row().classes("w-full items-center justify-between"):
+                ui.label(label).classes("text-sm")
                 val = stats[key]
-                val_color = '#ef4444' if (val <= 20 or (key == 'stress' and val >= 80)) else color
-                ui.label(f'{val}%').style(f'color: {val_color}')
-            ui.linear_progress(value=stats[key] / 100, size='sm', color=color)
-        ui.label('FAZIONI').classes('text-sm font-bold mt-4 mb-2')
-        for fname, fscore in pdata['factions'].items():
-            fcol = NPC_FACTION_COLORS.get(fname, '#6b7280')
-            with ui.row().classes('items-center gap-2'):
-                ui.icon('circle', size='8px').style(f'color: {fcol}')
-                ui.label(f'{fname}: {fscore}%').classes('text-sm')
-        ui.button('Chiudi', on_click=dialog.close).props('flat')
+                val_color = (
+                    "#ef4444"
+                    if (val <= 20 or (key == "stress" and val >= 80))
+                    else color
+                )
+                ui.label(f"{val}%").style(f"color: {val_color}")
+            ui.linear_progress(value=stats[key] / 100, size="sm", color=color)
+        ui.label("FAZIONI").classes("text-sm font-bold mt-4 mb-2")
+        for fname, fscore in pdata["factions"].items():
+            fcol = NPC_FACTION_COLORS.get(fname, "#6b7280")
+            with ui.row().classes("items-center gap-2"):
+                ui.icon("circle", size="8px").style(f"color: {fcol}")
+                ui.label(f"{fname}: {fscore}%").classes("text-sm")
+        ui.button("Chiudi", on_click=dialog.close).props("flat")
     dialog.open()
 
 
 def _export_report():
-    ui.run_javascript('''
+    ui.run_javascript("""
         (function() {
             const el = document.querySelector('.report-card');
             if (!el) return;
@@ -941,12 +1534,12 @@ def _export_report():
             })
             .catch(() => alert('Esportazione non disponibile (nessuna connessione)'));
         })();
-    ''')
+    """)
 
 
 def _show_decision_graph():
     if not engine or not engine.graph.history:
-        ui.notify('Nessun dato disponibile per il grafo', type='warning')
+        ui.notify("Nessun dato disponibile per il grafo", type="warning")
         return
 
     graph = engine.graph
@@ -957,45 +1550,49 @@ def _show_decision_graph():
     edges = []
 
     for entry in history:
-        ev_id = entry['event_id']
-        ch_id = entry['choice_id']
-        nxt = entry.get('next_event_id')
+        ev_id = entry["event_id"]
+        ch_id = entry["choice_id"]
+        nxt = entry.get("next_event_id")
 
         if ev_id not in nodes_map:
             ev = event_mgr.get_event(ev_id)
-            cat = ev.category if ev else 'unknown'
+            cat = ev.category if ev else "unknown"
             cat_colors_map = {
-                'micromanagement': '#3b82f6', 'mobbing': '#ef4444',
-                'favoritismo': '#eab308', 'burnout': '#f97316',
-                'scapegoating': '#a855f7',
+                "micromanagement": "#3b82f6",
+                "mobbing": "#ef4444",
+                "favoritismo": "#eab308",
+                "burnout": "#f97316",
+                "scapegoating": "#a855f7",
             }
             nodes_map[ev_id] = {
-                'id': ev_id,
-                'name': ev_id.replace('_', ' ')[:25],
-                'symbolSize': 20,
-                'itemStyle': {'color': cat_colors_map.get(cat, '#6b7280')},
-                'category': cat,
+                "id": ev_id,
+                "name": ev_id.replace("_", " ")[:25],
+                "symbolSize": 20,
+                "itemStyle": {"color": cat_colors_map.get(cat, "#6b7280")},
+                "category": cat,
             }
 
         if nxt and nxt not in nodes_map:
             ev = event_mgr.get_event(nxt)
             if ev:
-                cat = ev.category if ev else 'unknown'
+                cat = ev.category if ev else "unknown"
                 cat_colors_map = {
-                    'micromanagement': '#3b82f6', 'mobbing': '#ef4444',
-                    'favoritismo': '#eab308', 'burnout': '#f97316',
-                    'scapegoating': '#a855f7',
+                    "micromanagement": "#3b82f6",
+                    "mobbing": "#ef4444",
+                    "favoritismo": "#eab308",
+                    "burnout": "#f97316",
+                    "scapegoating": "#a855f7",
                 }
                 nodes_map[nxt] = {
-                    'id': nxt,
-                    'name': nxt.replace('_', ' ')[:25],
-                    'symbolSize': 16,
-                    'itemStyle': {'color': cat_colors_map.get(cat, '#6b7280')},
-                    'category': 'consequence',
+                    "id": nxt,
+                    "name": nxt.replace("_", " ")[:25],
+                    "symbolSize": 16,
+                    "itemStyle": {"color": cat_colors_map.get(cat, "#6b7280")},
+                    "category": "consequence",
                 }
 
         ev = event_mgr.get_event(ev_id)
-        choice_text = ''
+        choice_text = ""
         if ev:
             for c in ev.choices:
                 if c.id == ch_id:
@@ -1003,70 +1600,91 @@ def _show_decision_graph():
                     break
 
         edge_color = {
-            'COMPLIANCE': '#3b82f6', 'RESISTANCE': '#ef4444',
-            'NEGOTIATION': '#eab308', 'ESCAPE': '#22c55e',
-        }.get(choice_text, '#6b7280')
+            "COMPLIANCE": "#3b82f6",
+            "RESISTANCE": "#ef4444",
+            "NEGOTIATION": "#eab308",
+            "ESCAPE": "#22c55e",
+        }.get(choice_text, "#6b7280")
 
-        target = nxt if nxt else ''
+        target = nxt if nxt else ""
         if target:
-            edges.append({
-                'source': ev_id,
-                'target': target,
-                'label': {'formatter': choice_text, 'fontSize': 9, 'color': edge_color},
-                'lineStyle': {'color': edge_color, 'width': 1.5, 'curveness': 0.2},
-            })
+            edges.append(
+                {
+                    "source": ev_id,
+                    "target": target,
+                    "label": {
+                        "formatter": choice_text,
+                        "fontSize": 9,
+                        "color": edge_color,
+                    },
+                    "lineStyle": {"color": edge_color, "width": 1.5, "curveness": 0.2},
+                }
+            )
 
     option = {
-        'tooltip': {'formatter': '{b}'},
-        'series': [{
-            'type': 'graph',
-            'layout': 'force',
-            'force': {'repulsion': 300, 'edgeLength': 120},
-            'draggable': True,
-            'roam': True,
-            'data': list(nodes_map.values()),
-            'edges': edges,
-            'categories': [
-                {'name': 'micromanagement', 'itemStyle': {'color': '#3b82f6'}},
-                {'name': 'mobbing', 'itemStyle': {'color': '#ef4444'}},
-                {'name': 'favoritismo', 'itemStyle': {'color': '#eab308'}},
-                {'name': 'burnout', 'itemStyle': {'color': '#f97316'}},
-                {'name': 'scapegoating', 'itemStyle': {'color': '#a855f7'}},
-                {'name': 'consequence', 'itemStyle': {'color': '#6b7280'}},
-            ],
-            'lineStyle': {'color': 'source', 'curveness': 0.3},
-            'label': {'show': True, 'position': 'bottom', 'fontSize': 10, 'color': '#ccc'},
-            'emphasis': {'focus': 'adjacency', 'lineStyle': {'width': 3}},
-        }],
-        'backgroundColor': 'transparent',
+        "tooltip": {"formatter": "{b}"},
+        "series": [
+            {
+                "type": "graph",
+                "layout": "force",
+                "force": {"repulsion": 300, "edgeLength": 120},
+                "draggable": True,
+                "roam": True,
+                "data": list(nodes_map.values()),
+                "edges": edges,
+                "categories": [
+                    {"name": "micromanagement", "itemStyle": {"color": "#3b82f6"}},
+                    {"name": "mobbing", "itemStyle": {"color": "#ef4444"}},
+                    {"name": "favoritismo", "itemStyle": {"color": "#eab308"}},
+                    {"name": "burnout", "itemStyle": {"color": "#f97316"}},
+                    {"name": "scapegoating", "itemStyle": {"color": "#a855f7"}},
+                    {"name": "consequence", "itemStyle": {"color": "#6b7280"}},
+                ],
+                "lineStyle": {"color": "source", "curveness": 0.3},
+                "label": {
+                    "show": True,
+                    "position": "bottom",
+                    "fontSize": 10,
+                    "color": "#ccc",
+                },
+                "emphasis": {"focus": "adjacency", "lineStyle": {"width": 3}},
+            }
+        ],
+        "backgroundColor": "transparent",
     }
 
-    with ui.dialog() as dialog, ui.card().classes('w-full max-w-4xl p-4 vn-card'):
-        with ui.row().classes('w-full items-center justify-between mb-2'):
-            ui.label('Grafo Decisionale').classes('text-lg font-bold text-gray-200')
-            ui.button('', icon='close', on_click=dialog.close).props('flat').classes('text-gray-400')
-        ui.echart(option).classes('w-full h-[500px]')
-        ui.label(f'{len(nodes_map)} nodi · {len(edges)} connessioni · trascina per esplorare').classes(
-            'text-xs text-gray-500 text-center mt-1'
-        )
+    with ui.dialog() as dialog, ui.card().classes("w-full max-w-4xl p-4 vn-card"):
+        with ui.row().classes("w-full items-center justify-between mb-2"):
+            ui.label("Grafo Decisionale").classes("text-lg font-bold text-gray-200")
+            ui.button("", icon="close", on_click=dialog.close).props("flat").classes(
+                "text-gray-400"
+            )
+        ui.echart(option).classes("w-full h-[500px]")
+        ui.label(
+            f"{len(nodes_map)} nodi · {len(edges)} connessioni · trascina per esplorare"
+        ).classes("text-xs text-gray-500 text-center mt-1")
     dialog.open()
 
 
 def _go_analytics():
     global screen
-    screen = 'analytics'
+    screen = "analytics"
     page.refresh()
 
 
 def _render_analytics():
-    db_path = os.path.join(os.path.dirname(__file__), 'database', 'analytics.db')
-    with ui.column().classes('w-full max-w-4xl mx-auto'):
-        with ui.row().classes('w-full items-center justify-between mb-4 pb-3 top-bar'):
-            ui.label('📊 Dashboard Analytics').classes('text-2xl font-bold text-white')
-            ui.button('← Torna al Menu', on_click=lambda: _play_again()).props('flat').classes('text-gray-400')
+    db_path = os.path.join(os.path.dirname(__file__), "database", "analytics.db")
+    with ui.column().classes("w-full max-w-4xl mx-auto"):
+        with ui.row().classes("w-full items-center justify-between mb-4 pb-3 top-bar"):
+            ui.label("📊 Dashboard Analytics").classes("text-2xl font-bold text-white")
+            ui.button("← Torna al Menu", on_click=lambda: _play_again()).props(
+                "flat"
+            ).classes("text-gray-400")
 
         if not os.path.exists(db_path):
-            ui.label('Nessun dato analytics ancora disponibile.').classes('text-gray-400')
+            ui.label("Nessun dato analytics ancora disponibile.").classes(
+                "text-gray-400"
+            )
             return
 
         try:
@@ -1074,103 +1692,124 @@ def _render_analytics():
             cur = conn.cursor()
 
             # Finali più ottenuti
-            cur.execute('''
+            cur.execute("""
                 SELECT ending, COUNT(*) as cnt FROM sessions
                 WHERE ending IS NOT NULL AND ending != ''
                 GROUP BY ending ORDER BY cnt DESC LIMIT 10
-            ''')
+            """)
             ending_data = cur.fetchall()
 
             # Scelte per categoria
-            cur.execute('''
+            cur.execute("""
                 SELECT category, COUNT(*) as cnt FROM choices
                 GROUP BY category ORDER BY cnt DESC
-            ''')
+            """)
             cat_data = cur.fetchall()
 
             # Sopravvivenza media per archetipo
-            cur.execute('''
+            cur.execute("""
                 SELECT company_type, ROUND(AVG(days_survived), 1) as avg_days,
                        COUNT(*) as sessions
                 FROM sessions
                 GROUP BY company_type ORDER BY avg_days DESC
-            ''')
+            """)
             surv_data = cur.fetchall()
 
             # Totale sessioni
-            cur.execute('SELECT COUNT(*) FROM sessions')
+            cur.execute("SELECT COUNT(*) FROM sessions")
             total_sessions = cur.fetchone()[0]
 
             conn.close()
         except sqlite3.Error:
-            ui.label('Errore lettura database.').classes('text-gray-400')
+            ui.label("Errore lettura database.").classes("text-gray-400")
             return
 
-        with ui.grid(columns=2).classes('w-full gap-4'):
-            with ui.card().classes('p-4 vn-card').props('flat tight'):
-                ui.label('Finali più ottenuti').classes('text-sm font-bold text-gray-300 mb-2')
+        with ui.grid(columns=2).classes("w-full gap-4"):
+            with ui.card().classes("p-4 vn-card").props("flat tight"):
+                ui.label("Finali più ottenuti").classes(
+                    "text-sm font-bold text-gray-300 mb-2"
+                )
                 total = sum(r[1] for r in ending_data) or 1
                 for name, cnt in ending_data:
                     perc = cnt / total * 100
-                    with ui.row().classes('w-full items-center gap-2'):
-                        ui.label(name).classes('text-xs text-gray-400 flex-1')
-                        ui.label(f'{cnt}').classes('text-xs font-mono text-gray-300')
-                        ui.linear_progress(value=perc / 100, size='xs', color='amber').classes('w-16')
+                    with ui.row().classes("w-full items-center gap-2"):
+                        ui.label(name).classes("text-xs text-gray-400 flex-1")
+                        ui.label(f"{cnt}").classes("text-xs font-mono text-gray-300")
+                        ui.linear_progress(
+                            value=perc / 100, size="xs", color="amber"
+                        ).classes("w-16")
 
-            with ui.card().classes('p-4 vn-card').props('flat tight'):
-                ui.label('Scelte per categoria').classes('text-sm font-bold text-gray-300 mb-2')
+            with ui.card().classes("p-4 vn-card").props("flat tight"):
+                ui.label("Scelte per categoria").classes(
+                    "text-sm font-bold text-gray-300 mb-2"
+                )
                 total_cat = sum(r[1] for r in cat_data) or 1
                 for name, cnt in cat_data:
                     perc = cnt / total_cat * 100
-                    cat_color = cat_colors.get(name, '#6b7280')
-                    with ui.row().classes('w-full items-center gap-2'):
-                        ui.icon('circle', size='6px').style(f'color: {cat_color}')
-                        ui.label(name).classes('text-xs text-gray-400 flex-1')
-                        ui.label(f'{cnt}').classes('text-xs font-mono text-gray-300')
-                        ui.linear_progress(value=perc / 100, size='xs', color='amber').classes('w-16')
+                    cat_color = cat_colors.get(name, "#6b7280")
+                    with ui.row().classes("w-full items-center gap-2"):
+                        ui.icon("circle", size="6px").style(f"color: {cat_color}")
+                        ui.label(name).classes("text-xs text-gray-400 flex-1")
+                        ui.label(f"{cnt}").classes("text-xs font-mono text-gray-300")
+                        ui.linear_progress(
+                            value=perc / 100, size="xs", color="amber"
+                        ).classes("w-16")
 
         # Tabella sopravvivenza
-        with ui.card().classes('w-full p-4 mt-4 vn-card').props('flat'):
-            ui.label(f'Sopravvivenza media per archetipo (totale: {total_sessions} partite)').classes(
-                'text-sm font-bold text-gray-300 mb-2'
-            )
+        with ui.card().classes("w-full p-4 mt-4 vn-card").props("flat"):
+            ui.label(
+                f"Sopravvivenza media per archetipo (totale: {total_sessions} partite)"
+            ).classes("text-sm font-bold text-gray-300 mb-2")
             for arch, avg, sessions in surv_data:
-                with ui.row().classes('w-full items-center gap-2'):
-                    color = ARCHETYPE_THEMES.get(arch, {}).get('accent', '#6b7280')
-                    ui.icon('circle', size='6px').style(f'color: {color}')
-                    ui.label(arch).classes('text-xs text-gray-400 w-36')
-                    ui.label(f'{avg} giorni').classes('text-xs font-mono text-gray-300 w-20')
-                    ui.linear_progress(value=min(float(avg) / 50, 1.0), size='xs', color='primary').classes('flex-1')
-                    ui.label(f'({sessions} partite)').classes('text-xs text-gray-500')
+                with ui.row().classes("w-full items-center gap-2"):
+                    color = ARCHETYPE_THEMES.get(arch, {}).get("accent", "#6b7280")
+                    ui.icon("circle", size="6px").style(f"color: {color}")
+                    ui.label(arch).classes("text-xs text-gray-400 w-36")
+                    ui.label(f"{avg} giorni").classes(
+                        "text-xs font-mono text-gray-300 w-20"
+                    )
+                    ui.linear_progress(
+                        value=min(float(avg) / 50, 1.0), size="xs", color="primary"
+                    ).classes("flex-1")
+                    ui.label(f"({sessions} partite)").classes("text-xs text-gray-500")
 
         # Ultime partite
         try:
             conn = sqlite3.connect(db_path)
             cur = conn.cursor()
-            cur.execute('''
+            cur.execute("""
                 SELECT name, company_type, days_survived, ending, status
                 FROM sessions ORDER BY rowid DESC LIMIT 10
-            ''')
+            """)
             recent = cur.fetchall()
             conn.close()
         except sqlite3.Error:
             recent = []
 
         if recent:
-            with ui.card().classes('w-full p-4 mt-4 vn-card').props('flat'):
-                ui.label('Ultime partite').classes('text-sm font-bold text-gray-300 mb-2')
+            with ui.card().classes("w-full p-4 mt-4 vn-card").props("flat"):
+                ui.label("Ultime partite").classes(
+                    "text-sm font-bold text-gray-300 mb-2"
+                )
                 for name, arch, days, ending, status in recent:
-                    with ui.row().classes('w-full items-center gap-2 border-b border-gray-800 pb-1'):
-                        ui.label(name).classes('text-xs text-gray-300 w-24 truncate')
-                        ui.label(arch).classes('text-xs text-gray-500 w-32')
-                        ui.label(f'{days} gg').classes('text-xs font-mono text-gray-400 w-16')
-                        ui.label(ending or '-').classes('text-xs text-yellow-400 flex-1')
-                        ui.label(status or '-').classes('text-xs text-gray-500')
-            ui.html('<br>')
+                    with ui.row().classes(
+                        "w-full items-center gap-2 border-b border-gray-800 pb-1"
+                    ):
+                        ui.label(name).classes("text-xs text-gray-300 w-24 truncate")
+                        ui.label(arch).classes("text-xs text-gray-500 w-32")
+                        ui.label(f"{days} gg").classes(
+                            "text-xs font-mono text-gray-400 w-16"
+                        )
+                        ui.label(ending or "-").classes(
+                            "text-xs text-yellow-400 flex-1"
+                        )
+                        ui.label(status or "-").classes("text-xs text-gray-500")
+            ui.html("<br>")
 
-        with ui.row().classes('w-full justify-center mt-4 mb-12'):
-            ui.button('Gioca una partita', icon='play_arrow', on_click=_play_again) \
-                .props('color=positive')
+        with ui.row().classes("w-full justify-center mt-4 mb-12"):
+            ui.button(
+                "Gioca una partita", icon="play_arrow", on_click=_play_again
+            ).props("color=positive")
 
 
 # ── Startup ──
@@ -1246,19 +1885,19 @@ ui.add_head_html("""
 
     /* NPC Portraits */
     .npc-portrait {
-        width: 80px; height: 80px;
         border-radius: 20px;
         border: 2px solid rgba(255,255,255,0.15);
         background: rgba(255,255,255,0.05);
-        display: flex; align-items: center; justify-content: center;
         box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         transition: all 0.3s ease;
+        overflow: hidden;
     }
     .npc-portrait:hover {
         transform: translateY(-2px);
         border-color: var(--theme-accent);
     }
-    .npc-portrait svg { width: 56px; height: 56px; }
+    .npc-portrait img { width: 80px; height: 80px; object-fit: cover; }
+    .npc-avatar img { width: 40px; height: 40px; object-fit: cover; border-radius: 10px; }
 
     /* Choice Buttons */
     .choice-btn {
@@ -1363,7 +2002,11 @@ ui.add_head_html("""
 
 init_db()
 
-ui.column().classes('w-full max-w-5xl mx-auto p-4 gap-4')
+# Serve immagini dalla cartella graphics
+if os.path.isdir(GRAPHICS_DIR):
+    app.add_static_files(GFX_PATH, GRAPHICS_DIR)
+
+ui.column().classes("w-full max-w-5xl mx-auto p-4 gap-4")
 page()
 
-ui.run(title='Burnout Simulator', dark=True, favicon='\U0001f3e2')
+ui.run(title="Burnout Simulator", dark=True, favicon="\U0001f3e2")

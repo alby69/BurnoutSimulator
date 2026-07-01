@@ -6,20 +6,53 @@ import random
 
 MINI_EVENTS = [
     ("Trovi traffico, arrivi in ufficio già stressato.", {"stress": 3, "energy": -2}),
-    ("Un collega ti offre un caffè e due parole di incoraggiamento.", {"energy": 3, "stress": -2}),
-    ("Ricevi una notifica da un headhunter su LinkedIn.", {"employability": 5, "self_esteem": 3}),
-    ("La macchinetta del caffè è rotta. Mattinata storta.", {"energy": -3, "stress": 2}),
-    ("Un gatto randagio entra in ufficio e tutti si fermano 5 minuti.", {"stress": -3, "energy": 2}),
-    ("Il PC si blocca proprio mentre stavi salvando il file.", {"stress": 4, "energy": -1}),
-    ("Trovi un biglietto anonimo positivo sulla scrivania.", {"self_esteem": 5, "stress": -2}),
+    (
+        "Un collega ti offre un caffè e due parole di incoraggiamento.",
+        {"energy": 3, "stress": -2},
+    ),
+    (
+        "Ricevi una notifica da un headhunter su LinkedIn.",
+        {"employability": 5, "self_esteem": 3},
+    ),
+    (
+        "La macchinetta del caffè è rotta. Mattinata storta.",
+        {"energy": -3, "stress": 2},
+    ),
+    (
+        "Un gatto randagio entra in ufficio e tutti si fermano 5 minuti.",
+        {"stress": -3, "energy": 2},
+    ),
+    (
+        "Il PC si blocca proprio mentre stavi salvando il file.",
+        {"stress": 4, "energy": -1},
+    ),
+    (
+        "Trovi un biglietto anonimo positivo sulla scrivania.",
+        {"self_esteem": 5, "stress": -2},
+    ),
     ("L'ascensore è guasto, fai 8 piani a piedi.", {"energy": -2, "health": 1}),
     ("Il riscaldamento è rotto, si lavora col cappotto.", {"stress": 3, "energy": -3}),
     ("Una riunione viene cancellata all'ultimo minuto.", {"stress": -3, "energy": 1}),
-    ("Oggi è il compleanno di un collega, c'è torta in ufficio.", {"stress": -3, "self_esteem": 2}),
-    ("La connessione internet è lentissima tutto il giorno.", {"stress": 4, "energy": -2}),
-    ("Trovi un parcheggio sotto ufficio, giornata comincia bene.", {"stress": -2, "energy": 1}),
-    ("Il manager ti manda una mail alle 7:30 del mattino.", {"stress": 3, "self_esteem": -2}),
-    ("La pausa pranzo si allunga perché si discute di film.", {"energy": 2, "stress": -2}),
+    (
+        "Oggi è il compleanno di un collega, c'è torta in ufficio.",
+        {"stress": -3, "self_esteem": 2},
+    ),
+    (
+        "La connessione internet è lentissima tutto il giorno.",
+        {"stress": 4, "energy": -2},
+    ),
+    (
+        "Trovi un parcheggio sotto ufficio, giornata comincia bene.",
+        {"stress": -2, "energy": 1},
+    ),
+    (
+        "Il manager ti manda una mail alle 7:30 del mattino.",
+        {"stress": 3, "self_esteem": -2},
+    ),
+    (
+        "La pausa pranzo si allunga perché si discute di film.",
+        {"energy": 2, "stress": -2},
+    ),
 ]
 
 NPC_FACTION_MAP = {
@@ -67,19 +100,51 @@ MANAGER_PERSONALITIES = {
 CAREER_PHASES = [
     (0, "Periodo di Prova", "Sei sotto osservazione. Ogni mossa è analizzata."),
     (5, "Primo Progetto", "Ti è stato affidato il primo incarico significativo."),
-    (15, "Fase Operativa", "La routine si stabilizza. I giochi politici si intensificano."),
+    (
+        15,
+        "Fase Operativa",
+        "La routine si stabilizza. I giochi politici si intensificano.",
+    ),
     (30, "Ristrutturazione", "L'azienda annuncia cambiamenti. Tensione alle stelle."),
     (60, "Sopravvivenza", "Sei arrivato fin qui. Ogni giorno è una vittoria."),
 ]
 
 THRESHOLD_EVENTS = [
-    (lambda p: p.stress >= 80 and not p.status.startswith("Burnout"), "Sei sopraffatto dallo stress. Le mani tremano davanti alla tastiera.", {"health": -3, "self_esteem": -2}),
-    (lambda p: p.energy <= 20, "La stanchezza è tale che fai fatica a tenere gli occhi aperti sul monitor.", {"stress": 3, "health": -2}),
-    (lambda p: p.manager_rep <= 20, "Senti parlare di te nell'open space. Si vocifera che il manager stia preparando un dossier su di te.", {"stress": 4, "self_esteem": -3}),
-    (lambda p: p.self_esteem <= 20, "Ti guardi allo specchio e non riconosci la persona che sei diventato in questo posto.", {"stress": 3, "health": -2, "employability": -2}),
-    (lambda p: p.health <= 25, "Il tuo corpo sta cedendo. Mal di testa costante, tensione cervicale, notti insonni.", {"energy": -3, "stress": 2}),
-    (lambda p: p.factions["Ribelli"] >= 70, "Un collega di un altro reparto ti cerca: 'Ho saputo cosa hai fatto. Anch'io la penso così. Parliamo?'", {"faction_Ribelli": 5, "npc_Roberto_trust": 3}),
-    (lambda p: p.factions["Fedelissimi"] >= 70, "Marco ti convoca per un 'caffè informale'. Vuole proporti un ruolo di maggiore responsabilità... e controllo.", {"npc_Marco_trust": 5, "faction_Fedelissimi": 3}),
+    (
+        lambda p: p.stress >= 80 and not p.status.startswith("Burnout"),
+        "Sei sopraffatto dallo stress. Le mani tremano davanti alla tastiera.",
+        {"health": -3, "self_esteem": -2},
+    ),
+    (
+        lambda p: p.energy <= 20,
+        "La stanchezza è tale che fai fatica a tenere gli occhi aperti sul monitor.",
+        {"stress": 3, "health": -2},
+    ),
+    (
+        lambda p: p.manager_rep <= 20,
+        "Senti parlare di te nell'open space. Si vocifera che il manager stia preparando un dossier su di te.",
+        {"stress": 4, "self_esteem": -3},
+    ),
+    (
+        lambda p: p.self_esteem <= 20,
+        "Ti guardi allo specchio e non riconosci la persona che sei diventato in questo posto.",
+        {"stress": 3, "health": -2, "employability": -2},
+    ),
+    (
+        lambda p: p.health <= 25,
+        "Il tuo corpo sta cedendo. Mal di testa costante, tensione cervicale, notti insonni.",
+        {"energy": -3, "stress": 2},
+    ),
+    (
+        lambda p: p.factions["Ribelli"] >= 70,
+        "Un collega di un altro reparto ti cerca: 'Ho saputo cosa hai fatto. Anch'io la penso così. Parliamo?'",
+        {"faction_Ribelli": 5, "npc_Roberto_trust": 3},
+    ),
+    (
+        lambda p: p.factions["Fedelissimi"] >= 70,
+        "Marco ti convoca per un 'caffè informale'. Vuole proporti un ruolo di maggiore responsabilità... e controllo.",
+        {"npc_Marco_trust": 5, "faction_Fedelissimi": 3},
+    ),
 ]
 
 
@@ -88,7 +153,7 @@ class GameEngine:
         "Startup Caotica": {
             "energy": 80,
             "stress": 20,
-             "manager_rep": 60,
+            "manager_rep": 60,
             "description": "Overwork, nessun processo, ritmi frenetici.",
             "hidden_vars": {"agility": 80, "stability": 20},
             "manager_personality": "Micromanager Iperattivo",
@@ -116,10 +181,15 @@ class GameEngine:
             "description": "KPI ossessivi, disponibilità continua, orientamento al cliente.",
             "hidden_vars": {"pressure": 90, "prestige": 70},
             "manager_personality": "Perfezionista Senza Tregua",
-        }
+        },
     }
 
-    def __init__(self, player_name: str, events_file: str, company_type: str = "Corporate Tossica"):
+    def __init__(
+        self,
+        player_name: str,
+        events_file: str,
+        company_type: str = "Corporate Tossica",
+    ):
         self.player = Player(name=player_name, company_type=company_type)
         self.apply_archetype(company_type)
         self.event_manager = EventManager(events_file)
@@ -128,16 +198,22 @@ class GameEngine:
         self.current_event = None
         self.next_event_id_override = None
         self.history = []
-        self.hidden_vars = self.COMPANY_ARCHETYPES[company_type].get("hidden_vars", {}).copy()
+        self.hidden_vars = (
+            self.COMPANY_ARCHETYPES[company_type].get("hidden_vars", {}).copy()
+        )
         self.hidden_vars["manager_patience"] = 70
         self.hidden_vars["company_crisis"] = 10
         self.current_mini_event = None
         self._last_factions = dict(self.player.factions)
         self.deferred_events = []
         self._tutorial_step = 0
-        arch = self.COMPANY_ARCHETYPES.get(company_type, self.COMPANY_ARCHETYPES["Corporate Tossica"])
-        self.manager_personality = MANAGER_PERSONALITIES.get(arch.get("manager_personality", ""), {})
-        self.stats_history = [dict(self.player.to_dict()['stats'])]
+        arch = self.COMPANY_ARCHETYPES.get(
+            company_type, self.COMPANY_ARCHETYPES["Corporate Tossica"]
+        )
+        self.manager_personality = MANAGER_PERSONALITIES.get(
+            arch.get("manager_personality", ""), {}
+        )
+        self.stats_history = [dict(self.player.to_dict()["stats"])]
         self.real_cases_mode = False
         self._last_threshold_triggers = set()
 
@@ -161,8 +237,8 @@ class GameEngine:
 
         # Manager personality passive effect
         mp = self.manager_personality
-        if mp and mp.get('stress_bonus', 0) > 0:
-            p.stress = max(0, min(100, p.stress + mp['stress_bonus']))
+        if mp and mp.get("stress_bonus", 0) > 0:
+            p.stress = max(0, min(100, p.stress + mp["stress_bonus"]))
 
         # Process deferred events
         deferred_override = None
@@ -175,16 +251,20 @@ class GameEngine:
         if deferred_override:
             self.current_event = self.event_manager.get_event(deferred_override)
         elif self.next_event_id_override:
-            self.current_event = self.event_manager.get_event(self.next_event_id_override)
+            self.current_event = self.event_manager.get_event(
+                self.next_event_id_override
+            )
             self.next_event_id_override = None
         else:
-            self.current_event = self.event_manager.get_random_event(exclude_ids=self.history[-10:])
+            self.current_event = self.event_manager.get_random_event(
+                exclude_ids=self.history[-10:]
+            )
 
         if self.current_event:
             self.history.append(self.current_event.id)
 
         # Stats history snapshot
-        self.stats_history.append(dict(p.to_dict()['stats']))
+        self.stats_history.append(dict(p.to_dict()["stats"]))
 
         return self.current_event
 
@@ -220,22 +300,40 @@ class GameEngine:
                 continue
             delta = value - prev
 
-            if faction == 'Fedelissimi':
-                p.npcs['Marco'].trust = max(0, min(100, p.npcs['Marco'].trust + delta // 5))
-                p.npcs['Marco'].respect = max(0, min(100, p.npcs['Marco'].respect + delta // 8))
-                p.npcs['Giulia'].trust = max(0, min(100, p.npcs['Giulia'].trust + delta // 6))
+            if faction == "Fedelissimi":
+                p.npcs["Marco"].trust = max(
+                    0, min(100, p.npcs["Marco"].trust + delta // 5)
+                )
+                p.npcs["Marco"].respect = max(
+                    0, min(100, p.npcs["Marco"].respect + delta // 8)
+                )
+                p.npcs["Giulia"].trust = max(
+                    0, min(100, p.npcs["Giulia"].trust + delta // 6)
+                )
                 if value > 60:
-                    p.npcs['Roberto'].respect = max(0, p.npcs['Roberto'].respect - delta // 10)
+                    p.npcs["Roberto"].respect = max(
+                        0, p.npcs["Roberto"].respect - delta // 10
+                    )
 
-            elif faction == 'Ribelli':
-                p.npcs['Marco'].trust = max(0, p.npcs['Marco'].trust - delta // 4)
-                p.npcs['Giulia'].fear = max(0, min(100, p.npcs['Giulia'].fear + delta // 6))
-                p.npcs['Roberto'].respect = max(0, min(100, p.npcs['Roberto'].respect + delta // 6))
-                p.npcs['Elena'].trust = max(0, min(100, p.npcs['Elena'].trust + delta // 10))
+            elif faction == "Ribelli":
+                p.npcs["Marco"].trust = max(0, p.npcs["Marco"].trust - delta // 4)
+                p.npcs["Giulia"].fear = max(
+                    0, min(100, p.npcs["Giulia"].fear + delta // 6)
+                )
+                p.npcs["Roberto"].respect = max(
+                    0, min(100, p.npcs["Roberto"].respect + delta // 6)
+                )
+                p.npcs["Elena"].trust = max(
+                    0, min(100, p.npcs["Elena"].trust + delta // 10)
+                )
 
-            elif faction == 'Gruppo Silenzioso':
-                p.npcs['Elena'].trust = max(0, min(100, p.npcs['Elena'].trust + delta // 8))
-                p.npcs['Roberto'].trust = max(0, min(100, p.npcs['Roberto'].trust + delta // 10))
+            elif faction == "Gruppo Silenzioso":
+                p.npcs["Elena"].trust = max(
+                    0, min(100, p.npcs["Elena"].trust + delta // 8)
+                )
+                p.npcs["Roberto"].trust = max(
+                    0, min(100, p.npcs["Roberto"].trust + delta // 10)
+                )
 
         self._last_factions = current
 
@@ -251,14 +349,15 @@ class GameEngine:
         # Sincronizza fazioni → NPC
         self._sync_factions_to_npcs()
 
-        if hasattr(choice, 'tags') and choice.tags:
+        if hasattr(choice, "tags") and choice.tags:
             self.player.add_tags(choice.tags)
 
         self.graph.add_decision(self.current_event.id, choice.id, choice.next_event_id)
 
         if "manager_patience" in self.hidden_vars:
-            resistance_penalty = 5 + (mp.get('stress_bonus', 0) * 2 if mp else 0)
-            compliance_bonus = 2 + (mp.get('rep_bonus_compliance', 0) if mp else 0)
+            mp = self.manager_personality
+            resistance_penalty = 5 + (mp.get("stress_bonus", 0) * 2 if mp else 0)
+            compliance_bonus = 2 + (mp.get("rep_bonus_compliance", 0) if mp else 0)
             if choice.category == "RESISTANCE":
                 self.hidden_vars["manager_patience"] -= resistance_penalty
             elif choice.category == "COMPLIANCE":
@@ -269,11 +368,13 @@ class GameEngine:
 
         # Deferred consequences
         for con in choice.consequences:
-            self.deferred_events.append({
-                "event_id": con["event_id"],
-                "due_in": con["after_turns"],
-                "label": con.get("label", ""),
-            })
+            self.deferred_events.append(
+                {
+                    "event_id": con["event_id"],
+                    "due_in": con["after_turns"],
+                    "label": con.get("label", ""),
+                }
+            )
 
         if choice.next_event_id:
             if "|" in choice.next_event_id:
@@ -285,7 +386,9 @@ class GameEngine:
                     ev_id, weight = opt.split(":")
                     choices_list.append(ev_id)
                     weights.append(int(weight))
-                self.next_event_id_override = random.choices(choices_list, weights=weights)[0]
+                self.next_event_id_override = random.choices(
+                    choices_list, weights=weights
+                )[0]
             else:
                 self.next_event_id_override = choice.next_event_id
 
