@@ -619,6 +619,17 @@ def _continue_possession(agent_id: str):
     page.refresh()
 
 
+def _go_to_laboratory():
+    global current_human_id, screen
+    if not current_human_id:
+        human = swarm.register_human(
+            getattr(engine, "player", None) and engine.player.name or "Osservatore"
+        )
+        current_human_id = human.human_id
+    screen = "laboratory"
+    page.refresh()
+
+
 def _mood_matches_agent(mood: str, agent: dict) -> bool:
     stats = agent.get("current_stats") or {}
     if not stats:
@@ -1317,6 +1328,9 @@ def _render_game():
                 ui.button(icon="hub", on_click=_show_decision_graph).props(
                     "flat round color=blue"
                 ).classes("hover:bg-blue-500/10")
+                ui.button(icon="biotech", on_click=_go_to_laboratory).props(
+                    "flat round color=purple"
+                ).classes("hover:bg-purple-500/10").tooltip("Laboratorio agenti")
                 ui.button(icon="logout", on_click=_exit_game).props(
                     "flat round color=red"
                 ).classes("hover:bg-red-500/10")
