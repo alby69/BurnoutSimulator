@@ -233,7 +233,11 @@ class Agent:
 
         if success:
             stats_after = self.engine.player.to_dict()["stats"]
-            self.memory.record_outcome(choice.id, stats_before, stats_after)
+            outcomes = self.memory.record_outcome(choice.id, stats_before, stats_after)
+
+            # Arricchisce la decisione con l'outcome per l'analisi
+            if self.memory.decisions:
+                self.memory.decisions[-1].outcomes = outcomes
 
             # Evoluzione della personalità
             deltas = {k: stats_after[k] - stats_before[k] for k in stats_before}
@@ -275,7 +279,11 @@ class Agent:
         self.profile.evolve(choice.category, deltas)
 
         # Registra esito e salva nel DB
-        self.memory.record_outcome(choice.id, stats_before, stats_after)
+        outcomes = self.memory.record_outcome(choice.id, stats_before, stats_after)
+
+        # Arricchisce la decisione con l'outcome per l'analisi
+        if self.memory.decisions:
+            self.memory.decisions[-1].outcomes = outcomes
         save_decision({
             "agent_id": self.agent_id,
             "turn_number": self.engine.player.days_survived,
@@ -307,6 +315,7 @@ class Agent:
             "agent_id": self.agent_id,
             "name": self.name,
             "profile_name": self.profile.name,
+            "profile_json": self.profile.to_dict(),
             "company_type": self.company_type,
             "is_possessed": self.is_possessed,
             "possessed_by": self.possessed_by,
@@ -314,4 +323,5 @@ class Agent:
             "auto_decisions": self.auto_decisions,
             "created_at": self.created_at,
             "current_state": self._get_snapshot() if self.engine else None,
+            "days_survived": self.engine.player.days_survived if self.engine else 0,
         }

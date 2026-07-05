@@ -2,9 +2,11 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
 import random
 import uuid
+import json
 
 from .agent import Agent
 from .personality import AGENT_PROFILES, PsychologicalProfile
+from engine.analysis import StrategicAnalyzer
 from human.human_player import HumanPlayer
 from database.agent_db import (
     init_agent_db,
@@ -288,13 +290,23 @@ class AgentSwarm:
 
         # Salva storia dello sciame per visualizzazione dinamica
         analytics = self.get_swarm_analytics()
+
+        # Calculate average personality traits for dynamic evolution chart
+        avg_traits = {}
+        if self.agents:
+            trait_keys = ["openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism", "narcissism", "machiavellianism", "psychopathy"]
+            for trait in trait_keys:
+                vals = [getattr(a.profile, trait) for a in self.agents.values()]
+                avg_traits[trait] = sum(vals) / len(vals)
+
         save_swarm_history({
             "session_id": self.session_id,
             "turn_number": self.turn_counter,
             "profile_distribution": analytics.get("profile_distribution", {}),
             "avg_stats": {
                 "avg_stress": analytics.get("avg_stress"),
-                "alive_count": analytics.get("alive_count")
+                "alive_count": analytics.get("alive_count"),
+                "avg_traits": avg_traits
             }
         })
 
@@ -381,7 +393,8 @@ class AgentSwarm:
                     if human_id
                     else 50,
                     "stats_history": agent.engine.stats_history[-6:], # Ultime 6 per ghost trail
-                    "recent_decisions": recent_decisions[::-1] # Dalla più recente
+                    "recent_decisions": recent_decisions[::-1], # Dalla più recente
+                    "strategic_report": StrategicAnalyzer.analyze_agent(agent)
                 }
             )
 
@@ -408,6 +421,7 @@ class AgentSwarm:
         return {
             "agent": agent.to_dict(),
             "memory_summary": agent.memory.get_summary(),
+            "strategic_report": StrategicAnalyzer.analyze_agent(agent),
             "possession_history": [
                 {
                     "human_id": p["human_id"],
@@ -430,11 +444,23 @@ class AgentSwarm:
         if db_agents:
             self.agents = {}
             for da in db_agents:
-                profile_name = da["profile_name"]
-                profile = next(
-                    (p for p in AGENT_PROFILES.values() if p.name == profile_name),
-                    list(AGENT_PROFILES.values())[0],
-                )
+                profile_json = da.get("profile_json")
+                if profile_json:
+                    try:
+                        profile_data = json.loads(profile_json)
+                        profile = PsychologicalProfile.from_dict(profile_data)
+                    except Exception:
+                        profile_name = da["profile_name"]
+                        profile = next(
+                            (p for p in AGENT_PROFILES.values() if p.name == profile_name),
+                            list(AGENT_PROFILES.values())[0],
+                        )
+                else:
+                    profile_name = da["profile_name"]
+                    profile = next(
+                        (p for p in AGENT_PROFILES.values() if p.name == profile_name),
+                        list(AGENT_PROFILES.values())[0],
+                    )
 
                 agent = Agent(
                     agent_id=da["agent_id"],
