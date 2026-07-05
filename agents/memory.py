@@ -43,7 +43,7 @@ class AgentMemory:
         self.event_frequency[event_id] += 1
         self.category_frequency[category] += 1
 
-    def record_outcome(self, choice_id: str, stats_before: Dict, stats_after: Dict):
+    def record_outcome(self, choice_id: str, stats_before: Dict, stats_after: Dict) -> Dict:
         """Registra l'esito di una scelta per apprendimento."""
         outcomes = {
             "timestamp": datetime.now().isoformat(),
@@ -53,6 +53,7 @@ class AgentMemory:
             "integrity_delta": stats_after.get("integrity", 0) - stats_before.get("integrity", 0),
         }
         self.choice_outcomes[choice_id].append(outcomes)
+        return outcomes
 
     def get_choice_outcomes(self, choice_id: str) -> List[Dict]:
         return self.choice_outcomes.get(choice_id, [])

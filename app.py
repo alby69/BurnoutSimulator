@@ -18,6 +18,7 @@ from database.analytics import (
 from database.agent_db import init_agent_db, save_agent, get_swarm_history
 from game.events import Choice
 from agents.swarm import AgentSwarm
+from engine.analysis import StrategicAnalyzer
 
 # ── State ──
 screen: str = "start"
@@ -485,36 +486,36 @@ def _render_laboratory():
         # --- DYNAMIC PROFILE EVOLUTION (NEW) ---
         if len(history) > 1:
             with ui.card().classes("w-full p-4 vn-card").props("flat"):
-                ui.label("EVOLUZIONE DINAMICA PROFILI AGENTICI (BIO-DIVERSITÀ PSICOLOGICA)").classes("text-[10px] font-black text-purple-400 tracking-widest mb-4")
+                ui.label("EVOLUZIONE DINAMICA TRATTI PSICOLOGICI (VALORI MEDI SCIAME)").classes("text-[10px] font-black text-purple-400 tracking-widest mb-4")
 
-                all_profiles = list(AGENT_PROFILE_COLORS.keys())
+                trait_names = ["openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism", "narcissism", "machiavellianism", "psychopathy"]
+                trait_labels = ["Apertura", "Coscienziosità", "Estroversione", "Gradevolezza", "Nevroticismo", "Narcisismo", "Machiavellismo", "Psicopatia"]
                 series = []
-                for p_name in all_profiles:
+
+                for i, t_name in enumerate(trait_names):
                     data = []
                     for h in history:
-                        dist = json.loads(h["profile_distribution_json"])
-                        data.append(dist.get(p_name, 0))
+                        avg_stats = json.loads(h["avg_stats_json"])
+                        avg_traits = avg_stats.get("avg_traits", {})
+                        data.append(round(avg_traits.get(t_name, 50), 1))
 
                     series.append({
-                        "name": p_name,
+                        "name": trait_labels[i],
                         "type": "line",
-                        "stack": "Total",
-                        "areaStyle": {},
-                        "emphasis": {"focus": "series"},
+                        "smooth": True,
                         "data": data,
-                        "itemStyle": {"color": AGENT_PROFILE_COLORS.get(p_name, "#ccc")}
                     })
 
                 evolution_option = {
-                    "tooltip": {"trigger": "axis", "axisPointer": {"type": "cross", "label": {"backgroundColor": "#6a7985"}}},
-                    "legend": {"data": all_profiles, "textStyle": {"color": "#999", "fontSize": 10}, "top": 0},
+                    "tooltip": {"trigger": "axis"},
+                    "legend": {"data": trait_labels, "textStyle": {"color": "#999", "fontSize": 10}, "top": 0},
                     "grid": {"left": "3%", "right": "4%", "bottom": "3%", "containLabel": True},
                     "xAxis": [{"type": "category", "boundaryGap": False, "data": [h["turn_number"] for h in history]}],
-                    "yAxis": [{"type": "value"}],
+                    "yAxis": [{"type": "value", "min": 0, "max": 100}],
                     "series": series,
                     "backgroundColor": "transparent"
                 }
-                ui.echart(evolution_option).classes("w-full h-64")
+                ui.echart(evolution_option).classes("w-full h-80")
 
         # --- HR DSS INSIGHTS (NEW) ---
         if stats.get("profile_impact"):
@@ -574,6 +575,14 @@ def _render_laboratory():
 
                             # Event Showcase
                             with ui.column().classes("w-96 gap-4"):
+                                # Report Strategico (NEW)
+                                if "strategic_report" in inspected_agent and "discursive_comment" in inspected_agent["strategic_report"]:
+                                    ui.label("ANALISI STRATEGICA POSTERIORI").classes("text-[10px] font-black text-purple-400 tracking-widest mb-0")
+                                    with ui.card().classes("w-full p-4 vn-card border-l-4 border-purple-500").style("background: rgba(120,50,255,0.05)"):
+                                        rep = inspected_agent["strategic_report"]
+                                        ui.label(rep["strategy_name"].upper()).classes("text-xs font-black text-purple-300 mb-2")
+                                        ui.markdown(rep["discursive_comment"]).classes("text-xs text-gray-300 leading-relaxed italic")
+
                                 ui.label("EVENTO CORRENTE").classes("text-[10px] font-black text-gray-500 tracking-widest mb-0")
                                 with ui.card().classes("w-full p-4 vn-card").style("background: rgba(0,0,0,0.3)"):
                                     ui.label(inspected_agent["current_event"].replace("_", " ").upper() if inspected_agent["current_event"] else "NESSUN EVENTO").classes("text-xs font-black text-orange-400 mb-2")
@@ -2145,6 +2154,15 @@ def _render_game_over():
         # Report dettagliato domande/risposte (per HR DSS)
         if current_agent_id and current_agent_id in swarm.agents:
             agent = swarm.agents[current_agent_id]
+
+            # Nuova Sezione: Commento Discorsivo Strategico (v3.2)
+            report = StrategicAnalyzer.analyze_agent(agent)
+            if "discursive_comment" in report:
+                with ui.card().classes("w-full p-6 mt-4 vn-card border-l-4 border-purple-500").props("flat"):
+                    ui.label("ANALISI STRATEGICA POSTERIORI").classes("text-[10px] font-black text-purple-400 tracking-[0.3em] mb-2")
+                    ui.label(report["strategy_name"].upper()).classes("text-2xl font-black text-white mb-4")
+                    ui.markdown(report["discursive_comment"]).classes("text-base text-gray-300 italic leading-relaxed")
+
             with ui.card().classes("w-full p-6 mt-4 vn-card").props("flat"):
                 ui.label("REPORT DETTAGLIATO DECISIONI (DSS)").classes("text-lg font-bold text-gray-300 mb-4")
 

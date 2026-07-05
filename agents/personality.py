@@ -93,6 +93,35 @@ class PsychologicalProfile:
         # Sincronizza statistiche legacy
         self.__post_init__()
 
+    def to_dict(self) -> Dict:
+        """Serializza il profilo per la persistenza."""
+        return {
+            "name": self.name,
+            "description": self.description,
+            "openness": self.openness,
+            "conscientiousness": self.conscientiousness,
+            "extraversion": self.extraversion,
+            "agreeableness": self.agreeableness,
+            "neuroticism": self.neuroticism,
+            "narcissism": self.narcissism,
+            "machiavellianism": self.machiavellianism,
+            "psychopathy": self.psychopathy,
+            "compliance_bias": self.compliance_bias,
+            "resistance_bias": self.resistance_bias,
+            "negotiation_bias": self.negotiation_bias,
+            "escape_bias": self.escape_bias,
+            "resilience": self.resilience,
+            "loyalty": self.loyalty,
+            "assertiveness": self.assertiveness,
+            "cynicism": self.cynicism,
+            "preferred_faction": self.preferred_faction
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'PsychologicalProfile':
+        """Crea un profilo da un dizionario."""
+        return cls(**data)
+
     def modulate_stat_change(self, stat: str, value: int, manager_traits: Optional[Dict] = None, hr_params: Optional[Dict] = None) -> int:
         """
         Modula la variazione di una statistica in base ai tratti dell'agente, del manager e parametri HR.
