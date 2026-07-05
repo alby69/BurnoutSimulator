@@ -87,8 +87,8 @@ AGENT_PROFILE_COLORS = {
     "Il Protettore": "#ef4444",
     "Il Sopravvissuto": "#22c55e",
     "Il Negoziatore": "#eab308",
-    "Il Perfezionista": "#a855f7",
     "Il Cinico": "#64748b",
+    "Il Manipolatore": "#ec4899",
     "L'Idealista": "#3b82f6",
 }
 
@@ -471,7 +471,28 @@ def _render_laboratory():
 
             with ui.row().classes("items-center gap-4"):
                 ui.button("▶ AVANZA", on_click=_step_simulation).props("color=green size=md icon=play_arrow").classes("font-bold")
+                ui.button("10x ▶▶", on_click=lambda: _step_simulation(10)).props("color=green size=md flat").classes("font-bold")
                 ui.button("← MENU", on_click=lambda: globals().update(screen="start") or page.refresh()).props("flat color=gray").classes("text-xs")
+
+        # --- HR DSS INSIGHTS (NEW) ---
+        if stats.get("profile_impact"):
+            with ui.row().classes("w-full gap-4 items-stretch"):
+                with ui.card().classes("flex-1 p-4 vn-card").props("flat"):
+                    ui.label("IMPATTO CULTURALE PER PROFILO (DSS)").classes("text-[10px] font-black text-blue-400 tracking-widest mb-4")
+                    with ui.row().classes("w-full gap-4"):
+                        for p_name, p_data in stats["profile_impact"].items():
+                            with ui.column().classes("flex-1 p-3 bg-white/5 rounded-lg border border-white/10"):
+                                ui.label(p_name.upper()).classes("text-[10px] font-black text-gray-300 truncate")
+                                with ui.row().classes("w-full justify-between items-end mt-2"):
+                                    with ui.column().classes("gap-0"):
+                                        ui.label("Stress").classes("text-[8px] text-gray-500")
+                                        ui.label(f"{p_data['avg_stress']}%").classes("text-sm font-bold text-red-400")
+                                    with ui.column().classes("gap-0"):
+                                        ui.label("Sopravvivenza").classes("text-[8px] text-gray-500")
+                                        ui.label(f"{p_data['avg_days']}gg").classes("text-sm font-bold text-green-400")
+                                    with ui.column().classes("gap-0"):
+                                        ui.label("Tasso").classes("text-[8px] text-gray-500")
+                                        ui.label(f"{p_data['survival_rate']}%").classes("text-sm font-bold text-blue-400")
 
         # --- MAIN 3-ZONE LAYOUT ---
         with ui.row().classes("w-full gap-4 items-start no-wrap"):
@@ -585,80 +606,81 @@ def _render_agent_compact_card(agent, is_selected):
 
 
 def _render_aura_radar(agent):
-    # Radar Axes: Stress, Conformismo (Compliance Bias), Resilienza, Autostima, Salute, Energia
-    axes = [
-        {"name": "Stress", "value": agent["stress"]},
-        {"name": "Conformismo", "value": agent["compliance_bias"]},
-        {"name": "Resilienza", "value": agent["resilience"]},
-        {"name": "Autostima", "value": agent["self_esteem"]},
-        {"name": "Salute", "value": agent["health"]},
-        {"name": "Energia", "value": agent["energy"]},
+    # Cerchiamo l'agente reale nello sciame per accedere al profilo psicometrico
+    real_agent = swarm.agents.get(agent["agent_id"])
+    if not real_agent:
+        return
+
+    profile = real_agent.profile
+
+    # Radar Axes 1: BIG FIVE (OCEAN)
+    ocean_axes = [
+        {"name": "O", "value": profile.openness},
+        {"name": "C", "value": profile.conscientiousness},
+        {"name": "E", "value": profile.extraversion},
+        {"name": "A", "value": profile.agreeableness},
+        {"name": "N", "value": profile.neuroticism},
+    ]
+
+    # Radar Axes 2: DARK TRIAD
+    dark_axes = [
+        {"name": "Narcissism", "value": profile.narcissism},
+        {"name": "Machiavellianism", "value": profile.machiavellianism},
+        {"name": "Psychopathy", "value": profile.psychopathy},
     ]
 
     profile_color = AGENT_PROFILE_COLORS.get(agent["profile_name"], "#3b82f6")
 
-    # Ghost Trail data (past stats)
-    ghost_data = []
-    if "stats_history" in agent and len(agent["stats_history"]) > 1:
-        for hist in agent["stats_history"][:-1]: # All except current
-            ghost_data.append({
-                "value": [
-                    hist.get("stress", 0),
-                    agent["compliance_bias"], # Bias è fisso per ora
-                    agent["resilience"],
-                    hist.get("self_esteem", 50),
-                    hist.get("health", 100),
-                    hist.get("energy", 100),
-                ]
-            })
-
-    radar_option = {
-        "radar": {
-            "indicator": [
-                {"name": "STRESS", "max": 100},
-                {"name": "CONFORMISMO", "max": 100},
-                {"name": "RESILIENZA", "max": 100},
-                {"name": "AUTOSTIMA", "max": 100},
-                {"name": "SALUTE", "max": 100},
-                {"name": "ENERGIA", "max": 100},
-            ],
-            "shape": "polygon",
-            "splitNumber": 4,
-            "axisName": {"color": "#666", "fontSize": 10, "fontWeight": "bold"},
-            "splitArea": {"show": False},
-            "splitLine": {"lineStyle": {"color": "rgba(255,255,255,0.05)"}},
-            "axisLine": {"lineStyle": {"color": "rgba(255,255,255,0.05)"}}
-        },
-        "series": [
-            # Ghost Trails
-            {
-                "type": "radar",
-                "silent": True,
-                "data": ghost_data,
-                "lineStyle": {"width": 1, "opacity": 0.1, "color": profile_color},
-                "areaStyle": {"opacity": 0.05, "color": profile_color},
-                "symbol": "none"
-            },
-            # Current State
-            {
-                "type": "radar",
-                "data": [
-                    {
-                        "value": [a["value"] for a in axes],
-                        "name": "Stato Attuale",
-                        "areaStyle": {"color": profile_color, "opacity": 0.3},
-                        "lineStyle": {"color": profile_color, "width": 3},
-                        "itemStyle": {"color": profile_color}
-                    }
+    with ui.row().classes("w-full gap-2"):
+        # OCEAN Radar
+        ocean_option = {
+            "title": {"text": "BIG FIVE", "left": "center", "textStyle": {"color": "#555", "fontSize": 10}},
+            "radar": {
+                "indicator": [
+                    {"name": "Openness", "max": 100},
+                    {"name": "Conscientiousness", "max": 100},
+                    {"name": "Extraversion", "max": 100},
+                    {"name": "Agreeableness", "max": 100},
+                    {"name": "Neuroticism", "max": 100},
                 ],
-                "symbol": "circle",
-                "symbolSize": 6
-            }
-        ],
-        "backgroundColor": "transparent",
-    }
+                "shape": "polygon",
+                "axisName": {"color": "#777", "fontSize": 8},
+                "splitArea": {"show": False},
+                "splitLine": {"lineStyle": {"color": "rgba(255,255,255,0.05)"}}
+            },
+            "series": [{
+                "type": "radar",
+                "data": [{"value": [a["value"] for a in ocean_axes], "areaStyle": {"color": profile_color, "opacity": 0.4}}],
+                "symbol": "none",
+                "lineStyle": {"width": 2, "color": profile_color}
+            }],
+            "backgroundColor": "transparent",
+        }
+        ui.echart(ocean_option).classes("w-1/2 h-64")
 
-    ui.echart(radar_option).classes("w-full h-80")
+        # DARK TRIAD Radar
+        dark_option = {
+            "title": {"text": "TRIADE OSCURA", "left": "center", "textStyle": {"color": "#555", "fontSize": 10}},
+            "radar": {
+                "indicator": [
+                    {"name": "Narcissism", "max": 100},
+                    {"name": "Machiavellianism", "max": 100},
+                    {"name": "Psychopathy", "max": 100},
+                ],
+                "shape": "polygon",
+                "axisName": {"color": "#777", "fontSize": 8},
+                "splitArea": {"show": False},
+                "splitLine": {"lineStyle": {"color": "rgba(255,255,255,0.05)"}}
+            },
+            "series": [{
+                "type": "radar",
+                "data": [{"value": [a["value"] for a in dark_axes], "areaStyle": {"color": "#ef4444", "opacity": 0.4}}],
+                "symbol": "none",
+                "lineStyle": {"width": 2, "color": "#ef4444"}
+            }],
+            "backgroundColor": "transparent",
+        }
+        ui.echart(dark_option).classes("w-1/2 h-64")
 
 
 def _render_timeline_item(dec):
@@ -1157,10 +1179,17 @@ def _render_start():
                     _tutorial_step
                 session_id = uuid.uuid4().hex[:12]
                 choice_history = []
+
+                # Per la modalità "gioco umano", assegniamo un profilo neutro o basato sul nome se vogliamo
+                # In questo caso, usiamo un profilo default bilanciato
+                from agents.personality import PsychologicalProfile
+                human_profile = PsychologicalProfile(name="Umano", description="Giocatore Umano")
+
                 engine = GameEngine(
                     name_input.value or "Impiegato Anonimo",
                     "game/data/events.json",
                     company_type=arch_select.value,
+                    psych_profile=human_profile
                 )
                 engine.real_cases_mode = real_cases_toggle.value
                 stats_before = get_stats_dict(engine)

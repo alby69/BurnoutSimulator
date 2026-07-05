@@ -70,6 +70,9 @@ MANAGER_PERSONALITIES = {
         "stress_bonus": 2,
         "rep_bonus_compliance": 3,
         "crisis_threshold": 70,
+        "machiavellianism": 40,
+        "psychopathy": 20,
+        "narcissism": 50
     },
     "Narcisista Burocratico": {
         "type": "Narcisista Burocratico",
@@ -78,6 +81,9 @@ MANAGER_PERSONALITIES = {
         "stress_bonus": 1,
         "rep_bonus_compliance": 2,
         "crisis_threshold": 50,
+        "machiavellianism": 70,
+        "psychopathy": 40,
+        "narcissism": 90
     },
     "Padre/Padrone Paternalista": {
         "type": "Padre/Padrone Paternalista",
@@ -86,6 +92,9 @@ MANAGER_PERSONALITIES = {
         "stress_bonus": 0,
         "rep_bonus_compliance": 4,
         "crisis_threshold": 40,
+        "machiavellianism": 60,
+        "psychopathy": 30,
+        "narcissism": 60
     },
     "Perfezionista Senza Tregua": {
         "type": "Perfezionista Senza Tregua",
@@ -94,6 +103,9 @@ MANAGER_PERSONALITIES = {
         "stress_bonus": 3,
         "rep_bonus_compliance": 1,
         "crisis_threshold": 80,
+        "machiavellianism": 50,
+        "psychopathy": 60,
+        "narcissism": 40
     },
 }
 
@@ -189,8 +201,10 @@ class GameEngine:
         player_name: str,
         events_file: str,
         company_type: str = "Corporate Tossica",
+        psych_profile = None
     ):
         self.player = Player(name=player_name, company_type=company_type)
+        self.psych_profile = psych_profile
         self.apply_archetype(company_type)
         self.event_manager = EventManager(events_file)
         self.graph = DecisionGraph()
@@ -230,7 +244,7 @@ class GameEngine:
 
         # Mini-evento giornaliero
         self.current_mini_event = random.choice(MINI_EVENTS)
-        p.update_stats(self.current_mini_event[1])
+        p.update_stats(self.current_mini_event[1], manager_traits=self.manager_personality, psych_profile=self.psych_profile)
 
         # Threshold-triggered events
         self.process_threshold_events()
@@ -238,7 +252,10 @@ class GameEngine:
         # Manager personality passive effect
         mp = self.manager_personality
         if mp and mp.get("stress_bonus", 0) > 0:
-            p.stress = max(0, min(100, p.stress + mp["stress_bonus"]))
+            stress_bonus = mp["stress_bonus"]
+            if self.psych_profile:
+                stress_bonus = self.psych_profile.modulate_stat_change("stress", stress_bonus, mp)
+            p.stress = max(0, min(100, p.stress + stress_bonus))
 
         # Process deferred events
         deferred_override = None
@@ -277,7 +294,7 @@ class GameEngine:
                 if trigger_key not in self._last_threshold_triggers:
                     self._last_threshold_triggers.add(trigger_key)
                     self.current_mini_event = (text, effects)
-                    p.update_stats(effects)
+                    p.update_stats(effects, manager_traits=self.manager_personality, psych_profile=self.psych_profile)
                     return
         self._last_threshold_triggers.clear()
 
@@ -344,7 +361,7 @@ class GameEngine:
         choice = self.current_event.choices[choice_index]
 
         # Update player stats
-        self.player.update_stats(choice.effects)
+        self.player.update_stats(choice.effects, manager_traits=self.manager_personality, psych_profile=self.psych_profile)
 
         # Sincronizza fazioni → NPC
         self._sync_factions_to_npcs()
