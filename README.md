@@ -1,6 +1,8 @@
-# BurnoutSimulator v3.1 — Social Laboratory
+# BurnoutSimulator v3.2 — HR Strategic Laboratory
 
 Gioco di simulazione narrativa sulle dinamiche delle culture aziendali tossiche, attraverso la lente dell'antropologia organizzativa. Progetto accademico per tesina magistrale in HR — Sapienza Università di Roma.
+
+Il simulatore v3.2 introduce un **Decision Support System (DSS)** avanzato per l'analisi del rischio burnout sistemico attraverso lo studio dell'evoluzione dello sciame di agenti.
 
 ## Avvio rapido
 
@@ -15,16 +17,17 @@ python main.py --cli   # CLI classica
 | Componente | Stato |
 |---|---|
 | **Motore narrativo** (v2.0) | 31 eventi, 76 scelte, 4 archetipi aziendali, 15+ finali |
-| **Framework agenti** (v3.0) | 7 profili psicologici OCEAN+Dark Triad, 6 agenti autonomi |
-| **Jump System** (v3.0) | Possesso umano, salto tra agenti, profilo psicologico emergente |
-| **Grafica** | 22 PNG personaggi, 12 icone eventi, 5 icone stati, CSS glassmorphism |
-| **Extra** | 12 achievement, 7 eventi soglia, 15 mini-eventi, 5 fasi carriera, finali incrociati |
+| **Framework agenti** (v3.2) | 7 profili psicologici, Peer Influence, Trait Evolution |
+| **DSS & Analytics** (v3.2) | Visualizzazione dinamica bio-diversità, Report dettagliato, Top Performers |
+| **Jump System** (v3.0) | Possesso umano, salto tra agenti con filtro mood |
+| **Grafica** | Dashboard espressiva, CSS glassmorphism, ECharts avanzati |
+| **Parametri HR** | Tossicità, Pressione, Coesione, Competizione, Supporto, Trasparenza |
 
 ## Modalità di gioco
 
-**Classica** — Single-player narrativo: scegli il tuo archetipo aziendale, affronta eventi, gestisci statistiche (energia, stress, salute, integrità, autostima, occupabilità, reputazione), interagisci con 4 NPC (Marco, Giulia, Roberto, Elena) e 3 fazioni, scopri uno dei 15+ finali.
+**Classica** — Single-player narrativo: gestisci il tuo destino in un'azienda tossica.
 
-**Laboratorio** — Multi-agente: 6 agenti con profili psicologici distinti giocano simultaneamente. Osserva, possiedi un agente, salta tra prospettive. Il sistema traccia il tuo profilo psicologico emergente in base alle affinità con gli archetipi.
+**Laboratorio HR** — Decision Support System: lancia simulazioni multiple simultanee su uno sciame di agenti. Osserva come la bio-diversità psicologica (profili OCEAN) evolve in base ai parametri organizzativi impostati. Identifica i "Top Performers" e analizza i report decisionali raggruppati per tipologia per trarre insight strategici.
 
 ## Struttura Progetto
 
@@ -69,10 +72,12 @@ burnout-simulator/
 
 | Documento | Contenuto |
 |---|---|
-| [docs/INSTALL.md](docs/INSTALL.md) | Installazione locale, Docker, deploy |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Evoluzione completa v1.0 → v3.1 |
-| [docs/JUMP_SYSTEM.md](docs/JUMP_SYSTEM.md) | Architettura del sistema di possesso |
-| [docs/PIANO_GRAFICHE.md](docs/PIANO_GRAFICHE.md) | Asset grafici e mappature |
+| Documento | Contenuto |
+|---|---|
+| [docs/technical/INSTALL.md](docs/technical/INSTALL.md) | Installazione locale, Docker, deploy |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Evoluzione completa v1.0 → v3.2 |
+| [docs/technical/JUMP_SYSTEM.md](docs/technical/JUMP_SYSTEM.md) | Architettura del sistema di possesso |
+| [docs/anthropological/osservazione_partecipante.md](docs/anthropological/osservazione_partecipante.md) | Taglio divulgativo/antropologico sul sistema |
 
 ## Testing
 

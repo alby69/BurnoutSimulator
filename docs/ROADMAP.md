@@ -68,8 +68,8 @@
 | L8 | Trait Evolution | Evoluzione dinamica di OCEAN tratti basata su scelte ed esiti | Completato |
 | L9 | Social Capital System | Bonus/Malus stress basati sull'integrazione nelle fazioni | Completato |
 | L10 | HR Anonymous Mode | Refactoring UI per analisi anonima e orientata ai dati DSS | Completato |
-| L11 | Predictive Analytics | Espansione dashboard con impatto parametri HR su sopravvivenza | Da fare |
-| L12 | Policy Simulation | Script per A/B testing di politiche aziendali nello sciame | Da fare |
+| L11 | Predictive Analytics | Espansione dashboard con visualizzazione dinamica evoluzione profili | Completato |
+| L12 | Policy Simulation | Lancio simulazioni multiple contemporanee (A/B Testing massivo) | Completato |
 
 ---
 
@@ -130,6 +130,13 @@ Sbloccati a soglie di tag (yes_man≥10/20, burnout_risk≥5/10, truth_teller≥
 - **Dashboard dedicate** (`dashboard/agent_monitor.py`, `reports.py`, `timeline_viewer.py`, `alert_system.py`)
 - **Multi-utente** (sciame dedicato per sessione, non globale)
 
+## Miglioramenti Suggeriti (v3.5)
+
+- **Peer Influence Avanzata**: Gli agenti vicini nello sciame si influenzano a vicenda non solo per fazioni ma per singoli tratti OCEAN.
+- **Pressione Culturale Dinamica**: L'archetipo aziendale evolve in base alla media dei profili degli agenti (es. se molti sono Cinici, l'azienda diventa più Burocraticamente Tossica).
+- **Integrazione ML**: Utilizzare i dati delle simulazioni per addestrare un modello predittivo sul rischio di dimissioni di massa.
+- **Visualizzazione 3D dello Sciame**: Rappresentazione spaziale dei profili agentici in un cubo di Collins (Stress, Energia, Integrità).
+
 ---
 
-*Documento aggiornato per BurnoutSimulator v3.1 — Tutti i 23 miglioramenti + 6 fasi Laboratory implementati.*
+*Documento aggiornato per BurnoutSimulator v3.2 — Introduzione DSS avanzato e visualizzazione dinamica.*

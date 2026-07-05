@@ -67,6 +67,15 @@ def init_agent_db():
             ended_at TEXT,
             total_turns INTEGER DEFAULT 0
         );
+
+        CREATE TABLE IF NOT EXISTS swarm_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT,
+            turn_number INTEGER,
+            profile_distribution_json TEXT,
+            avg_stats_json TEXT,
+            timestamp TEXT
+        );
     """)
     conn.commit()
     conn.close()
@@ -188,6 +197,24 @@ def save_swarm_session(session_data: dict):
         )
 
 
+def save_swarm_history(history_data: dict):
+    with sqlite3.connect(str(AGENT_DB_PATH)) as conn:
+        conn.execute(
+            """
+            INSERT INTO swarm_history (
+                session_id, turn_number, profile_distribution_json, avg_stats_json, timestamp
+            ) VALUES (?, ?, ?, ?, ?)
+        """,
+            (
+                history_data["session_id"],
+                history_data["turn_number"],
+                json.dumps(history_data.get("profile_distribution", {})),
+                json.dumps(history_data.get("avg_stats", {})),
+                history_data.get("timestamp", datetime.now(timezone.utc).isoformat()),
+            ),
+        )
+
+
 def get_swarm_session(session_id: str) -> Optional[dict]:
     with sqlite3.connect(str(AGENT_DB_PATH)) as conn:
         conn.row_factory = sqlite3.Row
@@ -208,4 +235,14 @@ def get_all_human_profiles() -> list:
     with sqlite3.connect(str(AGENT_DB_PATH)) as conn:
         conn.row_factory = sqlite3.Row
         rows = conn.execute("SELECT * FROM human_profiles").fetchall()
+        return [dict(r) for r in rows]
+
+
+def get_swarm_history(session_id: str) -> list:
+    with sqlite3.connect(str(AGENT_DB_PATH)) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT * FROM swarm_history WHERE session_id = ? ORDER BY turn_number ASC",
+            (session_id,),
+        ).fetchall()
         return [dict(r) for r in rows]

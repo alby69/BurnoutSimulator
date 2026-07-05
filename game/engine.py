@@ -157,6 +157,11 @@ THRESHOLD_EVENTS = [
         "Marco ti convoca per un 'caffè informale'. Vuole proporti un ruolo di maggiore responsabilità... e controllo.",
         {"npc_Marco_trust": 5, "faction_Fedelissimi": 3},
     ),
+    (
+        lambda p: p.stress > 60 and p.factions["Gruppo Silenzioso"] > 60,
+        "Un gruppo di colleghi ti invita a ignorare le ultime mail del manager: 'Tanto non controlla davvero'.",
+        {"stress": -5, "manager_rep": -3, "faction_Gruppo Silenzioso": 5},
+    ),
 ]
 
 
@@ -208,6 +213,7 @@ class GameEngine:
         self.psych_profile = psych_profile
         self.hr_params = hr_params or {}
         self.apply_archetype(company_type)
+        self.real_cases_mode = bool(self.hr_params.get("real_cases"))
         self.event_manager = EventManager(events_file)
         self.graph = DecisionGraph()
         self.save_manager = SaveManager()
@@ -230,7 +236,6 @@ class GameEngine:
             arch.get("manager_personality", ""), {}
         )
         self.stats_history = [dict(self.player.to_dict()["stats"])]
-        self.real_cases_mode = False
         self._last_threshold_triggers = set()
 
     def apply_archetype(self, archetype_name):
@@ -258,6 +263,19 @@ class GameEngine:
             if self.psych_profile:
                 stress_bonus = self.psych_profile.modulate_stat_change("stress", stress_bonus, mp, self.hr_params)
             p.stress = max(0, min(100, p.stress + stress_bonus))
+
+        # Peer Influence (Social Dynamics)
+        # Agents tend to align with the dominant culture of the group
+        if not self.real_cases_mode and p.factions:
+            dom_faction = max(p.factions, key=p.factions.get)
+            if p.factions[dom_faction] > 60:
+                if dom_faction == "Fedelissimi":
+                    p.manager_rep = min(100, p.manager_rep + 0.5)
+                elif dom_faction == "Ribelli":
+                    p.stress = min(100, p.stress + 0.5)
+                    p.manager_rep = max(0, p.manager_rep - 0.5)
+                elif dom_faction == "Gruppo Silenzioso":
+                    p.energy = max(0, p.energy - 0.5)
 
         # Process deferred events
         deferred_override = None
