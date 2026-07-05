@@ -65,15 +65,61 @@ class PsychologicalProfile:
         if self.cynicism == 30:
             self.cynicism = (self.psychopathy + (100 - self.agreeableness)) // 2
 
-    def modulate_stat_change(self, stat: str, value: int, manager_traits: Optional[Dict] = None) -> int:
+    def evolve(self, choice_category: str, outcome_deltas: Dict[str, int]):
         """
-        Modula la variazione di una statistica in base ai tratti dell'agente e del manager.
+        Evolve i tratti della personalità in base alle scelte e ai loro esiti.
+        Un timido (bassa estroversione) potrebbe diventare meno timido se le sue scelte portano a buoni esiti.
+        """
+        # Esempio: Se l'agente sceglie RESISTANCE e ottiene un aumento di autostima, aumenta l'extraversion (coraggio)
+        if choice_category == "RESISTANCE":
+            if outcome_deltas.get("self_esteem", 0) > 0:
+                self.extraversion = min(100, self.extraversion + 2)
+                self.neuroticism = max(0, self.neuroticism - 1)
+            else:
+                # Se la resistenza fallisce (perde autostima), aumenta il nevroticismo
+                self.neuroticism = min(100, self.neuroticism + 2)
+
+        # Se sceglie COMPLIANCE spesso, aumenta la coscienziosità ma cala l'apertura
+        if choice_category == "COMPLIANCE":
+            self.conscientiousness = min(100, self.conscientiousness + 1)
+            self.openness = max(0, self.openness - 1)
+
+        # Se lo stress è alto per molto tempo, aumenta il nevroticismo e cala l'agreeableness (cinismo)
+        if outcome_deltas.get("stress", 0) > 5:
+            self.neuroticism = min(100, self.neuroticism + 1)
+            if self.neuroticism > 70:
+                self.agreeableness = max(0, self.agreeableness - 1)
+
+        # Sincronizza statistiche legacy
+        self.__post_init__()
+
+    def modulate_stat_change(self, stat: str, value: int, manager_traits: Optional[Dict] = None, hr_params: Optional[Dict] = None) -> int:
+        """
+        Modula la variazione di una statistica in base ai tratti dell'agente, del manager e parametri HR.
         Implementa la logica "RPG" di scontro tra valori.
         """
         if value == 0:
             return 0
 
         multiplier = 1.0
+
+        # Parametri HR globali
+        if hr_params:
+            # Se la Tossicità Ambientale è alta, ogni aumento di stress è amplificato
+            if stat == "stress" and value > 0:
+                multiplier *= (1 + hr_params.get("toxicity", 0) / 100)
+
+            # Se la Coesione Sociale è alta, le perdite di salute/energia sono ridotte
+            if stat in ["health", "energy"] and value < 0:
+                multiplier *= (1 - hr_params.get("cohesion", 0) / 200)
+
+            # Pressione Risorse: aumenta il consumo di energia
+            if stat == "energy" and value < 0:
+                multiplier *= (1 + hr_params.get("pressure", 0) / 100)
+
+            # Competizione Interna: erode la reputazione nel team e l'autostima
+            if stat in ["team_rep", "self_esteem"] and value < 0:
+                multiplier *= (1 + hr_params.get("competition", 0) / 100)
 
         # Interazione con Manager (Scontro RPG)
         if manager_traits:

@@ -1133,16 +1133,26 @@ def _render_start():
 
                 arch_select.on("change", on_arch_change)
 
-                with ui.column().classes("w-full items-start"):
-                    ui.label("IL TUO NOME").classes(
+                with ui.column().classes("w-full items-start gap-4 p-4 bg-white/5 rounded-xl border border-white/10"):
+                    ui.label("PARAMETRI HR (DSS)").classes(
                         "text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1 ml-1"
                     )
-                    name_input = (
-                        ui.input(placeholder="E.g. Mario Rossi")
-                        .classes("w-full")
-                        .props("outlined standout dark color=blue")
-                    )
-                    name_input.value = "Impiegato Anonimo"
+
+                    with ui.row().classes("w-full items-center justify-between"):
+                        ui.label("Tossicità Ambientale").classes("text-xs text-gray-300")
+                        tox_slider = ui.slider(min=0, max=100, value=30).props("color=red-5").classes("w-32")
+
+                    with ui.row().classes("w-full items-center justify-between"):
+                        ui.label("Pressione Risorse").classes("text-xs text-gray-300")
+                        res_slider = ui.slider(min=0, max=100, value=50).props("color=orange-5").classes("w-32")
+
+                    with ui.row().classes("w-full items-center justify-between"):
+                        ui.label("Coesione Sociale").classes("text-xs text-gray-300")
+                        coh_slider = ui.slider(min=0, max=100, value=40).props("color=green-5").classes("w-32")
+
+                    with ui.row().classes("w-full items-center justify-between"):
+                        ui.label("Competizione Interna").classes("text-xs text-gray-300")
+                        comp_slider = ui.slider(min=0, max=100, value=60).props("color=purple-5").classes("w-32")
 
                 with ui.row().classes(
                     "w-full items-center justify-between bg-white/5 p-4 rounded-xl border border-white/10 mt-2"
@@ -1168,69 +1178,27 @@ def _render_start():
                         )
                     skip_tutorial_toggle = ui.switch().props("color=purple-4")
 
-            def start_game_cb():
-                global \
-                    engine, \
-                    session_id, \
-                    stats_before, \
-                    screen, \
-                    choice_history, \
-                    _tutorial_active, \
-                    _tutorial_step
-                session_id = uuid.uuid4().hex[:12]
-                choice_history = []
-
-                # Per la modalità "gioco umano", assegniamo un profilo neutro o basato sul nome se vogliamo
-                # In questo caso, usiamo un profilo default bilanciato
-                from agents.personality import PsychologicalProfile
-                human_profile = PsychologicalProfile(name="Umano", description="Giocatore Umano")
-
-                engine = GameEngine(
-                    name_input.value or "Impiegato Anonimo",
-                    "game/data/events.json",
-                    company_type=arch_select.value,
-                    psych_profile=human_profile
-                )
-                engine.real_cases_mode = real_cases_toggle.value
-                stats_before = get_stats_dict(engine)
-                create_session(
-                    session_id, engine.player.name, engine.player.company_type
-                )
-                engine.next_turn()
-
-                t = ARCHETYPE_THEMES.get(
-                    arch_select.value, ARCHETYPE_THEMES["Corporate Tossica"]
-                )
-                ui.run_javascript(f"""
-                    document.documentElement.style.setProperty('--theme-accent', '{t["accent"]}');
-                    document.documentElement.style.setProperty('--theme-header', '{t["header"]}');
-                    document.documentElement.style.setProperty('--theme-glow', '{t["glow"]}');
-                """)
-
-                _tutorial_active = not skip_tutorial_toggle.value
-                _tutorial_step = 0
-                screen = "game_over" if engine.is_game_over() else "game"
-                page.refresh()
-
-            with ui.button(on_click=start_game_cb).classes(
-                "w-full mt-10 py-6 text-xl font-bold rounded-xl shadow-xl hover:scale-102 transition-transform bg-blue-600 text-white"
-            ):
-                with ui.row().classes("items-center gap-3 no-wrap"):
-                    ui.icon("rocket_launch", size="md")
-                    ui.label("INIZIA CARRIERA")
-
             def start_lab_cb():
                 global current_human_id, screen
-                # Allinea tutti gli agenti all'archetipo scelto dall'utente
-                swarm.set_archetype_for_all(arch_select.value)
+
+                hr_params = {
+                    "toxicity": tox_slider.value,
+                    "pressure": res_slider.value,
+                    "cohesion": coh_slider.value,
+                    "competition": comp_slider.value
+                }
+
+                # Allinea tutti gli agenti all'archetipo e ai parametri HR
+                swarm.set_hr_parameters(arch_select.value, hr_params)
+
                 if not current_human_id:
-                    human = swarm.register_human(name_input.value or "Osservatore")
+                    human = swarm.register_human("HR_Manager")
                     current_human_id = human.human_id
                 screen = "laboratory"
                 page.refresh()
 
             with ui.button(on_click=start_lab_cb).classes(
-                "w-full mt-2 py-4 text-lg font-bold rounded-xl shadow-lg hover:scale-102 transition-transform bg-purple-600 text-white"
+                "w-full mt-10 py-6 text-xl font-bold rounded-xl shadow-xl hover:scale-102 transition-transform bg-purple-600 text-white"
             ):
                 with ui.row().classes("items-center gap-3 no-wrap"):
                     ui.icon("psychology", size="md")

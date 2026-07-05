@@ -37,13 +37,14 @@ class Agent:
     total_decisions: int = 0
     auto_decisions: int = 0
 
-    def initialize_game(self, events_file: str = "game/data/events.json"):
+    def initialize_game(self, events_file: str = "game/data/events.json", hr_params: dict = None):
         """Inizializza una nuova partita per questo agente."""
         self.engine = GameEngine(
             player_name=self.name,
             events_file=events_file,
             company_type=self.company_type,
-            psych_profile=self.profile
+            psych_profile=self.profile,
+            hr_params=hr_params
         )
         # Applica relazioni NPC custom dal profilo
         for npc_name, relations in self.profile.npc_relations.items():
@@ -190,7 +191,9 @@ class Agent:
         choice = event.choices[choice_idx]
         stats_before = self.engine.player.to_dict()["stats"]
 
-        # Registra nella memoria come decisione umana
+        # Evolve personality based on choice
+        stats_after_est = self.engine.player.to_dict()["stats"] # pre-choice estimate
+        # Note: evolution happens after handle_choice normally, but here we can record the intent
         self.memory.record_decision(
             event_id=event.id,
             choice_id=choice.id,
@@ -218,6 +221,10 @@ class Agent:
         if success:
             stats_after = self.engine.player.to_dict()["stats"]
             self.memory.record_outcome(choice.id, stats_before, stats_after)
+
+            # Evoluzione della personalità
+            deltas = {k: stats_after[k] - stats_before[k] for k in stats_before}
+            self.profile.evolve(choice.category, deltas)
 
             # Persistenza DB
             save_decision({
@@ -249,6 +256,10 @@ class Agent:
 
         self.engine.handle_choice(choice_idx)
         stats_after = self.engine.player.to_dict()["stats"]
+
+        # Evoluzione della personalità
+        deltas = {k: stats_after[k] - stats_before[k] for k in stats_before}
+        self.profile.evolve(choice.category, deltas)
 
         # Registra esito e salva nel DB
         self.memory.record_outcome(choice.id, stats_before, stats_after)

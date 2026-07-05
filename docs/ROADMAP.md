@@ -60,6 +60,19 @@
 
 ---
 
+## v3.2 — HR Strategic Laboratory (In Corso)
+
+| # | Componente | Descrizione | Stato |
+|---|------------|-------------|-------|
+| L7 | HR Parameters Input | Interfaccia per definire Tossicità, Pressione, Coesione e Competizione | Completato |
+| L8 | Trait Evolution | Evoluzione dinamica di OCEAN tratti basata su scelte ed esiti | Completato |
+| L9 | Social Capital System | Bonus/Malus stress basati sull'integrazione nelle fazioni | Completato |
+| L10 | HR Anonymous Mode | Refactoring UI per analisi anonima e orientata ai dati DSS | Completato |
+| L11 | Predictive Analytics | Espansione dashboard con impatto parametri HR su sopravvivenza | Da fare |
+| L12 | Policy Simulation | Script per A/B testing di politiche aziendali nello sciame | Da fare |
+
+---
+
 ## v3.0 — Social Laboratory (Completato)
 
 | # | Componente | Descrizione |
