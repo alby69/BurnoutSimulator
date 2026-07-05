@@ -71,15 +71,14 @@ class AgentSwarm:
             self.agents[agent_id] = agent
             save_agent(agent.to_dict())
 
-    def set_archetype_for_all(self, company_type: str):
+    def set_hr_parameters(self, company_type: str, hr_params: dict):
         """
-        Re-inizializza tutti gli agenti dello swarm con lo stesso archetype aziendale.
-        Utile quando l'utente sceglie un'archetipo nella schermata iniziale
-        e vuole che tutti gli agenti del laboratorio condividano lo stesso contesto.
+        Re-inizializza tutti gli agenti dello swarm con lo stesso archetype aziendale
+        e i parametri HR definiti dall'utente.
         """
         for agent in self.agents.values():
             agent.company_type = company_type
-            agent.initialize_game()
+            agent.initialize_game(hr_params=hr_params)
             save_agent(agent.to_dict())
 
     def register_human(self, name: str = "Osservatore") -> HumanPlayer:

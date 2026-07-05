@@ -201,10 +201,12 @@ class GameEngine:
         player_name: str,
         events_file: str,
         company_type: str = "Corporate Tossica",
-        psych_profile = None
+        psych_profile = None,
+        hr_params: dict = None
     ):
         self.player = Player(name=player_name, company_type=company_type)
         self.psych_profile = psych_profile
+        self.hr_params = hr_params or {}
         self.apply_archetype(company_type)
         self.event_manager = EventManager(events_file)
         self.graph = DecisionGraph()
@@ -244,7 +246,7 @@ class GameEngine:
 
         # Mini-evento giornaliero
         self.current_mini_event = random.choice(MINI_EVENTS)
-        p.update_stats(self.current_mini_event[1], manager_traits=self.manager_personality, psych_profile=self.psych_profile)
+        p.update_stats(self.current_mini_event[1], manager_traits=self.manager_personality, psych_profile=self.psych_profile, hr_params=self.hr_params)
 
         # Threshold-triggered events
         self.process_threshold_events()
@@ -254,7 +256,7 @@ class GameEngine:
         if mp and mp.get("stress_bonus", 0) > 0:
             stress_bonus = mp["stress_bonus"]
             if self.psych_profile:
-                stress_bonus = self.psych_profile.modulate_stat_change("stress", stress_bonus, mp)
+                stress_bonus = self.psych_profile.modulate_stat_change("stress", stress_bonus, mp, self.hr_params)
             p.stress = max(0, min(100, p.stress + stress_bonus))
 
         # Process deferred events
@@ -294,7 +296,7 @@ class GameEngine:
                 if trigger_key not in self._last_threshold_triggers:
                     self._last_threshold_triggers.add(trigger_key)
                     self.current_mini_event = (text, effects)
-                    p.update_stats(effects, manager_traits=self.manager_personality, psych_profile=self.psych_profile)
+                    p.update_stats(effects, manager_traits=self.manager_personality, psych_profile=self.psych_profile, hr_params=self.hr_params)
                     return
         self._last_threshold_triggers.clear()
 
@@ -361,7 +363,7 @@ class GameEngine:
         choice = self.current_event.choices[choice_index]
 
         # Update player stats
-        self.player.update_stats(choice.effects, manager_traits=self.manager_personality, psych_profile=self.psych_profile)
+        self.player.update_stats(choice.effects, manager_traits=self.manager_personality, psych_profile=self.psych_profile, hr_params=self.hr_params)
 
         # Sincronizza fazioni → NPC
         self._sync_factions_to_npcs()

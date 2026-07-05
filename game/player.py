@@ -52,11 +52,23 @@ class Player:
     career_phase: str = "Periodo di Prova"
     decision_times: List[float] = field(default_factory=list)
 
-    def update_stats(self, effects: dict, manager_traits: dict = None, psych_profile = None):
+    def update_stats(self, effects: dict, manager_traits: dict = None, psych_profile = None, hr_params: dict = None):
+        # Calcolo bonus di fazione (Social Support)
+        # Se l'agente è ben integrato in una fazione forte, riceve un bonus alla resistenza allo stress.
+        # Se è isolato (punteggi bassi ovunque), è più vulnerabile.
+        social_support = 0
+        if any(v > 60 for v in self.factions.values()):
+            social_support = 0.2 # 20% di riduzione stress
+        elif all(v < 25 for v in self.factions.values()):
+            social_support = -0.2 # 20% di aumento stress (vulnerabilità sociale)
+
         for stat, value in effects.items():
             # Se abbiamo un profilo psicologico, moduliamo la variazione (Scontro RPG)
             if psych_profile and not stat.startswith("npc_") and not stat.startswith("faction_") and stat != "reputation":
-                value = psych_profile.modulate_stat_change(stat, value, manager_traits)
+                value = psych_profile.modulate_stat_change(stat, value, manager_traits, hr_params)
+
+            if stat == "stress" and value > 0:
+                value = int(value * (1 - social_support))
 
             if stat == "reputation":
                 self.manager_rep = max(0, min(100, self.manager_rep + value))
