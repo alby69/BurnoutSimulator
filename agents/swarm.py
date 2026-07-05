@@ -407,8 +407,12 @@ class AgentSwarm:
             ],
         }
 
-    def load_swarm(self):
+    def load_swarm(self, force_reinit: bool = False):
         """Ripristina lo stato dello sciame dal database."""
+        if force_reinit:
+            self._init_agents(self.num_agents)
+            return
+
         # Carica Agenti
         db_agents = get_all_agents()
         if db_agents:
@@ -448,7 +452,7 @@ class AgentSwarm:
             print(f"Loaded human {dh['name']} from DB")
 
     def get_swarm_analytics(self) -> Dict:
-        """Statistiche globali del laboratorio."""
+        """Statistiche globali del laboratorio per HR DSS."""
         if not self.agents:
             return {}
 
@@ -456,6 +460,20 @@ class AgentSwarm:
         avg_stress = sum(
             a.engine.player.stress for a in self.agents.values() if a.engine
         ) / len(self.agents)
+
+        # Analisi per profilo (OCEAN/Dark Triad impact)
+        profile_survival = {}
+        for a in self.agents.values():
+            p_name = a.profile.name
+            if p_name not in profile_survival:
+                profile_survival[p_name] = {"stress": [], "days": [], "alive": 0, "total": 0}
+
+            profile_survival[p_name]["total"] += 1
+            if a.engine:
+                profile_survival[p_name]["stress"].append(a.engine.player.stress)
+                profile_survival[p_name]["days"].append(a.engine.player.days_survived)
+                if a.engine.player.is_alive:
+                    profile_survival[p_name]["alive"] += 1
 
         # Archetipo più stressante
         archetype_stress = {}
@@ -479,6 +497,13 @@ class AgentSwarm:
             "most_stressful_archetype": most_stressful[0],
             "archetype_avg_stress": {
                 k: round(sum(v) / len(v), 1) for k, v in archetype_stress.items()
+            },
+            "profile_impact": {
+                name: {
+                    "avg_stress": round(sum(d["stress"])/len(d["stress"]), 1) if d["stress"] else 0,
+                    "avg_days": round(sum(d["days"])/len(d["days"]), 1) if d["days"] else 0,
+                    "survival_rate": round((d["alive"]/d["total"])*100, 1)
+                } for name, d in profile_survival.items()
             },
             "possessed_count": sum(1 for a in self.agents.values() if a.is_possessed),
             "alive_count": sum(

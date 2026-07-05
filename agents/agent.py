@@ -42,7 +42,8 @@ class Agent:
         self.engine = GameEngine(
             player_name=self.name,
             events_file=events_file,
-            company_type=self.company_type
+            company_type=self.company_type,
+            psych_profile=self.profile
         )
         # Applica relazioni NPC custom dal profilo
         for npc_name, relations in self.profile.npc_relations.items():

@@ -52,8 +52,12 @@ class Player:
     career_phase: str = "Periodo di Prova"
     decision_times: List[float] = field(default_factory=list)
 
-    def update_stats(self, effects: dict):
+    def update_stats(self, effects: dict, manager_traits: dict = None, psych_profile = None):
         for stat, value in effects.items():
+            # Se abbiamo un profilo psicologico, moduliamo la variazione (Scontro RPG)
+            if psych_profile and not stat.startswith("npc_") and not stat.startswith("faction_") and stat != "reputation":
+                value = psych_profile.modulate_stat_change(stat, value, manager_traits)
+
             if stat == "reputation":
                 self.manager_rep = max(0, min(100, self.manager_rep + value))
             elif hasattr(self, stat) and not isinstance(getattr(self, stat), (dict, list, set, NPC)):
