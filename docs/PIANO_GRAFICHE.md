@@ -3,28 +3,49 @@
 ## Struttura finale asset
 
 ```
-static/images/                          ← Servito via app.add_static_files('/static/images', 'static/images')
-├── personaggi/                         ← 22 ritratti NPC + emote
-│   ├── CORP_Manager_Passivo_Aggressivo.png
+static/images/                          ← 39 PNG totali
+├── personaggi/                         ← 22 ritratti NPC
+│   ├── CORP_Capo_Arrabbiato.png
+│   ├── CORP_CEO_Sorridente_Minaccioso.png
 │   ├── CORP_Collega_Favorito_Arrogante.png
+│   ├── CORP_Collega_Tossico_Sabotatore.png
+│   ├── CORP_Dipendente_Burnout_Cronico.png
+│   ├── CORP_Dipendente_Deluso.png
+│   ├── CORP_Dipendente_Rassegnato.png
+│   ├── CORP_Dipendente_Scioccato.png
+│   ├── CORP_Dipendente_Sconvolto.png
 │   ├── CORP_Dipendente_Senior_Cinico.png
-│   ├── CORP_HR_Falsa_Empatia.png
-│   ├── CORP_Soddisfazione_Cinica.png   (usato anche come emote COMPLIANCE)
-│   ├── CORP_Neoassunto_Confuso.png     (usato anche come emote NEGOTIATION)
-│   ├── CORP_Sorpresa_Ufficio.png       (usato anche come emote ESCAPE)
+│   ├── CORP_Dipendente_Sonnolento.png
+│   ├── CORP_Dipendente_Spento.png
+│   ├── CORP_Dipendente_Stanco.png
 │   ├── CORP_Dipendente_Stressato.png   (usato anche come emote RESISTANCE)
-│   └── ... (14 altri)
+│   ├── CORP_Direttore_Furioso.png
+│   ├── CORP_HR_Falsa_Empatia.png
+│   ├── CORP_Manager_Passivo_Aggressivo.png
+│   ├── CORP_Neoassunto_Confuso.png     (usato anche come emote NEGOTIATION)
+│   ├── CORP_Neoassunto_Sereno.png
+│   ├── CORP_Soddisfazione_Cinica.png   (usato anche come emote COMPLIANCE)
+│   ├── CORP_Sorpresa_Ufficio.png       (usato anche come emote ESCAPE)
+│   └── CORP_Team_Lead_Pressante.png
 ├── eventi/                             ← 12 icone eventi aziendali
-│   ├── CORP_EVENTO_Licenziamento.png
-│   ├── CORP_EVENTO_Riunione_Inutile.png
+│   ├── CORP_EVENTO_Bonus_Rifiutato.png
+│   ├── CORP_EVENTO_Corso_Formazione_Inutile.png
+│   ├── CORP_EVENTO_Dimissioni_Impossibili.png
 │   ├── CORP_EVENTO_Email_Fuori_Orario.png
-│   └── ... (9 altri)
+│   ├── CORP_EVENTO_Feedback_Anonimo_Trasparente.png
+│   ├── CORP_EVENTO_Festa_Aziendale_Obbligatoria.png
+│   ├── CORP_EVENTO_Licenziamento.png
+│   ├── CORP_EVENTO_Pausa_Caffe_Obbligatoria.png
+│   ├── CORP_EVENTO_Promozione_Finta.png
+│   ├── CORP_EVENTO_Riunione_Inutile.png
+│   ├── CORP_EVENTO_Straordinario_Forzato.png
+│   └── CORP_EVENTO_Team_Building_Forzato.png
 └── stati/                              ← 5 icone stati burnout
     ├── CORP_STATO_BURNOUT.png
-    ├── CORP_STATO_Crollo_Nervoso.png
-    ├── CORP_STATO_Rivolta_Silenziosa.png
     ├── CORP_STATO_Cinismo_Galoppante.png
-    └── CORP_STATO_Realizzazione_Brutale.png
+    ├── CORP_STATO_Crollo_Nervoso.png
+    ├── CORP_STATO_Realizzazione_Brutale.png
+    └── CORP_STATO_Rivolta_Silenziosa.png
 ```
 
 ## Cosa è stato implementato
@@ -43,15 +64,15 @@ static/images/                          ← Servito via app.add_static_files('/s
 
 ## Classificazione icone
 
-### Personaggi — 6 gruppi emotivi
+### Personaggi — 7 gruppi emotivi
 
 | Gruppo | Immagini |
 |--------|----------|
 | **Neoassunto** | Sereno, Confuso |
-| **Esausto** | Stanco, Stressato, Rassegnato, Deluso, Sconvolto, Spento |
+| **Esausto** | Stanco, Stressato, Rassegnato, Deluso, Sconvolto, Spento, Sonnolento |
 | **Critico** | Burnout Cronico, Scioccato, Senior Cinico |
-| **Manager tossico** | Passivo-Aggressivo, Capo Arrabbiato, Direttore Furioso |
-| **Corporate tossico** | CEO Minaccioso, HR Falsa Empatia, Collega Arrogante, Sabotatore |
+| **Manager tossico** | Passivo-Aggressivo, Capo Arrabbiato, Direttore Furioso, Team Lead Pressante |
+| **Corporate tossico** | CEO Sorridente Minaccioso, HR Falsa Empatia, Collega Favorito Arrogante, Collega Tossico Sabotatore |
 | **Ironico** | Soddisfazione Cinica, Sorpresa Ufficio |
 
 ### Emote per categoria scelta

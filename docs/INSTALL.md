@@ -117,31 +117,58 @@ python app.py
 
 | Comando | Descrizione |
 |---------|-------------|
-| `python app.py` | Web UI su porta 8080 (NiceGUI) |
-| `python main.py --cli` | Interfaccia testuale |
+| `python app.py` | Web UI su porta 8080 (NiceGUI) — modalità classica + laboratorio |
+| `python main.py --cli` | Interfaccia testuale (solo classica) |
 | `python main.py` | Tkinter GUI (fallback su CLI) |
 
 ---
 
-## Prima esecuzione
+## Prima esecuzione — Modalità Classica
 
 1. Inserisci il tuo nome
 2. Scegli l'archetipo aziendale:
-   - **Startup Caotica** — overwork, ritmi frenetici (Manager: Micromanager)
-   - **Corporate Tossica** — politica interna, micromanagement (Manager: Narcisista)
-   - **Azienda Familiare** — nepotismo, favoritismi (Manager: Paternalista)
-   - **Consulting** — KPI ossessivi, reperibilità continua (Manager: Perfezionista)
-3. Leggi gli scenari e scegli come reagire (hai 15 secondi per le scelte critiche!)
-4. Ogni NPC ha un volto con espressione dinamica che cambia in base a trust/fear/stress
-5. Al termine visualizzerai il report finale con profilo comportamentale, grafico stress/tempo, e radar
+   - **Startup Caotica** — overwork, ritmi frenetici (Manager: Micromanager Iperattivo)
+   - **Corporate Tossica** — politica interna, micromanagement (Manager: Narcisista Burocratico)
+   - **Azienda Familiare** — nepotismo, favoritismi (Manager: Padre/Padrone Paternalista)
+   - **Consulting** — KPI ossessivi, reperibilità continua (Manager: Perfezionista Senza Tregua)
+3. Leggi gli scenari e scegli come reagire (15 secondi per le scelte critiche!)
+4. Ogni NPC ha un ritratto PNG con stato emotivo calcolato da trust/fear/stress
+5. Le fazioni (Fedelissimi, Gruppo Silenzioso, Ribelli) influenzano gli NPC e i finali
+6. Al termine visualizzerai il report finale con profilo comportamentale, grafico stress/tempo, radar, achievement
+
+## Prima esecuzione — Social Laboratory
+
+1. Clicca "ENTRA NEL LABORATORIO" nella schermata iniziale
+2. Osserva 6 agenti autonomi con profili psicologici distinti
+3. Clicca "Possiedi" su un agente per prenderne il controllo
+4. Usa "SALTA" per cambiare agente in qualsiasi momento (il sistema traccia il tuo profilo emergente)
+5. Clicca "Avanti N turni" per far avanzare gli agenti non posseduti
 
 ---
 
+## Testing
+
+```bash
+# Unit test framework agenti
+python -m unittest tests/test_agents.py
+
+# Verifica integrazione v3.1 (agenti, possesso, DB)
+python tests/verify_v3_1.py
+
+# Test E2E con Playwright (richiede app in esecuzione su :8080)
+python verify_lab.py
+```
+
 ## Dati e analytics
 
-Le scelte di ogni partita vengono salvate in `database/analytics.db` (SQLite).
+Due database SQLite indipendenti:
 
-Per esplorare i dati raccolti:
+| Database | Contenuto |
+|----------|-----------|
+| `database/analytics.db` | Partite classiche: scelte, finali, tempi decisione |
+| `database/agents.db` | Laboratorio: agenti, decisioni, salti umani, profili |
+
+Per esplorare:
 ```bash
 sqlite3 database/analytics.db
 .tables
@@ -159,4 +186,5 @@ La dashboard analytics è accessibile dal pulsante "📊 Analytics" nella scherm
 ## Note tecniche
 
 - **Font**: Inter (UI) e JetBrains Mono (dati) caricati da Google Fonts — richiedono internet alla prima visita. Se offline, NiceGUI usa i fallback di sistema.
+- **Dipendenze**: solo `nicegui≥1.4.0` — tutto il resto è libreria standard Python
 - **Collaudo**: `docker build -t burnout-sim . && docker run -d -p 8080:8080 burnout-sim && curl http://localhost:8080` deve restituire HTTP 200.

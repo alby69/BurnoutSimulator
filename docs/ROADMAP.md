@@ -1,340 +1,122 @@
 # Roadmap — BurnoutSimulator
 
-## Come funzionano le FAZIONI (risposta alla tua domanda)
+## Stato attuale
 
-Le tre fazioni rappresentano il **posizionamento sociale** del giocatore nell'ecosistema aziendale:
-
-| Fazione | Valore iniziale | Cosa significa |
-|---------|:-:|----------------|
-| **Fedelissimi** | 0% | Ti allinei al management, non metti in discussione, esegui |
-| **Gruppo Silenzioso** | 50% | La maggioranza silenziosa — fai il tuo lavoro senza esporsi |
-| **Ribelli** | 0% | Ti opponi attivamente, segnali, difendi i confini |
-
-Le percentuali cambiano in base alle tue scelte. Ogni effetto `faction_Ribelli: +3` o `faction_Fedelissimi: +2` negli eventi modifica questi valori.
-
-**Problema attuale:** le fazioni sono solo numeri a schermo. Non influenzano:
-- quali NPC si schierano con te
-- quali eventi ti capitano
-- dialoghi o conseguenze diverse in base alla reputazione
-
-Servono per calcolare il finale (analisi antropologica), ma durante il gioco non danno feedback. Vedi proposta **M2** sotto.
+**Tutti i 23 miglioramenti pianificati (M1-M12 + E1-E8 + F1-F3) sono implementati.**
+**Tutte le 6 fasi del Social Laboratory (L1-L6) sono implementate.**
 
 ---
 
-## Completati ✅
+## v2.0 — Core Game (Completato)
 
-### ✅ M1 — FEEDBACK SULLE SCELTE
+### M1-M12: Miglioramenti narrativi e UI
 
-Dopo ogni scelta si apre un **dialog** con gli effetti reali:
+| # | Miglioramento | Impatto | Sforzo |
+|---|---------------|---------|--------|
+| M1 | Feedback effetti dopo la scelta (dialog con delta colorati) | Alto | Basso |
+| M2 | Fazioni influenzano NPC (sync automatico dopo ogni scelta) | Alto | Medio |
+| M3 | Tooltip anteprima effetti al passaggio mouse | Medio | Basso |
+| M4 | Conseguenze narrative differite (eventi triggerati N turni dopo) | Alto | Alto |
+| M5 | Finali basati sulle fazioni (Il Whistleblower, Il Braccio Destro, Lo Spettatore, Il Camaleonte) | Alto | Medio |
+| M6 | Storico scelte visibile in sidebar con pallini colorati | Medio | Basso |
+| M7 | Grafo decisionale interattivo ECharts force-directed | Basso | Alto |
+| M8 | Mini-eventi giornalieri (15 scenari di routine) | Alto | Medio |
+| M9 | Dashboard analytics globale (finali, categorie, sopravvivenza) | Medio | Medio |
+| M10 | Mobile responsive (sidebar toggle, breakpoint <768px) | Medio | Basso |
+| M11 | Tutorial interattivo a 5 step onboarding | Alto | Medio |
+| M12 | Timer 15s su scelte critiche con auto-click | Medio | Basso |
 
-```
-┌──────────────────────┐
-│  Esito della scelta   │
-│  [COMPLIANCE]         │
-│                       │
-│  ▼ Stress      +3    │
-│  ▲ Rep. Manager +2   │
-│  ▼ Energia     -2    │
-│  ▲ Marco Trust +2    │
-│                      │
-│  [Continua]          │
-└──────────────────────┘
-```
+### E1-E8: Extra post-roadmap
 
-- Delta colorato (verde ↑ positivo, rosso ↓ negativo)
-- Sfondo dipende dal segno (verde/rosso)
-- Categoria della scelta mostrata come badge
+| # | Miglioramento | Impatto | Sforzo |
+|---|---------------|---------|--------|
+| E1 | Personalità Manager per archetipo (Micromanager, Narcisista, Paternalista, Perfezionista) | Alto | Medio |
+| E2 | 7 eventi su soglia (stress>80, energia<20, salute<25, autostima<20, rep<20, fazioni>70) | Alto | Basso |
+| E3 | Grafico stress/tempo ECharts nel report finale | Alto | Basso |
+| E4 | 5 fasi carriera (Prova → Primo Progetto → Operativa → Ristrutturazione → Sopravvivenza) | Medio | Basso |
+| E5 | 5 finali incrociati archetipo+profilo (Fondatore Esaurito, Pecora Nera, Ingrassaggio Perfetto, Resistente, Indomabile) | Alto | Medio |
+| E6 | Tracking tempo di decisione per scelta (ms, media, rapide/lente) | Medio | Basso |
+| E7 | 12 achievement (Sempre Disponibile, Zerbino Ufficiale, Vivere al Limite, Senza Filtro, Muro di Berlino, ecc.) | Basso | Basso |
+| E8 | Modalità "Casi Reali" (badge sugli eventi) | Basso | Basso |
 
-### ✅ M3 — ANTEPRIMA EFFETTI AL PASSAGGIO MOUSE
+### F1-F3: Overhaul grafico
 
-Al passaggio del mouse su ogni scelta, un **tooltip** mostra gli effetti:
+| # | Fase | Descrizione |
+|---|------|-------------|
+| F1 | CSS Overhaul | Background gradiente, card VN con bordo accentato, palette per archetipo, font Inter+JetBrains Mono, scrollbar personalizzata |
+| F2 | Facce SVG dinamiche (poi sostituite da PNG in F4) | 6 espressioni (neutral/happy/worried/angry/stressed/scared) |
+| F3 | Layout Visual Novel | Ritratto NPC 64px + nome affiancato alla card, scelte stile VN |
 
-```
-Tooltip:
-  manager_rep: +2
-  stress: +3
-  energy: -2
-  npc_Marco_trust: +2
-```
+### Asset grafici aggiuntivi (post-F3)
 
-Implementato con `ui.tooltip()` nativo NiceGUI — funziona su desktop e mobile (tap lungo).
-
-### ✅ M6 — STORICO SCELTE VISIBILE IN PARTITA
-
-Nella sidebar, sotto le RELAZIONI, compare **ULTIME SCELTE** con le ultime 5 decisioni:
-
-- Ogni scelta ha un pallino colorato in base alla categoria (blu COMPLIANCE, rosso RESISTANCE, giallo NEGOTIATION, verde ESCAPE)
-- Testo troncato a 40 caratteri
-- Si aggiorna automaticamente a ogni turno
-
----
-
-## Prossimi miglioramenti
-
-### ✅ M2 — FAZIONI VISIBILI E REATTIVE
-
-Ogni NPC appartiene a una fazione:
-
-| NPC | Fazione |
-|-----|----------|
-| Marco (Manager) | Fedelissimi (naturale) |
-| Giulia (Collega) | Fedelissimi (opportunista) |
-| Roberto (Mentor) | Gruppo Silenzioso (deluso) |
-| Elena (HR) | Gruppo Silenzioso (passiva) |
-
-**Effetto:** se la tua affinità con una fazione sale, gli NPC di quella fazione migliorano rapporto con te. Se scende, potrebbero remarti contro.
-
-Esempio: `faction_Fedelissimi > 70` → Marco ti dà più bonus, ma Roberto ti perde rispetto (vede in te un "yes man").
-
-Implementato con `_sync_factions_to_npcs()` in `engine.py`, chiamato dopo ogni scelta in `handle_choice()`.
-
-### M3 — BARRA DELLE CONSEGUENZE PRIMA DELLA SCELTA
-
-Prima di cliccare una scelta, mostrare un **anteprima degli effetti** al passaggio del mouse:
-
-```
-[1. Rispondi immediatamente]
-    ⚡ Energia: -2  |  🔥 Stress: +2  |  📊 Rep: +2
-```
-
-### ✅ M4 — SISTEMA DI CONSEGUENZE DIFFERITE
-
-- Le scelte con `consequences` in `events.json` innescano eventi narrativi dopo N turni (es. difendi un collega → 2 turni dopo arriva l'evento `collega_ringrazia`)
-- 3 scelte esistenti triggerano eventi differiti, più 5 nuovi eventi narrativi (`collega_ringrazia`, `richiamo_formale`, `progetto_premio`, `burnout_startup`, `passaggio_generazionale`)
-- Eventi differiti mostrati come badge "N in sospeso" nella UI
-
-### ✅ M5 — PIÙ FINALI PESATI SULLE FAZIONI
-
-Aggiunti 4 finali basati sulle **fazioni** in `determine_ending()` in `app.py`:
-
-| Condizione | Finale |
-|---|---|
-| Ribelli > 70 e Integrity > 60 | Il Whistleblower |
-| Fedelissimi > 70 e Manager Rep > 80 | Il Braccio Destro |
-| Gruppo Silenzioso > 70 | Lo Spettatore |
-| Tutte le fazioni > 50 | Il Camaleonte |
-
-I finali fazione hanno priorità più alta dei finali classici nel sistema di punteggio.
-
-### M6 — STORICO SCELTE VISUALE (DURANTE LA PARTITA)
-
-Nel pannello laterale, aggiungere una sezione **STORICO** con le ultime scelte:
-
-- Icona ridimensionata per ogni scelta recente
-- Colore in base alla categoria (COMPLIANCE = blu, RESISTANCE = rosso, NEGOTIATION = giallo, ESCAPE = verde)
-
-### ✅ M7 — GRAFO DECISIONALE INTERATTIVO
-
-Dialog accessibile dal pulsante `hub` nella barra superiore (gioco) e dal report finale:
-
-- Grafo force-directed ECharts con nodi colorati per categoria evento
-- Archi colorati per categoria scelta (COMPLIANCE blu, RESISTANCE rosso, ecc.)
-- Strumenti: zoom, pan, trascinamento nodi, focus su adiacenza
-- Mostra i percorsi effettivamente percorsi dal giocatore, con connessioni narrativ
-
-### ✅ M8 — SCENARI GIORNALIERI (MORNING ROUTINE)
-
-Prima dell'evento principale, un **mini-evento** casuale (da 15 scenari in `engine.MINI_EVENTS`) che modifica le statistiche di base:
-
-- *"Trovi traffico, arrivi in ufficio già stressato"* → Stress +5
-- *"Un collega ti offre un caffè"* → Energia +3, Trust Collega +2
-- *"Ricevi una mail di un headhunter"* → Employability +5, Stress -2
-
-Eseguito all'inizio di `next_turn()`, mostrato in una card grigia prima dell'evento principale.
-
-### ✅ M9 — PROFILO UTENTE GLOBALE (ANALYTICS DASHBOARD)
-
-Usando i dati già raccolti in `database/analytics.db`:
-
-- Dashboard `analytics` screen in `app.py` con:
-  - Classifica finali più ottenuti (con barre)
-  - Percentuale scelte per categoria (colorate)
-  - Sopravvivenza media per archetipo aziendale (con barre proporzionali)
-  - Ultime 10 partite giocate
-  - Accessibile dal pulsante "📊 Analytics" nella schermata iniziale
-
-### ✅ M10 — RESPONSIVE MOBILE MIGLIORATO
-
-Mobile toggle per la sidebar:
-
-- Sidebar nascosta su schermi <768px via CSS `stats-sidebar` class
-- Pulsante `bar_chart` visibile solo su mobile nella barra superiore, apre il dialog statistiche
-- Breakpoint responsive con classi Tailwind `lg:hidden` e `stats-sidebar`
-
-### ✅ M11 — TUTORIAL / ONBOARDING INTERATTIVO
-
-Prima partita guidata con overlay modale a 5 step:
-
-- *"Benvenuto"* — introduzione al gioco
-- *"Le Statistiche"* — radar e barre, pulsazione in zona critica
-- *"Fazioni e NPC"* — avatar colorati per fazione
-- *"Le Scelte"* — effetti visibili + timer su scelte critiche
-- Ready step finale con "Inizia a giocare"
-- Navigabile avanti/indietro
-
-### ✅ M12 — EVENTI A TEMPO (DECISIONI CON TIMER)
-
-1 scelta casuale per evento ha un **timer di 15 secondi**:
-
-- Contatore visivo ⏱ accanto alla scelta
-- Auto-click della scelta quando il timer scade
-- Integrato via `ui.run_javascript()` con setInterval lato client
+| # | Fase | Descrizione |
+|---|------|-------------|
+| F4 | PNG portraits → 22 immagini CORP_* in `static/images/personaggi/` |
+| F5 | 12 icone eventi mappate per ID evento in `static/images/eventi/` |
+| F6 | 5 icone stati burnout in `static/images/stati/` |
+| F7 | 4 emote per categoria scelta (COMPLIANCE, RESISTANCE, NEGOTIATION, ESCAPE) |
+| F8 | Label effetti in italiano (EFFECT_LABELS mapping) |
+| F9 | Help system integrato (dialog esplicativo 7 sezioni) |
 
 ---
 
-## Tabella riepilogativa
+## v3.0 — Social Laboratory (Completato)
 
-| # | Miglioramento | Impatto | Sforzo | Stato |
-|---|---------------|---------|--------|-------|
-| M1 | Feedback effetti dopo la scelta | Alto | Basso | ✅ Fatto |
-| M2 | Fazioni influenzano NPC | Alto | Medio | ✅ Fatto |
-| M3 | Anteprima effetti al passaggio mouse | Medio | Basso | ✅ Fatto |
-| M4 | Conseguenze narrativi differite | Alto | Alto | ✅ Fatto |
-| M5 | Più finali basati su fazioni | Alto | Medio | ✅ Fatto |
-| M6 | Storico scelte visibile in partita | Medio | Basso | ✅ Fatto |
-| M7 | Grafo decisionale interattivo | Basso | Alto | ✅ Fatto |
-| M8 | Mini-eventi giornalieri (routine) | Alto | Medio | ✅ Fatto |
-| M9 | Dashboard analytics globale | Medio | Medio | ✅ Fatto |
-| M10 | Mobile responsive migliorato | Medio | Basso | ✅ Fatto |
-| M11 | Tutorial / onboarding | Alto | Medio | ✅ Fatto |
-| M12 | Eventi con timer | Medio | Basso | ✅ Fatto |
+| # | Componente | Descrizione |
+|---|------------|-------------|
+| L1 | Core Agent Framework | 7 archetipi psicologici con OCEAN+Dark Triad (Big Five + Machiavellismo, Narcisismo, Psicopatia) |
+| L2 | Autonomous Swarm | 6 agenti indipendenti con GameEngine separato e decisioni pesate |
+| L3 | Human Jump System | Possesso agenti, salto tra prospettive, rilascio, storico salti |
+| L4 | Observer Analytics | Profilo psicologico emergente dell'umano (categorie, pattern, durata) |
+| L5 | Lab UI Overhaul | Vista 3 colonne, radar chart ECharts, emotional weather, swarm stats, jump dialog |
+| L6 | Agent Persistence | Schema DB esteso (`agents.db`) per agenti, decisioni, salti, profilo umano |
 
----
+### Profili psicologici implementati
 
-## Priorità consigliata
+| Profilo | COMPLIANCE | RESISTANCE | NEGOTIATION | ESCAPE | Tratti distintivi |
+|---------|:----------:|:----------:|:-----------:|:-----:|-------------------|
+| Il Performante | 70 | 20 | 60 | 10 | Narcisismo alto, Coscienziosità alta |
+| Il Protettore | 20 | 70 | 50 | 30 | Gradevolezza alta, Psicopatia bassa |
+| Il Sopravvissuto | 20 | 40 | 30 | 70 | Neuroticismo alto, Apertura bassa |
+| Il Negoziatore | 40 | 20 | 80 | 30 | Gradevolezza alta, Estroversione media |
+| Il Cinico | 10 | 60 | 20 | 60 | Psicopatia alta, Gradevolezza bassa |
+| Il Manipolatore | 50 | 30 | 70 | 20 | Machiavellismo alto, Coscienziosità media |
+| L'Idealista | 20 | 80 | 40 | 20 | Apertura alta, Neuroticismo basso |
 
-1. ✅ ~~M2 + M5~~ (fazioni con peso reale) — completato
-2. ✅ ~~M4~~ (conseguenze differite) — completato
-3. ✅ ~~M8~~ (mini-eventi giornalieri) — completato
-4. ✅ ~~M11~~ (tutorial) — completato
-5. ✅ ~~M10~~ (mobile) — completato
-6. ✅ ~~M12~~ (timer) — completato
-7. ✅ ~~M9~~ (dashboard analytics) — completato
-8. ✅ ~~M7~~ (grafo decisionale) — completato
+### Jump System
 
-Tutti i 12 miglioramenti pianificati sono stati implementati. 🎉
-
-## Extra: miglioramenti post-roadmap
-
-| # | Miglioramento | Impatto | Sforzo | Stato |
-|---|---------------|---------|--------|-------|
-| E1 | Personalità Manager per archetipo (Micromanager, Narcisista, ecc.) | Alto | Medio | ✅ Fatto |
-| E2 | Eventi su soglia (stress>80, energia<20, ecc.) | Alto | Basso | ✅ Fatto |
-| E3 | Grafico stress/tempo nel report finale | Alto | Basso | ✅ Fatto |
-| E4 | Fasi di carriera (Prova → Primo Progetto → Ristrutturazione → …) | Medio | Basso | ✅ Fatto |
-| E5 | 5 nuovi finali incrociando archetipo + profilo | Alto | Medio | ✅ Fatto |
-| E6 | Tracking tempo di decisione per scelta | Medio | Basso | ✅ Fatto |
-| E7 | 10 nuovi achievement (Senza Filtro, Muro di Berlino, ecc.) | Basso | Basso | ✅ Fatto |
-| E8 | Modalità "Casi Reali" | Basso | Basso | ✅ Fatto |
-
-### Descrizioni
-
-- **E1**: ogni archetipo aziendale ha un manager con personalità distinta (stress_bonus passivo, rep_bonus_compliance, crisis_threshold), visibile nella sidebar con descrizione.
-- **E2**: 7 eventi triggerati da soglie statistiche (stress, energia, salute, autostima, rep, fazioni) con testo narrativo ed effetti. Si attivano una volta per soglia.
-- **E3**: grafico a linee ECharts (Stress + Energia nel tempo) nel report finale, usando `stats_history` in memoria.
-- **E4**: 5 fasi (Periodo di Prova → Primo Progetto → Fase Operativa → Ristrutturazione → Sopravvivenza) visibili nella sidebar.
-- **E5**: IL FONDATORE ESAURITO (Startup+burnout_risk), IL PECORA NERA (Familiare+truth_teller), L'INGRANAGGIO PERFETTO (Consulting+yes_man), IL RESISTENTE (energia bassa+longevità), L'INDIOMABILE (autostima alta).
-- **E6**: `_decision_start` timestamp al render evento, calcolato in `_make_choice`, salvato in `analytics.db` e mostrato nel report (media, rapide, lente).
-- **E7**: sbloccati a 8/15 occorrenze per truth_teller e boundary_setter, 20 per yes_man, 10 per burnout_risk e survivor, 30/60 giorni.
-- **E8**: checkbox nella schermata iniziale, mostra badge "Caso Reale" sugli eventi in partita.
+- **Possesso**: l'umano prende il controllo di un agente, le sue scelte vengono tracciate separatamente
+- **Salto**: cambio d'agente con registrazione di `from_agent_id`, `to_agent_id`, giorno, motivo, mood dichiarato
+- **Profilo emergente**: calcolato da `HumanPlayer.get_emergent_profile()` — categoria dominante, distribuzione percentuale, pattern (stress_avoider/explorer/selective), durata media possesso
+- **Match score**: affinità 0-100 tra umano e agente basata su bias del profilo vs preferenze umane
 
 ---
 
-## Overhaul grafico (Giugno 2026)
+## Dettaglio implementazioni
 
-| # | Fase | Descrizione | Stato |
-|---|------|-------------|-------|
-| **F1** | CSS Overhaul | Background gradiente, card `event-card` / `vn-card` con bordo accentato (`--theme-accent`), palette per archetipo, font Inter + JetBrains Mono, scrollbar personalizzata, responsive raffinato | ✅ |
-| **F2** | Facce SVG dinamiche | Funzione `_npc_svg_face()` in app.py: 6 espressioni (neutral/happy/worried/angry/stressed/scared) calcolate da trust/fear/stress, sostituiti avatar testuali (cerchi con iniziali) con SVG inline | ✅ |
-| **F3** | Layout Visual Novel | Ritratto NPC 64px + nome affiancato alla card narrativa, NPC ruota per turno (`history length % 4`), scelte stile dialog VN (tracking uppercase, border accentato, hover glow) | ✅ |
+### M4 — Conseguenze differite
+3 scelte esistenti triggerano eventi dopo N turni (es. difendi un collega → 2 turni dopo arriva `collega_ringrazia`). 5 nuovi eventi narrativi: `collega_ringrazia`, `richiamo_formale`, `progetto_premio`, `burnout_startup`, `passaggio_generazionale`. Badge "N in sospeso" nella UI.
 
-### Dettaglio F1 — CSS Overhaul
+### E6 — Tracking tempo decisione
+`_decision_start` timestamp al render evento, calcolato in `_make_choice`, salvato in `analytics.db`, mostrato nel report (media, scelta più rapida, più lenta).
 
-- `body::before` con gradienti radiali laterali per profondità
-- `vn-card`: bordo `rgba(255,255,255,0.06)`, gradiente interno `#12122a → #0e0e20`, box-shadow
-- `event-card`: gradiente `#141430 → #0f0f24`, narrativa font-size 15px, line-height 1.7
-- `vn-card-highlight`: `border-top: 2px solid var(--theme-accent, #3b82f6)`
-- Sidebar: `stats-sidebar-card` con lo stesso stile delle altre card
-- Pulsanti scelta: `choice-btn` con hover translateX(6px), border-color accentato, min-height 52px
-- Label sezioni tutte `text-xs uppercase tracking-wider` coerenti
-- Scrollbar personalizzata (6px, trasparente, thumb rgba)
+### E7 — Achievement
+Sbloccati a soglie di tag (yes_man≥10/20, burnout_risk≥5/10, truth_teller≥8/15, boundary_setter≥8/15, survivor≥10/20, days_survived≥30/60).
 
-### Dettaglio F2 — Facce SVG dinamiche
-
-```python
-def _npc_svg_face(nname, ndata) -> str:
-    # Determina espressione da trust/fear/stress
-    # 6 espressioni → SVG con 3 path (occhi, bocca, sopracciglia)
-    # Restituisce <svg> inline 28×32 viewBox
-```
-
-Espressioni:
-| Condizione | Espressione |
-|---|---|
-| fear > trust e fear > 40 | `scared` |
-| trust < 30 e fear < 20 | `angry` |
-| stress > 70 | `stressed` |
-| trust < 40 | `worried` |
-| trust ≥ 75 | `happy` |
-| default | `neutral` |
-
-### Dettaglio F3 — Layout Visual Novel
-
-- Colonna sinistra: ritratto NPC (64px, bordo colorato per fazione, SVG face) + nome
-- Colonna destra: card evento (`event-card vn-card-highlight`) con testo narrativo
-- NPC portrait ruota tra i 4 NPC (Marco, Giulia, Roberto, Elena) in base a `len(history) % 4`
-- "Cosa fai?" in uppercase tracking-wider
-- Scelte con effetto hover glow (box-shadow + border-color transition)
-- Mini-evento giornaliero adotta stesso stile `event-card`
-
-### Tabella riepilogativa completa
-
-| # | Miglioramento | Impatto | Sforzo | Stato |
-|---|---------------|---------|--------|-------|
-| M1 | Feedback effetti dopo la scelta | Alto | Basso | ✅ Fatto |
-| M2 | Fazioni influenzano NPC | Alto | Medio | ✅ Fatto |
-| M3 | Anteprima effetti al passaggio mouse | Medio | Basso | ✅ Fatto |
-| M4 | Conseguenze narrativi differite | Alto | Alto | ✅ Fatto |
-| M5 | Più finali basati su fazioni | Alto | Medio | ✅ Fatto |
-| M6 | Storico scelte visibile in partita | Medio | Basso | ✅ Fatto |
-| M7 | Grafo decisionale interattivo | Basso | Alto | ✅ Fatto |
-| M8 | Mini-eventi giornalieri (routine) | Alto | Medio | ✅ Fatto |
-| M9 | Dashboard analytics globale | Medio | Medio | ✅ Fatto |
-| M10 | Mobile responsive migliorato | Medio | Basso | ✅ Fatto |
-| M11 | Tutorial / onboarding | Alto | Medio | ✅ Fatto |
-| M12 | Eventi con timer | Medio | Basso | ✅ Fatto |
-| E1 | Personalità Manager per archetipo | Alto | Medio | ✅ Fatto |
-| E2 | Eventi su soglia | Alto | Basso | ✅ Fatto |
-| E3 | Grafico stress/tempo nel report | Alto | Basso | ✅ Fatto |
-| E4 | Fasi di carriera | Medio | Basso | ✅ Fatto |
-| E5 | 5 nuovi finali incrociati | Alto | Medio | ✅ Fatto |
-| E6 | Tracking tempo decisione | Medio | Basso | ✅ Fatto |
-| E7 | 10 nuovi achievement | Basso | Basso | ✅ Fatto |
-| E8 | Modalità Casi Reali | Basso | Basso | ✅ Fatto |
-| **F1** | **CSS Overhaul** | Alto | Medio | ✅ Fatto |
-| **F2** | **Facce SVG dinamiche** | Alto | Medio | ✅ Fatto |
-| **F3** | **Layout Visual Novel** | Alto | Medio | ✅ Fatto |
-
-**Totale: 23 miglioramenti implementati.**
+### F4-F9 — Asset grafici
+22 PNG personaggi in 6 gruppi emotivi (Neoassunto, Esausto, Critico, Manager tossico, Corporate tossico, Ironico). 12 icone eventi. 5 icone stati. Emote per categoria scelta. Label effetti. Help system.
 
 ---
 
-## 🚀 v3.0 — SOCIAL LABORATORY (Agosto 2026)
+## Future展望
 
-L'ultima evoluzione trasforma il simulatore in un esperimento sociale multi-agente.
+- **CI/CD pipeline** (GitHub Actions)
+- **Test coverage** su engine, player, events, psych_engine, database
+- **Auto-play periodico** per agenti non posseduti (timer 30s)
+- **Conseguenze del salto** (penalità psicologica all'agente lasciato)
+- **Dashboard dedicate** (`dashboard/agent_monitor.py`, `reports.py`, `timeline_viewer.py`, `alert_system.py`)
+- **Multi-utente** (sciame dedicato per sessione, non globale)
 
-| # | Miglioramento | Descrizione | Stato |
-|---|---|---|---|
-| **L1** | **Core Agent Framework** | 7 archetipi psicologici con bias decisionali dinamici | ✅ |
-| **L2** | **Autonomous Swarm** | 6 agenti giocano simultaneamente in background | ✅ |
-| **L3** | **Human Jump System** | Possesso di agenti e salto tra prospettive psicologiche | ✅ |
-| **L4** | **Observer Analytics** | Tracciamento del profilo psicologico emergente dell'umano | ✅ |
-| **L5** | **Lab UI Overhaul** | Vista a 3 colonne, radar charts, jump timeline, dashboard sciame | ✅ |
-| **L6** | **Agent Persistence** | Schema DB esteso per memoria, decisioni e traccia umana | ✅ |
+---
 
-### Dettaglio L1-L6
-- **L1**: Profili come *Il Performante*, *Il Protettore*, *Il Sopravvissuto* definiscono probabilità pesate per le categorie COMPLIANCE, RESISTANCE, NEGOTIATION, ESCAPE.
-- **L2**: `AgentSwarm` coordina l'avanzamento dei turni per tutti gli agenti non controllati dall'utente.
-- **L3**: L'utente può saltare tra gli agenti in qualsiasi momento. Ogni salto viene registrato con il "mood" dichiarato.
-- **L4**: Analisi del comportamento umano (es. "Stress Avoider", "Explorer") basata sulla scelta degli agenti e delle azioni.
-- **L5**: Dashboard basata su ECharts con radar per il confronto tra profilo attuale e profilo emergente dell'utente.
+*Documento aggiornato per BurnoutSimulator v3.1 — Tutti i 23 miglioramenti + 6 fasi Laboratory implementati.*

@@ -414,16 +414,13 @@ details = swarm.get_agent_detailed_view("agent_abc123")
 ```
 
 ## Limitazioni Note
-- **Persistenza:** Il database `agents.db` ha lo schema ma non le funzioni di scrittura. I dati del laboratorio si perdono al riavvio dell'app. *(RISOLTO in v3.1)*
+- **Persistenza:** I dati del laboratorio sono salvati in `agents.db` tramite `save_decision()`, `save_jump()`, `save_human_profile()`, chiamate da `swarm.py` dopo ogni turno/salto. *(Risolto in v3.1)*
 - **Multi-utente:** Lo sciame è globale (variabile globale in `app.py`). Più utenti condividono gli stessi agenti.
-- **Auto-play:** Gli agenti non posseduti non avanzano automaticamente; l'utente deve cliccare "Avanza N turni" nel laboratorio.
-- **Outcomes:** `memory.record_outcome()` esiste ma non viene mai chiamato. Gli agenti non apprendono dagli esiti reali. *(RISOLTO in v3.1)*
-- **Stato UI:** I pulsanti nella UI (SALTA, Possiedi, LABORATORIO, avanzamento turno) sono stati corretti in v3.1.2 per garantire comportamenti coerenti e impedire doppi avanzamenti o doppi rilasci.
+- **Auto-play:** Gli agenti non posseduti non avanzano automaticamente; l'utente deve cliccare "Avanza N turni" nel laboratorio. Un timer periodico può essere aggiunto (vedi estensione sotto).
+- **Outcomes:** `memory.record_outcome()` è chiamato durante le decisioni. L'apprendimento base penalizza scelte che hanno causato stress >5 e premia quelle con stress <-3. *(Risolto in v3.1)*
+- **Stato UI:** I pulsanti (SALTA, Possiedi, LABORATORIO, avanzamento turno) sono stati corretti in v3.1.2 per garantire comportamenti coerenti e impedire doppi avanzamenti/rilasci.
 
 ## Estensioni Consigliate
-
-### Aggiungere persistenza
-Aggiungere funzioni in `agent_db.py`: `save_agent()`, `save_decision()`, `save_jump()`, `save_human_profile()`. Chiamarle in `swarm.py` dopo ogni turno/salto. *(Implementato in v3.1)*
 
 ### Aggiungere auto-play periodico
 In `app.py`, dopo ogni scelta umana:
@@ -440,4 +437,5 @@ if self.engine:
 ```
 
 ---
-Documento aggiornato per BurnoutSimulator v3.0 — Social Laboratory
+
+Documento aggiornato per BurnoutSimulator v3.1 — Social Laboratory
