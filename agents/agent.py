@@ -119,6 +119,19 @@ class Agent:
                 if choice.category == "ESCAPE":
                     weights[i] *= (1 + (100 - self.profile.resilience) / 100)
 
+        # Peer Influence (Realismo): Se una fazione è dominante, l'agente tende ad allinearsi
+        dominant_faction = max(p.factions, key=p.factions.get) if p.factions else None
+        if dominant_faction:
+            faction_weights = {
+                "Fedelissimi": "COMPLIANCE",
+                "Ribelli": "RESISTANCE",
+                "Gruppo Silenzioso": "ESCAPE"
+            }
+            target_cat = faction_weights.get(dominant_faction)
+            for i, choice in enumerate(self.engine.current_event.choices if self.engine.current_event else []):
+                if choice.category == target_cat:
+                    weights[i] *= 1.2
+
         # Se salute è bassa, qualsiasi agente evita danni alla salute
         if p.health < 30:
             for i, choice in enumerate(self.engine.current_event.choices if self.engine.current_event else []):

@@ -14,6 +14,7 @@ from database.agent_db import (
     save_jump,
     save_human_profile,
     save_swarm_session,
+    save_swarm_history,
     get_all_agents,
     get_all_human_profiles,
 )
@@ -285,6 +286,18 @@ class AgentSwarm:
 
         self.turn_counter += 1
 
+        # Salva storia dello sciame per visualizzazione dinamica
+        analytics = self.get_swarm_analytics()
+        save_swarm_history({
+            "session_id": self.session_id,
+            "turn_number": self.turn_counter,
+            "profile_distribution": analytics.get("profile_distribution", {}),
+            "avg_stats": {
+                "avg_stress": analytics.get("avg_stress"),
+                "alive_count": analytics.get("alive_count")
+            }
+        })
+
         # Aggiorna sessione swarm
         save_swarm_session(
             {
@@ -462,8 +475,13 @@ class AgentSwarm:
 
         # Analisi per profilo (OCEAN/Dark Triad impact)
         profile_survival = {}
+        profile_distribution = {}
         for a in self.agents.values():
             p_name = a.profile.name
+
+            # Distribution for dynamic view
+            profile_distribution[p_name] = profile_distribution.get(p_name, 0) + 1
+
             if p_name not in profile_survival:
                 profile_survival[p_name] = {"stress": [], "days": [], "alive": 0, "total": 0}
 
@@ -497,6 +515,7 @@ class AgentSwarm:
             "archetype_avg_stress": {
                 k: round(sum(v) / len(v), 1) for k, v in archetype_stress.items()
             },
+            "profile_distribution": profile_distribution,
             "profile_impact": {
                 name: {
                     "avg_stress": round(sum(d["stress"])/len(d["stress"]), 1) if d["stress"] else 0,

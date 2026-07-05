@@ -15,7 +15,7 @@ from database.analytics import (
     record_choice,
     record_tags,
 )
-from database.agent_db import init_agent_db, save_agent
+from database.agent_db import init_agent_db, save_agent, get_swarm_history
 from game.events import Choice
 from agents.swarm import AgentSwarm
 
@@ -422,6 +422,9 @@ def _render_laboratory():
     lab_view = swarm.get_laboratory_view(current_human_id)
     stats = lab_view["analytics"]
 
+    # Dati per grafico dinamico profili
+    history = get_swarm_history(swarm.session_id)
+
     # Se non c'è un agente ispezionato, scegliamo il primo della lista (spesso quello posseduto)
     if not inspected_agent_id and lab_view["agents"]:
         inspected_agent_id = lab_view["agents"][0]["agent_id"]
@@ -467,12 +470,51 @@ def _render_laboratory():
                     ui.label("SOGGETTI ATTIVI").classes("text-[10px] text-gray-500 font-bold")
                     ui.label(f"{stats.get('alive_count', 0)}/{len(swarm.agents)}").classes("text-2xl font-black text-green-400")
 
-            ui.label("LABORATORIO ANTROPOLOGICO v3.0").classes("text-xl font-black tracking-[0.2em] text-white/20 absolute left-1/2 -translate-x-1/2")
+            ui.label("LABORATORIO ANTROPOLOGICO v3.2").classes("text-xl font-black tracking-[0.2em] text-white/20 absolute left-1/2 -translate-x-1/2")
 
             with ui.row().classes("items-center gap-4"):
-                ui.button("▶ AVANZA", on_click=_step_simulation).props("color=green size=md icon=play_arrow").classes("font-bold")
-                ui.button("10x ▶▶", on_click=lambda: _step_simulation(10)).props("color=green size=md flat").classes("font-bold")
+                # Input per numero simulazioni
+                with ui.row().classes("items-center gap-2 bg-white/5 p-1 rounded-lg border border-white/10"):
+                    ui.label("SIM:").classes("text-[10px] font-bold text-gray-500 ml-2")
+                    sim_count = ui.number(value=1, min=1, max=100, step=1).props("dense borderless dark").classes("w-12 text-xs")
+                    ui.button(icon="play_arrow", on_click=lambda: _step_simulation(int(sim_count.value))).props("color=green size=sm round").classes("shadow-lg")
+
+                ui.button("10x", on_click=lambda: _step_simulation(10)).props("color=green size=md flat").classes("font-bold")
                 ui.button("← MENU", on_click=lambda: globals().update(screen="start") or page.refresh()).props("flat color=gray").classes("text-xs")
+
+        # --- DYNAMIC PROFILE EVOLUTION (NEW) ---
+        if len(history) > 1:
+            with ui.card().classes("w-full p-4 vn-card").props("flat"):
+                ui.label("EVOLUZIONE DINAMICA PROFILI AGENTICI (BIO-DIVERSITÀ PSICOLOGICA)").classes("text-[10px] font-black text-purple-400 tracking-widest mb-4")
+
+                all_profiles = list(AGENT_PROFILE_COLORS.keys())
+                series = []
+                for p_name in all_profiles:
+                    data = []
+                    for h in history:
+                        dist = json.loads(h["profile_distribution_json"])
+                        data.append(dist.get(p_name, 0))
+
+                    series.append({
+                        "name": p_name,
+                        "type": "line",
+                        "stack": "Total",
+                        "areaStyle": {},
+                        "emphasis": {"focus": "series"},
+                        "data": data,
+                        "itemStyle": {"color": AGENT_PROFILE_COLORS.get(p_name, "#ccc")}
+                    })
+
+                evolution_option = {
+                    "tooltip": {"trigger": "axis", "axisPointer": {"type": "cross", "label": {"backgroundColor": "#6a7985"}}},
+                    "legend": {"data": all_profiles, "textStyle": {"color": "#999", "fontSize": 10}, "top": 0},
+                    "grid": {"left": "3%", "right": "4%", "bottom": "3%", "containLabel": True},
+                    "xAxis": [{"type": "category", "boundaryGap": False, "data": [h["turn_number"] for h in history]}],
+                    "yAxis": [{"type": "value"}],
+                    "series": series,
+                    "backgroundColor": "transparent"
+                }
+                ui.echart(evolution_option).classes("w-full h-64")
 
         # --- HR DSS INSIGHTS (NEW) ---
         if stats.get("profile_impact"):
@@ -772,23 +814,30 @@ def _go_to_laboratory():
 
 
 def _mood_matches_agent(mood: str, agent: dict) -> bool:
+    """
+    Verifica se lo stato psicofisico di un agente corrisponde al mood selezionato.
+    Utilizzato per filtrare gli agenti nel Jump System.
+    """
     stats = agent.get("current_stats") or {}
     if not stats:
         return True
+
     if mood == "Stressato":
-        return stats.get("stress", 0) > 60
+        return stats.get("stress", 0) > 50
     elif mood == "Arrabbiato":
-        return stats.get("self_esteem", 50) < 30 or stats.get("stress", 0) > 70
+        return stats.get("self_esteem", 50) < 40 or stats.get("stress", 0) > 60
     elif mood == "Stanco":
-        return stats.get("energy", 100) < 30
+        return stats.get("energy", 100) < 40
     elif mood == "Motivato":
-        return stats.get("energy", 0) > 70 and stats.get("stress", 100) < 40
+        return stats.get("energy", 0) > 60 and stats.get("stress", 100) < 50
     elif mood == "Cinico":
-        return stats.get("integrity", 50) < 30
+        return stats.get("integrity", 50) < 40 or stats.get("team_rep", 50) < 40
     elif mood == "Speranzoso":
-        return stats.get("self_esteem", 0) > 70 and stats.get("stress", 100) < 30
+        return stats.get("self_esteem", 0) > 60 and stats.get("employability", 0) > 60
     elif mood == "Confuso":
-        return True
+        # Confuso è un mood transizionale, quasi tutti possono esserlo se hanno stats medie
+        s = stats.get("stress", 50)
+        return 30 <= s <= 70
     return True
 
 
@@ -1154,6 +1203,14 @@ def _render_start():
                         ui.label("Competizione Interna").classes("text-xs text-gray-300")
                         comp_slider = ui.slider(min=0, max=100, value=60).props("color=purple-5").classes("w-32")
 
+                    with ui.row().classes("w-full items-center justify-between"):
+                        ui.label("Supporto Sociale").classes("text-xs text-gray-300")
+                        supp_slider = ui.slider(min=0, max=100, value=50).props("color=blue-5").classes("w-32")
+
+                    with ui.row().classes("w-full items-center justify-between"):
+                        ui.label("Trasparenza Decisionale").classes("text-xs text-gray-300")
+                        trans_slider = ui.slider(min=0, max=100, value=30).props("color=cyan-5").classes("w-32")
+
                 with ui.row().classes(
                     "w-full items-center justify-between bg-white/5 p-4 rounded-xl border border-white/10 mt-2"
                 ):
@@ -1185,7 +1242,10 @@ def _render_start():
                     "toxicity": tox_slider.value,
                     "pressure": res_slider.value,
                     "cohesion": coh_slider.value,
-                    "competition": comp_slider.value
+                    "competition": comp_slider.value,
+                    "social_support": supp_slider.value,
+                    "transparency": trans_slider.value,
+                    "real_cases": real_cases_toggle.value
                 }
 
                 # Allinea tutti gli agenti all'archetipo e ai parametri HR
@@ -1230,7 +1290,7 @@ def _show_help():
         ):
             with ui.column().classes("w-full max-w-3xl mx-auto p-8 gap-6"):
                 with ui.row().classes("w-full items-center justify-between"):
-                    ui.label("COME GIOCARE").classes(
+                    ui.label("STRATEGIC LABORATORY & DSS HELP").classes(
                         "text-2xl font-black tracking-tighter text-blue-400"
                     )
                     ui.button(icon="close", on_click=d.close).props(
@@ -1239,7 +1299,33 @@ def _show_help():
 
                 sections = [
                     (
-                        "🎯 COSA DEVI FARE",
+                        "🧪 LABORATORIO HR (DSS)",
+                        [
+                            "Questa modalità permette di lanciare simulazioni su uno sciame di 6 agenti autonomi.",
+                            "Puoi definire i parametri HR (Tossicità, Pressione, Coesione, Competizione, Supporto, Trasparenza) per vedere come influenzano lo stress collettivo.",
+                            "Il grafico 'Evoluzione Dinamica' mostra come la biodiversità psicologica cambia nel tempo: alcuni profili 'conquistano' spazio a danno di altri in base all'ambiente.",
+                            "Usa il selettore 'SIM' per lanciare N passi di simulazione contemporaneamente.",
+                            "🔍 **Modalità Casi Reali**: Disattiva le euristiche di allineamento sociale ('Peer Influence') per testare gli agenti contro scenari deterministici basati su pattern di dati reali, senza il supporto sociale del gruppo.",
+                        ],
+                    ),
+                    (
+                        "📊 REPORT E TOP PERFORMERS",
+                        [
+                            "Al termine di ogni sessione (o ispezionando un agente), viene generato un report DSS.",
+                            "Vengono identificati i 'Top Performers': agenti che hanno superato del 20% la sopravvivenza media del loro profilo o mantenuto stress bassissimo.",
+                            "Le decisioni sono raggruppate per tipologia (Compliance, Resistance, etc.) per analizzare i pattern comportamentali dello sciame.",
+                        ],
+                    ),
+                    (
+                        "🔄 JUMP SYSTEM (POSSESSO)",
+                        [
+                            "Puoi 'possedere' un agente cliccando su POSSIEDI. Da quel momento farai tu le sue scelte.",
+                            "Puoi saltare tra agenti usando il tasto SALTA. Il sistema ti proporrà agenti che corrispondono al tuo mood dichiarato.",
+                            "L'antropologia organizzativa suggerisce che l'immersione (possesso) sia fondamentale per capire i motivi qualitativi dietro i dati quantitativi.",
+                        ],
+                    ),
+                    (
+                        "🎯 COSA DEVI FARE (MODALITÀ CLASSICA)",
                         [
                             "Sei un impiegato in un'azienda tossica. Ogni giorno riceverai un evento con una descrizione della situazione.",
                             "Devi scegliere tra 2-4 opzioni di reazione. Ogni scelta ha effetti sulle tue statistiche e sulle relazioni con colleghi e fazioni.",
@@ -1853,6 +1939,17 @@ def _render_game_over():
     player = engine.player
     ending = determine_ending(player)
 
+    # Identifica se l'agente si è comportato bene rispetto al suo profilo
+    is_top_performer = False
+    if current_agent_id and current_agent_id in swarm.agents:
+        agent = swarm.agents[current_agent_id]
+        # Un top performer è chi sopravvive più della media del suo profilo o ha stress basso
+        analytics = swarm.get_swarm_analytics()
+        profile_stats = analytics.get("profile_impact", {}).get(agent.profile.name, {})
+        avg_days = profile_stats.get("avg_days", 0)
+        if player.days_survived > avg_days * 1.2 or (player.is_alive and player.stress < 40):
+            is_top_performer = True
+
     end_session(session_id, player.days_survived, player.status, ending)
     record_tags(session_id, player.tags)
     stats = get_stats_dict(engine)
@@ -2044,6 +2141,46 @@ def _render_game_over():
                 ui.label("ACHIEVEMENT").classes("text-lg font-bold text-gray-300 mb-3")
                 for ach in player.achievements:
                     ui.badge(f"\U0001f3c6 {ach}", color="positive").classes("mr-2 mb-2")
+
+        # Report dettagliato domande/risposte (per HR DSS)
+        if current_agent_id and current_agent_id in swarm.agents:
+            agent = swarm.agents[current_agent_id]
+            with ui.card().classes("w-full p-6 mt-4 vn-card").props("flat"):
+                ui.label("REPORT DETTAGLIATO DECISIONI (DSS)").classes("text-lg font-bold text-gray-300 mb-4")
+
+                # Raggruppa per categoria
+                decisions_by_cat = {}
+                for dec in agent.memory.decisions:
+                    cat = dec.category
+                    if cat not in decisions_by_cat: decisions_by_cat[cat] = []
+                    decisions_by_cat[cat].append(dec)
+
+                with ui.tabs().classes('w-full') as tabs:
+                    for cat in decisions_by_cat:
+                        ui.tab(cat)
+
+                with ui.tab_panels(tabs, value=next(iter(decisions_by_cat)) if decisions_by_cat else None).classes('w-full bg-transparent'):
+                    for cat, decs in decisions_by_cat.items():
+                        with ui.tab_panel(cat):
+                            with ui.column().classes('w-full gap-2'):
+                                for d in decs:
+                                    with ui.row().classes('w-full p-2 bg-white/5 rounded border-l-2 items-start').style(f"border-color: {cat_colors.get(cat, '#666')}"):
+                                        with ui.column().classes('flex-1 gap-1'):
+                                            ui.label(f"GIORNO {d.day}").classes('text-[9px] font-black text-gray-500')
+                                            # Cerchiamo il testo dell'evento
+                                            ev = engine.event_manager.get_event(d.event_id)
+                                            if ev:
+                                                ui.label(ev.text[:100] + "...").classes('text-xs italic text-gray-400')
+                                            ui.label(d.choice_text).classes('text-sm text-white font-bold')
+
+        if is_top_performer:
+            with ui.card().classes("w-full p-6 mt-4 vn-card border-2 border-green-500/50 bg-green-500/5").props("flat"):
+                with ui.row().classes("items-center gap-4"):
+                    ui.icon("emoji_events", size="48px").classes("text-yellow-400")
+                    with ui.column().classes("gap-0"):
+                        ui.label("TOP PERFORMER RILEVATO").classes("text-xs font-black text-green-400 tracking-widest")
+                        ui.label("Efficienza Adattiva Superiore").classes("text-xl font-bold text-white")
+                ui.label(f"L'agente ha superato del {((player.days_survived/avg_days)-1)*100:.0f}% la sopravvivenza media del profilo {agent.profile.name}." if avg_days > 0 else "L'agente ha mostrato una resilienza eccezionale.").classes("text-sm text-gray-300 mt-2")
 
         with ui.card().classes("w-full p-6 mt-4").props("flat"):
             ui.label("ANALISI ANTROPOLOGICA").classes(
