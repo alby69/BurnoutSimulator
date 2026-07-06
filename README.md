@@ -95,6 +95,12 @@ python verify_lab.py            # E2E (richiede app in esecuzione + Playwright)
 - **Docker** — python:3.12-slim, deploy su Render/VPS
 - **Google Fonts** — Inter (UI), JetBrains Mono (dati)
 
+## Metodologia Antropologica
+
+BurnoutSimulator adotta un approccio di **osservazione partecipante digitale**. Attraverso il *Jump System*, il ricercatore (l'utente HR) può immergersi nella soggettività degli agenti simulati, superando la barriera dei dati puramente quantitativi per comprendere il "senso" delle scelte in un contesto di costrizione.
+
+Il framework teorico si basa sulla critica delle culture del *presentismo* e sulla de-mitizzazione della missione aziendale, trattando il profitto come dato di contesto e il benessere come metrica suprema.
+
 ---
 
 *Progetto realizzato per scopi accademici — Antropologia delle Organizzazioni, Sapienza Università di Roma.*

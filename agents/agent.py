@@ -1,3 +1,4 @@
+from game.models import Strategy, Faction
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
 from datetime import datetime
@@ -116,16 +117,16 @@ class Agent:
         # Se stress è alto, agenti con bassa resilienza tendono a ESCAPE
         if p.stress > 70:
             for i, choice in enumerate(self.engine.current_event.choices if self.engine.current_event else []):
-                if choice.category == "ESCAPE":
+                if choice.category == Strategy.ESCAPE.value:
                     weights[i] *= (1 + (100 - self.profile.resilience) / 100)
 
         # Peer Influence (Realismo): Se una fazione è dominante, l'agente tende ad allinearsi
         dominant_faction = max(p.factions, key=p.factions.get) if p.factions else None
         if dominant_faction:
             faction_weights = {
-                "Fedelissimi": "COMPLIANCE",
-                "Ribelli": "RESISTANCE",
-                "Gruppo Silenzioso": "ESCAPE"
+                Faction.LOYALISTS.value: Strategy.COMPLIANCE.value,
+                Faction.REBELS.value: Strategy.RESISTANCE.value,
+                Faction.SILENT.value: Strategy.ESCAPE.value
             }
             target_cat = faction_weights.get(dominant_faction)
             for i, choice in enumerate(self.engine.current_event.choices if self.engine.current_event else []):
@@ -188,6 +189,16 @@ class Agent:
             last = self.possession_history[-1]
             if last["human_id"] == human_id and last["ended_at"] is None:
                 last["ended_at"] = datetime.now().isoformat()
+
+        # Conseguenze del salto (penalità psicologica)
+        # L'abbandono da parte dell'osservatore causa un piccolo shock
+        if self.engine:
+            jump_malus = {
+                "stress": 5,           # Aumento stress immediato
+                "self_esteem": -3,     # Calo autostima (abbandono)
+                "npc_Elena_trust": -2  # HR nota l'instabilità
+            }
+            self.engine.player.update_stats(jump_malus, manager_traits=self.engine.manager_personality, psych_profile=self.profile, hr_params=self.engine.hr_params)
 
         self.is_possessed = False
         self.possessed_by = None

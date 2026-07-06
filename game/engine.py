@@ -1,10 +1,12 @@
+from typing import Dict, List, Set, Optional, Any, Tuple
+from .models import CompanyArchetype, Faction, PlayerState
 from .player import Player
 from .events import EventManager, Event, Choice
 from .graph import DecisionGraph
 from .save_manager import SaveManager
 import random
 
-MINI_EVENTS = [
+MINI_EVENTS: List[Tuple[str, Dict[str, int]]] = [
     ("Trovi traffico, arrivi in ufficio già stressato.", {"stress": 3, "energy": -2}),
     (
         "Un collega ti offre un caffè e due parole di incoraggiamento.",
@@ -55,14 +57,14 @@ MINI_EVENTS = [
     ),
 ]
 
-NPC_FACTION_MAP = {
-    "Marco": "Fedelissimi",
-    "Giulia": "Fedelissimi",
-    "Roberto": "Gruppo Silenzioso",
-    "Elena": "Gruppo Silenzioso",
+NPC_FACTION_MAP: Dict[str, str] = {
+    "Marco": Faction.LOYALISTS.value,
+    "Giulia": Faction.LOYALISTS.value,
+    "Roberto": Faction.SILENT.value,
+    "Elena": Faction.SILENT.value,
 }
 
-MANAGER_PERSONALITIES = {
+MANAGER_PERSONALITIES: Dict[str, Dict[str, Any]] = {
     "Micromanager Iperattivo": {
         "type": "Micromanager Iperattivo",
         "description": "Risponde ai messaggi alle 2 di notte, vuole update ogni ora, confonde urgenza con produttività.",
@@ -109,7 +111,7 @@ MANAGER_PERSONALITIES = {
     },
 }
 
-CAREER_PHASES = [
+CAREER_PHASES: List[Tuple[int, str, str]] = [
     (0, "Periodo di Prova", "Sei sotto osservazione. Ogni mossa è analizzata."),
     (5, "Primo Progetto", "Ti è stato affidato il primo incarico significativo."),
     (
@@ -121,7 +123,7 @@ CAREER_PHASES = [
     (60, "Sopravvivenza", "Sei arrivato fin qui. Ogni giorno è una vittoria."),
 ]
 
-THRESHOLD_EVENTS = [
+THRESHOLD_EVENTS: List[Tuple[Any, str, Dict[str, int]]] = [
     (
         lambda p: p.stress >= 80 and not p.status.startswith("Burnout"),
         "Sei sopraffatto dallo stress. Le mani tremano davanti alla tastiera.",
@@ -148,17 +150,17 @@ THRESHOLD_EVENTS = [
         {"energy": -3, "stress": 2},
     ),
     (
-        lambda p: p.factions["Ribelli"] >= 70,
+        lambda p: p.factions[Faction.REBELS.value] >= 70,
         "Un collega di un altro reparto ti cerca: 'Ho saputo cosa hai fatto. Anch'io la penso così. Parliamo?'",
         {"faction_Ribelli": 5, "npc_Roberto_trust": 3},
     ),
     (
-        lambda p: p.factions["Fedelissimi"] >= 70,
+        lambda p: p.factions[Faction.LOYALISTS.value] >= 70,
         "Marco ti convoca per un 'caffè informale'. Vuole proporti un ruolo di maggiore responsabilità... e controllo.",
         {"npc_Marco_trust": 5, "faction_Fedelissimi": 3},
     ),
     (
-        lambda p: p.stress > 60 and p.factions["Gruppo Silenzioso"] > 60,
+        lambda p: p.stress > 60 and p.factions[Faction.SILENT.value] > 60,
         "Un gruppo di colleghi ti invita a ignorare le ultime mail del manager: 'Tanto non controlla davvero'.",
         {"stress": -5, "manager_rep": -3, "faction_Gruppo Silenzioso": 5},
     ),
@@ -166,8 +168,8 @@ THRESHOLD_EVENTS = [
 
 
 class GameEngine:
-    COMPANY_ARCHETYPES = {
-        "Startup Caotica": {
+    COMPANY_ARCHETYPES: Dict[str, Dict[str, Any]] = {
+        CompanyArchetype.STARTUP.value: {
             "energy": 80,
             "stress": 20,
             "manager_rep": 60,
@@ -175,7 +177,7 @@ class GameEngine:
             "hidden_vars": {"agility": 80, "stability": 20},
             "manager_personality": "Micromanager Iperattivo",
         },
-        "Corporate Tossica": {
+        CompanyArchetype.CORPORATE.value: {
             "energy": 100,
             "stress": 10,
             "manager_rep": 50,
@@ -183,7 +185,7 @@ class GameEngine:
             "hidden_vars": {"agility": 20, "stability": 80},
             "manager_personality": "Narcisista Burocratico",
         },
-        "Azienda Familiare": {
+        CompanyArchetype.FAMILY.value: {
             "energy": 100,
             "stress": 5,
             "manager_rep": 40,
@@ -191,7 +193,7 @@ class GameEngine:
             "hidden_vars": {"loyalty": 90, "merit": 10},
             "manager_personality": "Padre/Padrone Paternalista",
         },
-        "Consulting": {
+        CompanyArchetype.CONSULTING.value: {
             "energy": 70,
             "stress": 30,
             "manager_rep": 70,
@@ -205,11 +207,17 @@ class GameEngine:
         self,
         player_name: str,
         events_file: str,
-        company_type: str = "Corporate Tossica",
-        psych_profile = None,
-        hr_params: dict = None
-    ):
-        self.player = Player(name=player_name, company_type=company_type)
+        company_type: str = CompanyArchetype.CORPORATE.value,
+        psych_profile: Optional[Any] = None,
+        hr_params: Optional[Dict[str, Any]] = None
+    ) -> None:
+        # Convert company_type string to Enum if possible
+        try:
+            enum_company = CompanyArchetype(company_type)
+        except ValueError:
+            enum_company = CompanyArchetype.CORPORATE
+
+        self.player = Player(name=player_name, company_type=enum_company)
         self.psych_profile = psych_profile
         self.hr_params = hr_params or {}
         self.apply_archetype(company_type)
@@ -217,35 +225,38 @@ class GameEngine:
         self.event_manager = EventManager(events_file)
         self.graph = DecisionGraph()
         self.save_manager = SaveManager()
-        self.current_event = None
-        self.next_event_id_override = None
-        self.history = []
-        self.hidden_vars = (
-            self.COMPANY_ARCHETYPES[company_type].get("hidden_vars", {}).copy()
+        self.current_event: Optional[Event] = None
+        self.next_event_id_override: Optional[str] = None
+        self.history: List[str] = []
+        self.hidden_vars: Dict[str, Any] = (
+            self.COMPANY_ARCHETYPES.get(company_type, self.COMPANY_ARCHETYPES[CompanyArchetype.CORPORATE.value])
+            .get("hidden_vars", {}).copy()
         )
         self.hidden_vars["manager_patience"] = 70
         self.hidden_vars["company_crisis"] = 10
-        self.current_mini_event = None
+        self.current_mini_event: Optional[Tuple[str, Dict[str, int]]] = None
         self._last_factions = dict(self.player.factions)
-        self.deferred_events = []
+        self.deferred_events: List[Dict[str, Any]] = []
         self._tutorial_step = 0
         arch = self.COMPANY_ARCHETYPES.get(
-            company_type, self.COMPANY_ARCHETYPES["Corporate Tossica"]
+            company_type, self.COMPANY_ARCHETYPES[CompanyArchetype.CORPORATE.value]
         )
         self.manager_personality = MANAGER_PERSONALITIES.get(
             arch.get("manager_personality", ""), {}
         )
-        self.stats_history = [dict(self.player.to_dict()["stats"])]
-        self._last_threshold_triggers = set()
+        self.stats_history: List[Dict[str, int]] = [dict(self.player.to_dict()["stats"])]
+        self._last_threshold_triggers: Set[Tuple[str, str]] = set()
 
-    def apply_archetype(self, archetype_name):
+    def apply_archetype(self, archetype_name: str) -> None:
+        """Applica i parametri iniziali basati sull'archetipo aziendale."""
         if archetype_name in self.COMPANY_ARCHETYPES:
             arch = self.COMPANY_ARCHETYPES[archetype_name]
             self.player.energy = arch.get("energy", 100)
             self.player.stress = arch.get("stress", 0)
             self.player.manager_rep = arch.get("manager_rep", 50)
 
-    def next_turn(self):
+    def next_turn(self) -> Optional[Event]:
+        """Avanza al turno successivo, gestendo eventi e stati passivi."""
         self.player.days_survived += 1
         p = self.player
 
@@ -269,12 +280,12 @@ class GameEngine:
         if not self.real_cases_mode and p.factions:
             dom_faction = max(p.factions, key=p.factions.get)
             if p.factions[dom_faction] > 60:
-                if dom_faction == "Fedelissimi":
+                if dom_faction == Faction.LOYALISTS.value:
                     p.manager_rep = min(100, p.manager_rep + 0.5)
-                elif dom_faction == "Ribelli":
+                elif dom_faction == Faction.REBELS.value:
                     p.stress = min(100, p.stress + 0.5)
                     p.manager_rep = max(0, p.manager_rep - 0.5)
-                elif dom_faction == "Gruppo Silenzioso":
+                elif dom_faction == Faction.SILENT.value:
                     p.energy = max(0, p.energy - 0.5)
 
         # Process deferred events
@@ -305,7 +316,7 @@ class GameEngine:
 
         return self.current_event
 
-    def process_threshold_events(self):
+    def process_threshold_events(self) -> None:
         p = self.player
         trigger_key = None
         for condition, text, effects in THRESHOLD_EVENTS:
@@ -318,7 +329,7 @@ class GameEngine:
                     return
         self._last_threshold_triggers.clear()
 
-    def get_career_phase(self):
+    def get_career_phase(self) -> Tuple[int, str, str]:
         d = self.player.days_survived
         phase = CAREER_PHASES[0]
         for day, name, desc in reversed(CAREER_PHASES):
@@ -327,7 +338,7 @@ class GameEngine:
                 break
         return phase
 
-    def _sync_factions_to_npcs(self):
+    def _sync_factions_to_npcs(self) -> None:
         p = self.player
         current = dict(p.factions)
 
@@ -337,7 +348,7 @@ class GameEngine:
                 continue
             delta = value - prev
 
-            if faction == "Fedelissimi":
+            if faction == Faction.LOYALISTS.value:
                 p.npcs["Marco"].trust = max(
                     0, min(100, p.npcs["Marco"].trust + delta // 5)
                 )
@@ -352,7 +363,7 @@ class GameEngine:
                         0, p.npcs["Roberto"].respect - delta // 10
                     )
 
-            elif faction == "Ribelli":
+            elif faction == Faction.REBELS.value:
                 p.npcs["Marco"].trust = max(0, p.npcs["Marco"].trust - delta // 4)
                 p.npcs["Giulia"].fear = max(
                     0, min(100, p.npcs["Giulia"].fear + delta // 6)
@@ -364,7 +375,7 @@ class GameEngine:
                     0, min(100, p.npcs["Elena"].trust + delta // 10)
                 )
 
-            elif faction == "Gruppo Silenzioso":
+            elif faction == Faction.SILENT.value:
                 p.npcs["Elena"].trust = max(
                     0, min(100, p.npcs["Elena"].trust + delta // 8)
                 )
@@ -374,7 +385,8 @@ class GameEngine:
 
         self._last_factions = current
 
-    def handle_choice(self, choice_index: int):
+    def handle_choice(self, choice_index: int) -> bool:
+        """Gestisce la scelta dell'utente e aggiorna lo stato del gioco."""
         if not self.current_event or choice_index >= len(self.current_event.choices):
             return False
 
@@ -431,8 +443,11 @@ class GameEngine:
 
         return True
 
-    def is_game_over(self):
+    def is_game_over(self) -> bool:
         return not self.player.is_alive
 
-    def save_game(self):
+    def save_game(self) -> str:
         return self.save_manager.save_session(self.player, self.graph)
+
+    def save_game_to_slot(self, slot: int) -> str:
+        return self.save_manager.save_session(self.player, self.graph, slot=slot)

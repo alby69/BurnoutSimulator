@@ -9,8 +9,12 @@ class SaveManager:
         self.sessions_dir = Path(sessions_dir)
         self.sessions_dir.mkdir(parents=True, exist_ok=True)
 
-    def save_session(self, player: Player, graph: DecisionGraph):
-        session_id = f"{player.name}_{uuid.uuid4().hex[:8]}"
+    def save_session(self, player: Player, graph: DecisionGraph, slot: int = 0):
+        if slot > 0:
+            session_id = f"slot_{slot}"
+        else:
+            session_id = f"{player.name}_{uuid.uuid4().hex[:8]}"
+
         filepath = self.sessions_dir / f"{session_id}.json"
 
         data = {
