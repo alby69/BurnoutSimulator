@@ -3,7 +3,11 @@ import random, uuid
 from ui.theme import ARCHETYPE_THEMES, CAT_COLORS
 from ui.assets import GFX_PATH, EMOTE_ICONS
 from game.engine import NPC_FACTION_MAP
-from ui.components.sidebar import render_stats_section, render_factions_section, render_relationships_section
+from ui.components.sidebar import (
+    render_stats_section,
+    render_factions_section,
+    render_relationships_section,
+)
 from ui.components.common import state_icon, event_icon, npc_portrait, effect_label
 import game.state as state
 from ui.pages.logic import (
@@ -14,8 +18,9 @@ from ui.pages.logic import (
     exit_game,
     make_choice,
     tutorial_next,
-    tutorial_prev
+    tutorial_prev,
 )
+
 
 def render_game():
     engine = state.engine
@@ -23,7 +28,7 @@ def render_game():
     pdata = player.to_dict()
     event = engine.current_event
     theme = ARCHETYPE_THEMES.get(
-        player.company_type, ARCHETYPE_THEMES["Corporate Tossica"]
+        player.company_type.value, ARCHETYPE_THEMES["Corporate Tossica"]
     )
 
     if state.current_agent_id:
@@ -65,9 +70,9 @@ def render_game():
                 ui.separator().props("vertical").classes("bg-white/10 h-8")
 
                 with ui.column().classes("gap-1"):
-                    ui.badge(player.company_type.upper(), color=theme["badge"]).classes(
-                        "px-3 py-1 font-bold tracking-tighter"
-                    )
+                    ui.badge(
+                        player.company_type.name.upper(), color=theme["badge"]
+                    ).classes("px-3 py-1 font-bold tracking-tighter")
                     ui.label(f"Evento {unique_seen}/{total_events}").classes(
                         "text-[10px] text-gray-400 font-mono"
                     )
@@ -400,7 +405,9 @@ def render_game():
                                 on_click=handle_choice_cb(i, event, choice),
                             )
                             .classes(f"w-full choice-btn {timer_class} fade-in")
-                            .props(f"flat no-caps aria-label='Scelta {i+1}: {choice.text}'")
+                            .props(
+                                f"flat no-caps aria-label='Scelta {i + 1}: {choice.text}'"
+                            )
                         ):
                             with ui.column().classes("w-full items-start gap-1"):
                                 ui.label(label).classes("text-left")
@@ -485,7 +492,6 @@ def render_game():
                 )
 
 
-
 def render_tutorial():
     steps = [
         {
@@ -533,7 +539,9 @@ def render_tutorial():
 
             with ui.row().classes("w-full items-center justify-center mt-8 gap-1"):
                 for i in range(len(steps)):
-                    color = "bg-purple-500" if i == state._tutorial_step else "bg-gray-700"
+                    color = (
+                        "bg-purple-500" if i == state._tutorial_step else "bg-gray-700"
+                    )
                     ui.html(f'<div class="w-2 h-2 rounded-full {color}"></div>')
 
             with ui.row().classes("justify-center gap-4 mt-8 w-full"):
