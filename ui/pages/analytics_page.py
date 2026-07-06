@@ -103,7 +103,7 @@ def render_analytics():
             cur.execute("""
                 SELECT s.company_type, c.choice_category, COUNT(*) as cnt
                 FROM sessions s
-                JOIN choices c ON s.session_id = c.session_id
+                JOIN choices c ON s.id = c.session_id
                 GROUP BY s.company_type, c.choice_category
             """)
             heatmap_data = cur.fetchall()
