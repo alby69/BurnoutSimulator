@@ -1,18 +1,11 @@
+from typing import Dict, List, Set, Optional, Any
+from .models import Faction, CompanyArchetype, NPCState
 from dataclasses import dataclass, field
-from typing import Dict, List, Set
-
-@dataclass
-class NPC:
-    name: str
-    role: str
-    trust: int = 50
-    fear: int = 0
-    respect: int = 50
 
 @dataclass
 class Player:
     name: str
-    company_type: str = "Corporate Tossica"
+    company_type: CompanyArchetype = CompanyArchetype.CORPORATE
     energy: int = 100
     stress: int = 0
     self_esteem: int = 50
@@ -24,17 +17,17 @@ class Player:
 
     # Factions: Loyalist, Silent, Rebel
     factions: Dict[str, int] = field(default_factory=lambda: {
-        "Fedelissimi": 0,
-        "Gruppo Silenzioso": 50,
-        "Ribelli": 0
+        Faction.LOYALISTS.value: 0,
+        Faction.SILENT.value: 50,
+        Faction.REBELS.value: 0
     })
 
     # NPCs
-    npcs: Dict[str, NPC] = field(default_factory=lambda: {
-        "Marco": NPC("Marco", "Manager Tossico"),
-        "Giulia": NPC("Giulia", "Collega Opportunista"),
-        "Roberto": NPC("Roberto", "Mentor Disilluso"),
-        "Elena": NPC("Elena", "HR Passiva")
+    npcs: Dict[str, NPCState] = field(default_factory=lambda: {
+        "Marco": NPCState("Marco", "Manager Tossico"),
+        "Giulia": NPCState("Giulia", "Collega Opportunista"),
+        "Roberto": NPCState("Roberto", "Mentor Disilluso"),
+        "Elena": NPCState("Elena", "HR Passiva")
     })
 
     tags: Dict[str, int] = field(default_factory=lambda: {
@@ -52,11 +45,10 @@ class Player:
     career_phase: str = "Periodo di Prova"
     decision_times: List[float] = field(default_factory=list)
 
-    def update_stats(self, effects: dict, manager_traits: dict = None, psych_profile = None, hr_params: dict = None):
+    def update_stats(self, effects: Dict[str, int], manager_traits: Optional[Dict[str, Any]] = None, psych_profile: Any = None, hr_params: Optional[Dict[str, Any]] = None) -> None:
+        """Aggiorna le statistiche del giocatore applicando i modificatori psicologici e sociali."""
         # Calcolo bonus di fazione (Social Support)
-        # Se l'agente è ben integrato in una fazione forte, riceve un bonus alla resistenza allo stress.
-        # Se è isolato (punteggi bassi ovunque), è più vulnerabile.
-        social_support = 0
+        social_support = 0.0
         if any(v > 60 for v in self.factions.values()):
             social_support = 0.2 # 20% di riduzione stress
         elif all(v < 25 for v in self.factions.values()):
@@ -72,7 +64,7 @@ class Player:
 
             if stat == "reputation":
                 self.manager_rep = max(0, min(100, self.manager_rep + value))
-            elif hasattr(self, stat) and not isinstance(getattr(self, stat), (dict, list, set, NPC)):
+            elif hasattr(self, stat) and not isinstance(getattr(self, stat), (dict, list, set, NPCState)):
                 current_val = getattr(self, stat)
                 setattr(self, stat, max(0, min(100, current_val + value)))
             elif stat.startswith("npc_"):
@@ -94,7 +86,8 @@ class Player:
 
         self.check_conditions()
 
-    def add_tags(self, tags_list: list):
+    def add_tags(self, tags_list: List[str]) -> None:
+        """Aggiunge tag comportamentali e sblocca achievement relativi."""
         for tag in tags_list:
             if tag in self.tags:
                 self.tags[tag] += 1
@@ -128,7 +121,8 @@ class Player:
         if self.days_survived >= 60:
             self.achievements.add("Leggenda Vivente")
 
-    def check_conditions(self):
+    def check_conditions(self) -> None:
+        """Verifica le condizioni di fine partita (Burnout, Licenziamento, Promozione)."""
         if self.health <= 0:
             self.is_alive = False
             self.status = "Burnout (Crollo Fisico)"
@@ -154,10 +148,11 @@ class Player:
             self.is_alive = False
             self.status = "Sopravvissuto"
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
+        """Serializza lo stato del giocatore per la persistenza o la UI."""
         return {
             "name": self.name,
-            "company_type": self.company_type,
+            "company_type": self.company_type.value if isinstance(self.company_type, CompanyArchetype) else self.company_type,
             "stats": {
                 "energy": self.energy,
                 "stress": self.stress,
@@ -169,7 +164,7 @@ class Player:
                 "health": self.health
             },
             "factions": self.factions,
-            "npcs": {name: vars(npc) for name, npc in self.npcs.items()},
+            "npcs": {name: npc.to_dict() for name, npc in self.npcs.items()},
             "tags": self.tags,
             "achievements": list(self.achievements),
             "days_survived": self.days_survived,
