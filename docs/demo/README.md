@@ -2,7 +2,7 @@
 
 Benvenuto nella demo interattiva di **Burnout Simulator**, un simulatore di antropologia delle organizzazioni che modella le dinamiche tossiche, le strategie di sopravvivenza e l'evoluzione psicologica degli agenti in contesti aziendali.
 
-Questa demo documenta il flusso completo di una partita: dalla configurazione iniziale, al Laboratorio Antropologico, al possesso di un agente, alle scelte in-game, fino al Game Over e alla Dashboard Analytics.
+Questa demo documenta una simulazione completa di **4 partite** da **15 giorni ciascuna**, per un totale di **47 scelte** registrate nel database analytics. Il flusso copre tutte le fasi: configurazione iniziale, Laboratorio Antropologico, possesso di agenti, scelte in-game, Game Over e Dashboard Analytics finale.
 
 ---
 
@@ -72,6 +72,8 @@ Dopo alcuni turni di gioco, lo stato dell'agente evolve:
 - Gli eventi si susseguono con nuovi NPC e scenari
 - La barra di stress e gli indicatori di rischio si aggiornano dinamicamente
 
+Nella simulazione demo, ogni partita dura **15 turni**, con l'agente che accumula stress, energia e impatti sulle relazioni ad ogni scelta. Al termine, la partita viene conclusa manualmente tramite il pulsante di uscita per procedere alla schermata di valutazione.
+
 ---
 
 ## 6. Game Over — Valutazione Carriera
@@ -95,12 +97,12 @@ Quando la partita termina (per burnout, licenziamento, dimissioni o altro), vien
 
 ![Analytics](screenshots/07_analytics.png)
 
-La **Dashboard Analytics** mostra i dati aggregati di tutte le partite:
-- **Heatmap Strategie per Archetipo**: distribuzione delle scelte (COMPLIANCE, RESISTANCE, NEGOTIATION, ESCAPE) per tipo di azienda
-- **Finali più ottenuti**: classifica dei finali con barra proporzionale
-- **Scelte per Categoria**: distribuzione delle scelte per categoria
-- **Sopravvivenza Media per Archetipo**: giorni medi per archetipo aziendale
-- **Ultime Partite**: tabella delle sessioni recenti
+La **Dashboard Analytics** mostra i dati aggregati di **tutte e 4 le partite** (47 scelte totali, ~15 giorni ciascuna):
+- **Heatmap Strategie per Archetipo**: distribuzione delle scelte (COMPLIANCE, RESISTANCE, NEGOTIATION, ESCAPE) per tipo di azienda. In questa simulazione: 20 COMPLIANCE, 14 RESISTANCE, 9 NEGOTIATION, 4 ESCAPE su Corporate Tossica.
+- **Finali più ottenuti**: classifica dei finali con barra proporzionale (IL SOPRAVVISSUTO, IL CADUTO, etc.)
+- **Scelte per Categoria**: distribuzione delle scelte per categoria strategica
+- **Sopravvivenza Media per Archetipo**: giorni medi (13-16gg) per archetipo aziendale
+- **Ultime Partite**: tabella delle 4 sessioni recenti con nome agente, archetipo, giorni e finale
 - **Pulsanti**: "Esporta CSV", "Gioca una partita", "← Torna al Menu"
 
 ---
@@ -121,4 +123,4 @@ Burnout Simulator è un progetto di antropologia digitale applicata alle organiz
 
 ---
 
-*Documento generato il 6 Luglio 2026 — commit `8d18284`*
+*Documento generato il 6 Luglio 2026 — `4 partite × 15 giorni` = 47 scelte totali*
