@@ -72,12 +72,12 @@ burnout-simulator/
 
 | Documento | Contenuto |
 |---|---|
-| Documento | Contenuto |
-|---|---|
-| [docs/technical/INSTALL.md](docs/technical/INSTALL.md) | Installazione locale, Docker, deploy |
+| [docs/technical/INSTALL.md](docs/technical/INSTALL.md) | Installazione locale, Docker, deploy cloud |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Evoluzione completa v1.0 → v3.2 |
 | [docs/technical/JUMP_SYSTEM.md](docs/technical/JUMP_SYSTEM.md) | Architettura del sistema di possesso |
-| [docs/anthropological/osservazione_partecipante.md](docs/anthropological/osservazione_partecipante.md) | Taglio divulgativo/antropologico sul sistema |
+| [docs/technical/PIANO_GRAFICHE.md](docs/technical/PIANO_GRAFICHE.md) | Mappa completa degli asset grafici |
+| [docs/technical/hr_dss.md](docs/technical/hr_dss.md) | Documentazione HR Decision Support System |
+| [docs/anthropological/analisi_antropologica.md](docs/anthropological/analisi_antropologica.md) | Analisi antropologica completa del simulatore |
 
 ## Testing
 

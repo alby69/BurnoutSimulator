@@ -121,7 +121,7 @@ Sbloccati a soglie di tag (yes_man≥10/20, burnout_risk≥5/10, truth_teller≥
 
 ---
 
-## Future展望
+## Future
 
 - **CI/CD pipeline** (GitHub Actions)
 - **Test coverage** su engine, player, events, psych_engine, database
