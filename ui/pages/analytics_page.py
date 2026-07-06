@@ -73,8 +73,8 @@ def render_analytics():
 
             # Scelte per categoria
             cur.execute("""
-                SELECT category, COUNT(*) as cnt FROM choices
-                GROUP BY category ORDER BY cnt DESC
+                SELECT choice_category, COUNT(*) as cnt FROM choices
+                GROUP BY choice_category ORDER BY cnt DESC
             """)
             cat_data = cur.fetchall()
 
@@ -101,10 +101,10 @@ def render_analytics():
             conn = sqlite3.connect(db_path)
             cur = conn.cursor()
             cur.execute("""
-                SELECT s.company_type, c.category, COUNT(*) as cnt
+                SELECT s.company_type, c.choice_category, COUNT(*) as cnt
                 FROM sessions s
                 JOIN choices c ON s.session_id = c.session_id
-                GROUP BY s.company_type, c.category
+                GROUP BY s.company_type, c.choice_category
             """)
             heatmap_data = cur.fetchall()
             conn.close()
@@ -235,7 +235,7 @@ def render_analytics():
             conn = sqlite3.connect(db_path)
             cur = conn.cursor()
             cur.execute("""
-                SELECT name, company_type, days_survived, ending, status
+                SELECT player_name, company_type, days_survived, ending, final_status
                 FROM sessions ORDER BY rowid DESC LIMIT 10
             """)
             recent = cur.fetchall()
@@ -248,11 +248,11 @@ def render_analytics():
                 ui.label("Ultime partite").classes(
                     "text-sm font-bold text-gray-300 mb-2"
                 )
-                for name, arch, days, ending, status in recent:
+                for pname, arch, days, ending, status in recent:
                     with ui.row().classes(
                         "w-full items-center gap-2 border-b border-gray-800 pb-1"
                     ):
-                        ui.label(name).classes("text-xs text-gray-300 w-24 truncate")
+                        ui.label(pname).classes("text-xs text-gray-300 w-24 truncate")
                         ui.label(arch).classes("text-xs text-gray-500 w-32")
                         ui.label(f"{days} gg").classes(
                             "text-xs font-mono text-gray-400 w-16"
