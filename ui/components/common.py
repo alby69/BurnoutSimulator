@@ -1,5 +1,19 @@
 from nicegui import ui
-from ui.assets import GFX_PATH, NPC_SCARED, NPC_DEFAULT, NPC_ANGRY, NPC_STRESSED, NPC_WORRIED, NPC_HAPPY, EVENT_ICONS, STATE_ICONS, EFFECT_LABELS
+from ui.assets import (
+    GFX_PATH,
+    NPC_SCARED,
+    NPC_DEFAULT,
+    NPC_ANGRY,
+    NPC_STRESSED,
+    NPC_WORRIED,
+    NPC_HAPPY,
+    EVENT_ICONS,
+    STATE_ICONS,
+    EFFECT_LABELS,
+)
+import game.state as state
+from ui.pages.logic import start_possession
+
 
 def effect_label(key: str) -> str:
     return EFFECT_LABELS.get(key, key.replace("_", " ").title())
@@ -8,7 +22,7 @@ def effect_label(key: str) -> str:
 def npc_portrait(nname: str, ndata: dict) -> str:
     trust = ndata.get("trust", 50)
     fear = ndata.get("fear", 0)
-    stress = getattr(engine, "player", None) and engine.player.stress or 0
+    stress = getattr(state.engine, "player", None) and state.engine.player.stress or 0
 
     if fear > trust and fear > 40:
         img = NPC_SCARED.get(nname) or NPC_DEFAULT.get(
@@ -62,7 +76,9 @@ def metric_card(label, value, color):
     with ui.card().classes("flex-1 p-3 vn-card items-center gap-0").props("flat"):
         ui.label(label).classes("text-[10px] font-black text-gray-500 tracking-tighter")
         ui.label(f"{value}%").classes("text-xl font-black").style(f"color: {color}")
-        ui.linear_progress(value/100, size="2px", color=color).classes("w-full mt-2 bg-white/5")
+        ui.linear_progress(value / 100, size="2px", color=color).classes(
+            "w-full mt-2 bg-white/5"
+        )
 
 
 def mini_stat(label: str, value: int, color: str):
@@ -73,7 +89,7 @@ def mini_stat(label: str, value: int, color: str):
 
 def show_agent_details(agent_id: str):
     """Mostra dettagli completi di un agente per aiutare la scelta."""
-    details = swarm.get_agent_detailed_view(agent_id)
+    details = state.swarm.get_agent_detailed_view(agent_id)
 
     with ui.dialog().props("maximized") as dialog:
         with (

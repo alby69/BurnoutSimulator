@@ -1,10 +1,14 @@
 from nicegui import ui
 import sqlite3, os, csv, io
 from ui.theme import ARCHETYPE_THEMES, CAT_COLORS
+from ui.pages.logic import play_again
+
 
 def export_analytics_csv():
     """Esporta i dati delle sessioni in formato CSV."""
-    db_path = os.path.join(os.path.dirname(__file__), "..", "..", "database", "analytics.db")
+    db_path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "database", "analytics.db"
+    )
     if not os.path.exists(db_path):
         ui.notify("Database non trovato", type="negative")
         return
@@ -18,7 +22,17 @@ def export_analytics_csv():
         output = io.StringIO()
         writer = csv.writer(output)
         # Header (basato sullo schema ipotizzato, andrebbe verificato nel file database/analytics.py)
-        writer.writerow(["session_id", "name", "company_type", "days_survived", "ending", "status", "created_at"])
+        writer.writerow(
+            [
+                "session_id",
+                "name",
+                "company_type",
+                "days_survived",
+                "ending",
+                "status",
+                "created_at",
+            ]
+        )
         writer.writerows(rows)
 
         content = output.getvalue().encode("utf-8")
@@ -27,8 +41,11 @@ def export_analytics_csv():
     except Exception as e:
         ui.notify(f"Errore export: {e}", type="negative")
 
+
 def render_analytics():
-    db_path = os.path.join(os.path.dirname(__file__), "..", "..", "database", "analytics.db")
+    db_path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "database", "analytics.db"
+    )
     with ui.column().classes("w-full max-w-4xl mx-auto"):
         with ui.row().classes("w-full items-center justify-between mb-4 pb-3 top-bar"):
             ui.label("📊 Dashboard Analytics").classes("text-2xl font-bold text-white")
@@ -101,28 +118,62 @@ def render_analytics():
                 data = []
                 for arch_idx, arch in enumerate(archs):
                     for cat_idx, cat in enumerate(cats):
-                        val = next((r[2] for r in heatmap_data if r[0] == arch and r[1] == cat), 0)
+                        val = next(
+                            (
+                                r[2]
+                                for r in heatmap_data
+                                if r[0] == arch and r[1] == cat
+                            ),
+                            0,
+                        )
                         data.append([arch_idx, cat_idx, val])
 
                 heatmap_option = {
-                    "title": {"text": "Heatmap Strategie per Archetipo", "textStyle": {"color": "#ccc", "fontSize": 12}, "left": "center"},
+                    "title": {
+                        "text": "Heatmap Strategie per Archetipo",
+                        "textStyle": {"color": "#ccc", "fontSize": 12},
+                        "left": "center",
+                    },
                     "tooltip": {"position": "top"},
                     "grid": {"height": "70%", "top": "15%"},
-                    "xAxis": {"type": "category", "data": archs, "splitArea": {"show": True}},
-                    "yAxis": {"type": "category", "data": cats, "splitArea": {"show": True}},
-                    "visualMap": {
-                        "min": 0, "max": max(r[2] for r in heatmap_data) if heatmap_data else 10,
-                        "calculable": True, "orient": "horizontal", "left": "center", "bottom": "0%",
-                        "inRange": {"color": ["#111", "#3b82f6", "#ef4444"]}
+                    "xAxis": {
+                        "type": "category",
+                        "data": archs,
+                        "splitArea": {"show": True},
                     },
-                    "series": [{
-                        "name": "Scelte", "type": "heatmap", "data": data,
-                        "label": {"show": True},
-                        "emphasis": {"itemStyle": {"shadowBlur": 10, "shadowColor": "rgba(0, 0, 0, 0.5)"}}
-                    }],
-                    "backgroundColor": "transparent"
+                    "yAxis": {
+                        "type": "category",
+                        "data": cats,
+                        "splitArea": {"show": True},
+                    },
+                    "visualMap": {
+                        "min": 0,
+                        "max": max(r[2] for r in heatmap_data) if heatmap_data else 10,
+                        "calculable": True,
+                        "orient": "horizontal",
+                        "left": "center",
+                        "bottom": "0%",
+                        "inRange": {"color": ["#111", "#3b82f6", "#ef4444"]},
+                    },
+                    "series": [
+                        {
+                            "name": "Scelte",
+                            "type": "heatmap",
+                            "data": data,
+                            "label": {"show": True},
+                            "emphasis": {
+                                "itemStyle": {
+                                    "shadowBlur": 10,
+                                    "shadowColor": "rgba(0, 0, 0, 0.5)",
+                                }
+                            },
+                        }
+                    ],
+                    "backgroundColor": "transparent",
                 }
-                with ui.card().classes("w-full p-4 mt-4 vn-card").style("height: 350px"):
+                with (
+                    ui.card().classes("w-full p-4 mt-4 vn-card").style("height: 350px")
+                ):
                     ui.echart(heatmap_option)
         except Exception:
             pass

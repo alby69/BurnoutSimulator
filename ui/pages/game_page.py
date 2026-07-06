@@ -1,6 +1,6 @@
 from nicegui import ui
 import random, uuid
-from ui.theme import ARCHETYPE_THEMES, CAT_COLORS
+from ui.theme import ARCHETYPE_THEMES, CAT_COLORS, NPC_FACTION_COLORS
 from ui.assets import GFX_PATH, EMOTE_ICONS
 from game.engine import NPC_FACTION_MAP
 from ui.components.sidebar import (
