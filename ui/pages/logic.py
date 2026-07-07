@@ -1,6 +1,11 @@
 from typing import Optional, Dict, List, Any
 from nicegui import ui, app
-import uuid, random, os, sqlite3, base64, io
+import uuid
+import random
+import os
+import sqlite3
+import base64
+import io
 from database.analytics import record_choice, end_session, record_tags, create_session
 from database.agent_db import save_agent
 from game.logic import determine_ending
@@ -339,7 +344,7 @@ def show_config():
 
         ui.label("ACCESSIBILITÀ").classes("text-xs font-black text-blue-300 mb-2")
         with ui.column().classes("w-full gap-2 mb-4"):
-            ui.label(f"Velocità Lettura:").classes("text-xs text-gray-400")
+            ui.label("Velocità Lettura:").classes("text-xs text-gray-400")
             rs = ui.slider(min=0, max=0.1, step=0.01, value=state._reading_speed).props("label-always")
             rs.on_change(lambda e: setattr(state, "_reading_speed", e.value))
 
@@ -412,7 +417,7 @@ def export_report():
         return
     p = state.engine.player
     ending = determine_ending(p)
-    report = f"--- BURNOUT SIMULATOR REPORT ---\n"
+    report = "--- BURNOUT SIMULATOR REPORT ---\n"
     report += f"Soggetto: {p.name}\n"
     report += f"Azienda: {p.company_type.value}\n"
     report += f"Giorni Sopravvissuti: {p.days_survived}\n"

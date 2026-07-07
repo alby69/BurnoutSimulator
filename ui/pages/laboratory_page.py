@@ -120,7 +120,7 @@ def render_laboratory():
                         "text-[8px] text-gray-600 font-bold"
                     )
                     ui.label(drift_culture.upper()).classes(
-                        f"text-[10px] font-black tracking-wider"
+                        "text-[10px] font-black tracking-wider"
                     ).style(f"color: {drift_color}")
 
             ui.label("LABORATORIO ANTROPOLOGICO v3.5").classes(
@@ -506,7 +506,7 @@ def render_laboratory():
                                                     "text-[10px] font-black text-gray-500"
                                                 )
                                                 ui.label(choice["category"]).classes(
-                                                    f"text-[9px] font-bold px-1 rounded"
+                                                    "text-[9px] font-bold px-1 rounded"
                                                 ).style(
                                                     f"background: {CAT_COLORS.get(choice['category'], '#666')}40; color: {CAT_COLORS.get(choice['category'], '#666')}"
                                                 )
@@ -711,7 +711,7 @@ def render_timeline_item(dec):
     ):
         with ui.column().classes("gap-0 flex-1"):
             with ui.row().classes("w-full justify-between items-center"):
-                ui.label(dec["category"]).classes(f"text-[9px] font-black").style(
+                ui.label(dec["category"]).classes("text-[9px] font-black").style(
                     f"color: {cat_col}"
                 )
                 ui.label(f"G{dec['day']}").classes("text-[9px] text-gray-600 font-mono")

@@ -315,13 +315,12 @@ def render_analytics():
 
             if var_data:
                 # Simplistic analysis: avg survival per variant of 'event_01'
-                variant_surv = {}  # variant_id -> [days]
+                variant_surv = {} # variant_id -> [days]
                 for v_map_json, days in var_data:
                     v_map = json.loads(v_map_json)
                     for ev_id, v_id in v_map.items():
                         key = f"{ev_id}:{v_id}"
-                        if key not in variant_surv:
-                            variant_surv[key] = []
+                        if key not in variant_surv: variant_surv[key] = []
                         variant_surv[key].append(days)
 
                 # Filter for top used variants

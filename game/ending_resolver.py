@@ -169,18 +169,23 @@ class EndingResolver:
                 target = cond["value"]
 
                 if op == ">=":
-                    if not (stat_val is not None and stat_val >= target): match = False
+                    if not (stat_val is not None and stat_val >= target):
+                        match = False
                 elif op == "<=":
-                    if not (stat_val is not None and stat_val <= target): match = False
+                    if not (stat_val is not None and stat_val <= target):
+                        match = False
                 elif op == "==":
                     # Handle Enum for company_type
                     if cond["stat"] == "company_type" and hasattr(stat_val, "value"):
                         stat_val = stat_val.value
-                    if not (stat_val == target): match = False
+                    if not (stat_val == target):
+                        match = False
                 elif op == "contains":
-                    if not (stat_val is not None and target in str(stat_val)): match = False
+                    if not (stat_val is not None and target in str(stat_val)):
+                        match = False
 
-                if not match: break
+                if not match:
+                    break
 
             if match:
                 achieved.append((rule["id"], rule["priority"]))

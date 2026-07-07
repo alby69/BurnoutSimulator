@@ -93,13 +93,19 @@ class EventManager:
 
                     op = c["op"]
                     val = c["value"]
-                    if op == ">" and not (stat_val > val): match = False
-                    elif op == "<" and not (stat_val < val): match = False
-                    elif op == ">=" and not (stat_val >= val): match = False
-                    elif op == "<=" and not (stat_val <= val): match = False
-                    elif op == "==" and not (stat_val == val): match = False
+                    if op == ">" and not (stat_val > val):
+                        match = False
+                    elif op == "<" and not (stat_val < val):
+                        match = False
+                    elif op == ">=" and not (stat_val >= val):
+                        match = False
+                    elif op == "<=" and not (stat_val <= val):
+                        match = False
+                    elif op == "==" and not (stat_val == val):
+                        match = False
 
-                    if not match: break
+                    if not match:
+                        break
 
                 if match:
                     filtered.append(e)

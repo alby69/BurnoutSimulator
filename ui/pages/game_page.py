@@ -76,8 +76,12 @@ def render_game():
                 # Milestone markers
                 is_milestone = any(m[0] == i for m in CAREER_PHASES)
                 if is_milestone:
-                    color = "bg-amber-500" if i < player.days_survived else "bg-amber-900"
-                ui.element("div").classes(f"flex-1 h-full {color} rounded-full transition-all")
+                    color = (
+                        "bg-amber-500" if i < player.days_survived else "bg-amber-900"
+                    )
+                ui.element("div").classes(
+                    f"flex-1 h-full {color} rounded-full transition-all"
+                )
 
         with ui.row().classes(
             "w-full items-center justify-between mb-6 pb-4 border-b border-white/5"
@@ -108,12 +112,22 @@ def render_game():
                         'document.querySelector(".stats-sidebar").classList.toggle("open")'
                     ),
                 ).props("flat round color=white").classes("lg:hidden")
-                ui.button(icon="contrast", on_click=lambda: ui.run_javascript('document.body.classList.toggle("light-mode")')).props(
-                    "flat round color=white"
-                ).classes("hover:bg-white/10").tooltip("Toggle Dark/Light Mode")
-                ui.button(icon="visibility", on_click=lambda: ui.run_javascript('document.body.classList.toggle("high-contrast")')).props(
-                    "flat round color=white"
-                ).classes("hover:bg-white/10").tooltip("Toggle High Contrast")
+                ui.button(
+                    icon="contrast",
+                    on_click=lambda: ui.run_javascript(
+                        'document.body.classList.toggle("light-mode")'
+                    ),
+                ).props("flat round color=white").classes("hover:bg-white/10").tooltip(
+                    "Toggle Dark/Light Mode"
+                )
+                ui.button(
+                    icon="visibility",
+                    on_click=lambda: ui.run_javascript(
+                        'document.body.classList.toggle("high-contrast")'
+                    ),
+                ).props("flat round color=white").classes("hover:bg-white/10").tooltip(
+                    "Toggle High Contrast"
+                )
                 ui.button(icon="help", on_click=show_help).props(
                     "flat round color=white"
                 ).classes("hover:bg-white/10")
@@ -466,7 +480,9 @@ def render_game():
                                 ui.label(label).classes("text-left")
 
                                 # Effetti sempre visibili (chip) - Nascondi se è una 'grey choice'
-                                if choice.effects and not getattr(choice, 'is_grey', False):
+                                if choice.effects and not getattr(
+                                    choice, "is_grey", False
+                                ):
                                     with ui.row().classes("gap-1 mt-1 flex-wrap"):
                                         for ek, ev in list(choice.effects.items())[:4]:
                                             cls = "pos" if ev > 0 else "neg"
@@ -474,8 +490,10 @@ def render_game():
                                             ui.label(
                                                 f"{effect_label(ek)}: {sign}{ev}"
                                             ).classes(f"effect-chip {cls}")
-                                elif getattr(choice, 'is_grey', False):
-                                    ui.label("???").classes("text-[10px] text-gray-600 italic")
+                                elif getattr(choice, "is_grey", False):
+                                    ui.label("???").classes(
+                                        "text-[10px] text-gray-600 italic"
+                                    )
 
                             # Timer su scelta critica
                             if i == _timer_choice_idx and n_choices > 1:
@@ -499,11 +517,14 @@ def render_game():
                                 """)
 
                             # Tooltip (M3) - Nascondi se è una 'grey choice'
-                            if not getattr(choice, 'is_grey', False):
+                            if not getattr(choice, "is_grey", False):
                                 with ui.tooltip().classes(
                                     "p-2 bg-gray-800 border border-gray-600 rounded"
                                 ):
-                                    for effect_key, effect_val in choice.effects.items():
+                                    for (
+                                        effect_key,
+                                        effect_val,
+                                    ) in choice.effects.items():
                                         sign = "+" if effect_val > 0 else ""
                                         ui.label(
                                             f"{effect_label(effect_key)}: {sign}{effect_val}"
@@ -553,25 +574,39 @@ def render_reflection_dialog(deltas, category, choice_text, reflection_text=None
         "COMPLIANCE": "La **Compliance** (obbedienza) riduce il conflitto immediato ma erode l'integrità. In antropologia organizzativa, questo 'mimetismo' può proteggere nel breve termine ma porta all'alienazione dal proprio sé professionale.",
         "RESISTANCE": "La **Resistance** (resistenza) protegge l'identità e l'integrità, ma aumenta la visibilità e il rischio di sanzioni. È un atto di riappropriazione del potere individuale in contesti asimmetrici.",
         "NEGOTIATION": "La **Negotiation** (negoziazione) cerca un equilibrio precario. Richiede alto capitale relazionale e può essere interpretata come debolezza o come competenza politica a seconda della cultura aziendale.",
-        "ESCAPE": "L' **Escape** (fuga/evitamento) è una strategia di preservazione dell'energia. Riduce l'impatto emotivo degli eventi ignorandone la fonte, ma non risolve le cause sistemiche del malessere."
+        "ESCAPE": "L' **Escape** (fuga/evitamento) è una strategia di preservazione dell'energia. Riduce l'impatto emotivo degli eventi ignorandone la fonte, ma non risolve le cause sistemiche del malessere.",
     }
 
-    with ui.dialog().props("persistent") as dialog, ui.card().classes("p-8 vn-card max-w-lg"):
-        ui.label("MODALITÀ RIFLESSIONE").classes("text-[10px] font-black text-amber-400 tracking-[0.3em] mb-2")
+    with (
+        ui.dialog().props("persistent") as dialog,
+        ui.card().classes("p-8 vn-card max-w-lg"),
+    ):
+        ui.label("MODALITÀ RIFLESSIONE").classes(
+            "text-[10px] font-black text-amber-400 tracking-[0.3em] mb-2"
+        )
         ui.label(f"Perché '{choice_text}'?").classes("text-xl font-bold mb-4")
 
-        main_reflection = reflection_text or reflections.get(category, "Ogni scelta modella il tuo percorso nel sistema.")
+        main_reflection = reflection_text or reflections.get(
+            category, "Ogni scelta modella il tuo percorso nel sistema."
+        )
         ui.markdown(main_reflection).classes("text-gray-300 italic mb-6")
 
-        ui.label("IMPATTOSULLE STATISTICHE:").classes("text-[10px] font-bold text-gray-500 mb-2")
+        ui.label("IMPATTOSULLE STATISTICHE:").classes(
+            "text-[10px] font-bold text-gray-500 mb-2"
+        )
         with ui.row().classes("w-full gap-2 flex-wrap"):
             for key, delta in deltas.items():
                 color = "text-green-400" if delta > 0 else "text-red-400"
                 sign = "+" if delta > 0 else ""
-                ui.badge(f"{effect_label(key)} {sign}{delta}", color="black").classes(f"{color} border border-white/10")
+                ui.badge(f"{effect_label(key)} {sign}{delta}", color="black").classes(
+                    f"{color} border border-white/10"
+                )
 
-        ui.button("HO CAPITO", on_click=dialog.close).classes("w-full mt-8 bg-amber-600")
+        ui.button("HO CAPITO", on_click=dialog.close).classes(
+            "w-full mt-8 bg-amber-600"
+        )
     dialog.open()
+
 
 def render_tutorial():
     steps = [
