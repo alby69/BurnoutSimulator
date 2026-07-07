@@ -48,6 +48,14 @@ class PlayerState:
     integrity: int = 50
     employability: int = 50
     health: int = 100
+    # Phenomenological stats
+    insomnia: int = 0
+    muscle_tension: int = 0
+    digestive_issues: int = 0
+    presenteeism: int = 0  # Going to work while sick
+    time_distortion: float = 1.0  # 1.0 = normal, >1.0 = accelerated (crunch), <1.0 = suspended
+    atmosphere_feeling: int = 50  # 0 = toxic/suffocating, 100 = safe/vibrant
+
     factions: Dict[str, int] = field(default_factory=lambda: {
         Faction.LOYALISTS.value: 0,
         Faction.SILENT.value: 50,

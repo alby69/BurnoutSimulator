@@ -1,0 +1,30 @@
+{
+  "Startup Caotica": {
+    "regime_governo": "Libertà come obbligo, auto-sfruttamento creativo",
+    "economia_affettiva": "Entusiasmo come capitale, fallimento come purificazione",
+    "temporalita": "Presentismo accelerato, futuro come exit",
+    "mitopoiesi": "Stiamo cambiando il mondo",
+    "manifesto_culturale": "In questa azienda non ci sono orari perché non c'è distinzione tra vita e missione. Ogni bug è un'opportunità, ogni notte insonne è un investimento nel futuro collettivo. Siamo pirati, non marinai."
+  },
+  "Corporate Tossica": {
+    "regime_governo": "Governance numerica, audit culture",
+    "economia_affettiva": "Ansia performativa, competizione come natura",
+    "temporalita": "Linearità burocratica, carriera come salvezza",
+    "mitopoiesi": "I numeri non mentono",
+    "manifesto_culturale": "La misurabilità è l'unica forma di verità. Se non puoi mapparlo in un KPI, non esiste. La competizione interna garantisce che solo i migliori sopravvivano per servire l'efficienza del sistema."
+  },
+  "Azienda Familiare": {
+    "regime_governo": "Paternalismo, lealtà come sangue",
+    "economia_affettiva": "Senso di colpa, gratitudine obbligata",
+    "temporalita": "Ciclicità generazionale, passato come ancora",
+    "mitopoiesi": "Qui siamo una famiglia",
+    "manifesto_culturale": "Il contratto è un foglio di carta, la lealtà è per sempre. Ti diamo protezione in cambio di devozione assoluta. I problemi si risolvono a tavola, ma l'ultima parola spetta sempre al patriarca."
+  },
+  "Consulting": {
+    "regime_governo": "Mercificazione dell'intimità, know-how come prestazione",
+    "economia_affettiva": "Cinismo riflessivo, distanza ironica come protezione",
+    "temporalita": "Progettualità intermittente, cliente come dio",
+    "mitopoiesi": "Non prendiamo parte, risolviamo",
+    "manifesto_culturale": "Siamo mercenari del sapere. La nostra identità è fluida, adattabile a ogni cliente. La professionalità è l'armatura che ci permette di attraversare il caos senza restarne scottati."
+  }
+}
