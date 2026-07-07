@@ -568,7 +568,7 @@ def render_agent_compact_card(agent, is_selected):
         ui.card()
         .classes(f"w-full p-3 vn-card cursor-pointer {border_class}")
         .style(card_bg)
-        .on("click", lambda aid=agent["agent_id"]: inspect_agent(aid))
+        .on("click", lambda _, aid=agent["agent_id"]: inspect_agent(aid))
     ):
         with ui.row().classes("w-full items-center justify-between no-wrap"):
             with ui.row().classes("items-center gap-2 flex-1 min-w-0"):

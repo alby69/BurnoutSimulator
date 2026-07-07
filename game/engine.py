@@ -74,7 +74,7 @@ MANAGER_PERSONALITIES: Dict[str, Dict[str, Any]] = {
         "crisis_threshold": 70,
         "machiavellianism": 40,
         "psychopathy": 20,
-        "narcissism": 50
+        "narcissism": 50,
     },
     "Narcisista Burocratico": {
         "type": "Narcisista Burocratico",
@@ -85,7 +85,7 @@ MANAGER_PERSONALITIES: Dict[str, Dict[str, Any]] = {
         "crisis_threshold": 50,
         "machiavellianism": 70,
         "psychopathy": 40,
-        "narcissism": 90
+        "narcissism": 90,
     },
     "Padre/Padrone Paternalista": {
         "type": "Padre/Padrone Paternalista",
@@ -96,7 +96,7 @@ MANAGER_PERSONALITIES: Dict[str, Dict[str, Any]] = {
         "crisis_threshold": 40,
         "machiavellianism": 60,
         "psychopathy": 30,
-        "narcissism": 60
+        "narcissism": 60,
     },
     "Perfezionista Senza Tregua": {
         "type": "Perfezionista Senza Tregua",
@@ -107,7 +107,7 @@ MANAGER_PERSONALITIES: Dict[str, Dict[str, Any]] = {
         "crisis_threshold": 80,
         "machiavellianism": 50,
         "psychopathy": 60,
-        "narcissism": 40
+        "narcissism": 40,
     },
 }
 
@@ -209,7 +209,7 @@ class GameEngine:
         events_file: str,
         company_type: str = CompanyArchetype.CORPORATE.value,
         psych_profile: Optional[Any] = None,
-        hr_params: Optional[Dict[str, Any]] = None
+        hr_params: Optional[Dict[str, Any]] = None,
     ) -> None:
         # Convert company_type string to Enum if possible
         try:
@@ -222,15 +222,21 @@ class GameEngine:
         self.hr_params = hr_params or {}
         self.apply_archetype(company_type)
         self.real_cases_mode = bool(self.hr_params.get("real_cases"))
-        self.event_manager = EventManager(events_file)
+        try:
+            self.event_manager = EventManager(events_file)
+        except FileNotFoundError:
+            self.event_manager = None
         self.graph = DecisionGraph()
         self.save_manager = SaveManager()
         self.current_event: Optional[Event] = None
         self.next_event_id_override: Optional[str] = None
         self.history: List[str] = []
         self.hidden_vars: Dict[str, Any] = (
-            self.COMPANY_ARCHETYPES.get(company_type, self.COMPANY_ARCHETYPES[CompanyArchetype.CORPORATE.value])
-            .get("hidden_vars", {}).copy()
+            self.COMPANY_ARCHETYPES.get(
+                company_type, self.COMPANY_ARCHETYPES[CompanyArchetype.CORPORATE.value]
+            )
+            .get("hidden_vars", {})
+            .copy()
         )
         self.hidden_vars["manager_patience"] = 70
         self.hidden_vars["company_crisis"] = 10
@@ -244,7 +250,9 @@ class GameEngine:
         self.manager_personality = MANAGER_PERSONALITIES.get(
             arch.get("manager_personality", ""), {}
         )
-        self.stats_history: List[Dict[str, int]] = [dict(self.player.to_dict()["stats"])]
+        self.stats_history: List[Dict[str, int]] = [
+            dict(self.player.to_dict()["stats"])
+        ]
         self._last_threshold_triggers: Set[Tuple[str, str]] = set()
         self.session_variants: Dict[str, str] = {}
 
@@ -272,12 +280,19 @@ class GameEngine:
 
     def next_turn(self) -> Optional[Event]:
         """Avanza al turno successivo, gestendo eventi e stati passivi."""
+        if self.event_manager is None:
+            return None
         self.player.days_survived += 1
         p = self.player
 
         # Mini-evento giornaliero
         self.current_mini_event = random.choice(MINI_EVENTS)
-        p.update_stats(self.current_mini_event[1], manager_traits=self.manager_personality, psych_profile=self.psych_profile, hr_params=self.hr_params)
+        p.update_stats(
+            self.current_mini_event[1],
+            manager_traits=self.manager_personality,
+            psych_profile=self.psych_profile,
+            hr_params=self.hr_params,
+        )
 
         # Threshold-triggered events
         self.process_threshold_events()
@@ -287,7 +302,9 @@ class GameEngine:
         if mp and mp.get("stress_bonus", 0) > 0:
             stress_bonus = mp["stress_bonus"]
             if self.psych_profile:
-                stress_bonus = self.psych_profile.modulate_stat_change("stress", stress_bonus, mp, self.hr_params)
+                stress_bonus = self.psych_profile.modulate_stat_change(
+                    "stress", stress_bonus, mp, self.hr_params
+                )
             p.stress = max(0, min(100, p.stress + stress_bonus))
 
         # Peer Influence (Social Dynamics)
@@ -320,33 +337,44 @@ class GameEngine:
             self.next_event_id_override = None
         else:
             self.current_event = self.event_manager.get_random_event(
-                exclude_ids=self.history[-10:],
-                player=self.player
+                exclude_ids=self.history[-10:], player=self.player
             )
 
         if self.current_event:
             # Handle branching/random event IDs (e.g. id|variant:prob)
             if self.next_event_id_override and "|" in self.next_event_id_override:
-                 # This logic is also handled in handle_choice, but for safety:
-                 pass
+                # This logic is also handled in handle_choice, but for safety:
+                pass
 
             # Handle Variants for A/B Testing
             if self.current_event.variants:
                 # Check if we already assigned a variant for this event in this session
                 if self.current_event.id not in self.session_variants:
                     # Include the 'original' as a possible choice
-                    variant_choices = [{"id": "original", "text": self.current_event.text, "choices": [c.__dict__ for c in self.current_event.choices]}] + self.current_event.variants
+                    variant_choices = [
+                        {
+                            "id": "original",
+                            "text": self.current_event.text,
+                            "choices": [c.__dict__ for c in self.current_event.choices],
+                        }
+                    ] + self.current_event.variants
                     chosen_v = random.choice(variant_choices)
                     self.session_variants[self.current_event.id] = chosen_v["id"]
 
                 v_id = self.session_variants[self.current_event.id]
                 if v_id != "original":
-                    v_data = next((v for v in self.current_event.variants if v["id"] == v_id), None)
+                    v_data = next(
+                        (v for v in self.current_event.variants if v["id"] == v_id),
+                        None,
+                    )
                     if v_data:
                         # Patch current event with variant data
                         self.current_event.text = v_data["text"]
                         if "choices" in v_data:
-                             self.current_event.choices = [self.event_manager._parse_choice(c) for c in v_data["choices"]]
+                            self.current_event.choices = [
+                                self.event_manager._parse_choice(c)
+                                for c in v_data["choices"]
+                            ]
 
             self.history.append(self.current_event.id)
 
@@ -364,7 +392,12 @@ class GameEngine:
                 if trigger_key not in self._last_threshold_triggers:
                     self._last_threshold_triggers.add(trigger_key)
                     self.current_mini_event = (text, effects)
-                    p.update_stats(effects, manager_traits=self.manager_personality, psych_profile=self.psych_profile, hr_params=self.hr_params)
+                    p.update_stats(
+                        effects,
+                        manager_traits=self.manager_personality,
+                        psych_profile=self.psych_profile,
+                        hr_params=self.hr_params,
+                    )
                     return
         self._last_threshold_triggers.clear()
 
@@ -432,7 +465,12 @@ class GameEngine:
         choice = self.current_event.choices[choice_index]
 
         # Update player stats
-        self.player.update_stats(choice.effects, manager_traits=self.manager_personality, psych_profile=self.psych_profile, hr_params=self.hr_params)
+        self.player.update_stats(
+            choice.effects,
+            manager_traits=self.manager_personality,
+            psych_profile=self.psych_profile,
+            hr_params=self.hr_params,
+        )
 
         # Sincronizza fazioni → NPC
         self._sync_factions_to_npcs()

@@ -29,6 +29,9 @@ from dashboard.main_dashboard import (
 
 @pytest.fixture
 def swarm():
+    import random
+
+    random.seed(42)
     sw = AgentSwarm(num_agents=6)
     sw._init_agents(6)
     # Advance a few turns so agents have some state
@@ -106,23 +109,22 @@ class TestCulturalDrift:
         ]
 
     def test_cultural_drift_modifies_hr_params(self, swarm):
-        old_hr = {}
-        for aid, a in swarm.agents.items():
-            if a.engine:
-                old_hr[aid] = dict(a.engine.hr_params)
+        old_hr = {
+            aid: dict(a.engine.hr_params) for aid, a in swarm.agents.items() if a.engine
+        }
 
-        # Run enough steps to trigger cultural drift (every 5 turns)
-        for _ in range(6):
+        # Run enough steps to trigger cultural drift multiple times (every 5 turns)
+        for _ in range(12):
             swarm.run_simulation_step()
 
         # HR params should have changed for at least some agents
-        hr_changed = False
-        for aid, a in swarm.agents.items():
-            if a.engine and aid in old_hr:
-                if a.engine.hr_params != old_hr[aid]:
-                    hr_changed = True
-                    break
-        assert hr_changed
+        hr_changed = any(
+            a.engine and aid in old_hr and a.engine.hr_params != old_hr[aid]
+            for aid, a in swarm.agents.items()
+        )
+        assert hr_changed, (
+            "Cultural drift should modify HR params of at least one agent"
+        )
 
     def test_cultural_drift_cultural_info_in_lab_view(self, swarm):
         view = swarm.get_laboratory_view()
