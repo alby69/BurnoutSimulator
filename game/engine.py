@@ -246,14 +246,29 @@ class GameEngine:
         )
         self.stats_history: List[Dict[str, int]] = [dict(self.player.to_dict()["stats"])]
         self._last_threshold_triggers: Set[Tuple[str, str]] = set()
+        self.session_variants: Dict[str, str] = {}
 
     def apply_archetype(self, archetype_name: str) -> None:
-        """Applica i parametri iniziali basati sull'archetipo aziendale."""
+        """Applica i parametri iniziali basati sull'archetipo aziendale e sul profilo giocatore."""
         if archetype_name in self.COMPANY_ARCHETYPES:
             arch = self.COMPANY_ARCHETYPES[archetype_name]
             self.player.energy = arch.get("energy", 100)
             self.player.stress = arch.get("stress", 0)
             self.player.manager_rep = arch.get("manager_rep", 50)
+
+        # Apply player profile modifiers
+        profile = self.hr_params.get("player_profile", "Standard")
+        if profile == "Novizio Idealista":
+            self.player.integrity = min(100, self.player.integrity + 15)
+            self.player.employability = max(0, self.player.employability - 10)
+        elif profile == "Veterano Cinico":
+            self.player.employability = min(100, self.player.employability + 15)
+            self.player.integrity = max(0, self.player.integrity - 15)
+            self.player.stress = max(0, self.player.stress - 10)
+        elif profile == "Workaholic":
+            self.player.energy = min(100, self.player.energy + 20)
+            self.player.manager_rep = min(100, self.player.manager_rep + 10)
+            self.player.stress = min(100, self.player.stress + 15)
 
     def next_turn(self) -> Optional[Event]:
         """Avanza al turno successivo, gestendo eventi e stati passivi."""
@@ -305,10 +320,34 @@ class GameEngine:
             self.next_event_id_override = None
         else:
             self.current_event = self.event_manager.get_random_event(
-                exclude_ids=self.history[-10:]
+                exclude_ids=self.history[-10:],
+                player=self.player
             )
 
         if self.current_event:
+            # Handle branching/random event IDs (e.g. id|variant:prob)
+            if self.next_event_id_override and "|" in self.next_event_id_override:
+                 # This logic is also handled in handle_choice, but for safety:
+                 pass
+
+            # Handle Variants for A/B Testing
+            if self.current_event.variants:
+                # Check if we already assigned a variant for this event in this session
+                if self.current_event.id not in self.session_variants:
+                    # Include the 'original' as a possible choice
+                    variant_choices = [{"id": "original", "text": self.current_event.text, "choices": [c.__dict__ for c in self.current_event.choices]}] + self.current_event.variants
+                    chosen_v = random.choice(variant_choices)
+                    self.session_variants[self.current_event.id] = chosen_v["id"]
+
+                v_id = self.session_variants[self.current_event.id]
+                if v_id != "original":
+                    v_data = next((v for v in self.current_event.variants if v["id"] == v_id), None)
+                    if v_data:
+                        # Patch current event with variant data
+                        self.current_event.text = v_data["text"]
+                        if "choices" in v_data:
+                             self.current_event.choices = [self.event_manager._parse_choice(c) for c in v_data["choices"]]
+
             self.history.append(self.current_event.id)
 
         # Stats history snapshot
@@ -427,17 +466,25 @@ class GameEngine:
 
         if choice.next_event_id:
             if "|" in choice.next_event_id:
+                # Format: base_id|opt1:weight1;opt2:weight2
                 parts = choice.next_event_id.split("|")
-                options = parts[1].split(";")
-                choices_list = []
-                weights = []
-                for opt in options:
-                    ev_id, weight = opt.split(":")
-                    choices_list.append(ev_id)
-                    weights.append(int(weight))
-                self.next_event_id_override = random.choices(
-                    choices_list, weights=weights
-                )[0]
+                if len(parts) > 1:
+                    options = parts[1].split(";")
+                    choices_list = []
+                    weights = []
+                    for opt in options:
+                        if ":" in opt:
+                            ev_id, weight = opt.split(":")
+                            choices_list.append(ev_id)
+                            weights.append(int(weight))
+                    if choices_list:
+                        self.next_event_id_override = random.choices(
+                            choices_list, weights=weights
+                        )[0]
+                    else:
+                        self.next_event_id_override = parts[0]
+                else:
+                    self.next_event_id_override = parts[0]
             else:
                 self.next_event_id_override = choice.next_event_id
 

@@ -263,6 +263,80 @@ def render_analytics():
                         ui.label(status or "-").classes("text-xs text-gray-500")
             ui.html("<br>")
 
+        # MBI Questionnaire Analysis
+        try:
+            conn = sqlite3.connect(db_path)
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT session_id, q_type, burnout_score FROM questionnaires
+                ORDER BY session_id, q_type DESC
+            """)
+            q_rows = cur.fetchall()
+            conn.close()
+
+            if q_rows:
+                # Calculate pre/post average
+                pre_scores = [r[2] for r in q_rows if r[1] == 'PRE']
+                post_scores = [r[2] for r in q_rows if r[1] == 'POST']
+
+                avg_pre = sum(pre_scores)/len(pre_scores) if pre_scores else 0
+                avg_post = sum(post_scores)/len(post_scores) if post_scores else 0
+
+                with ui.card().classes("w-full p-6 mt-4 vn-card").style("height: 400px"):
+                    ui.label("Evoluzione Burnout Percepito (MBI Pre vs Post)").classes("text-sm font-bold text-gray-300 mb-4")
+
+                    mbi_option = {
+                        "xAxis": {"type": "category", "data": ["Inizio Partita (Pre)", "Fine Partita (Post)"]},
+                        "yAxis": {"type": "value", "max": 6},
+                        "series": [{"data": [avg_pre, avg_post], "type": "bar", "itemStyle": {"color": "#ef4444"}}],
+                        "tooltip": {"trigger": "axis"},
+                        "backgroundColor": "transparent",
+                    }
+                    ui.echart(mbi_option)
+        except Exception:
+            pass
+
+        # A/B Testing Variants Success Rate
+        try:
+            conn = sqlite3.connect(db_path)
+            cur = conn.cursor()
+            # Correlation between variant used and days_survived
+            cur.execute("""
+                SELECT v.variants_map, s.days_survived
+                FROM session_variants v
+                JOIN sessions s ON v.session_id = s.id
+            """)
+            var_data = cur.fetchall()
+            conn.close()
+
+            if var_data:
+                # Simplistic analysis: avg survival per variant of 'event_01'
+                variant_surv = {} # variant_id -> [days]
+                for v_map_json, days in var_data:
+                    v_map = json.loads(v_map_json)
+                    for ev_id, v_id in v_map.items():
+                        key = f"{ev_id}:{v_id}"
+                        if key not in variant_surv: variant_surv[key] = []
+                        variant_surv[key].append(days)
+
+                # Filter for top used variants
+                sorted_vars = sorted(variant_surv.items(), key=lambda x: len(x[1]), reverse=True)[:8]
+
+                with ui.card().classes("w-full p-6 mt-4 vn-card").style("height: 400px"):
+                    ui.label("Analisi A/B: Sopravvivenza Media per Variante").classes("text-sm font-bold text-gray-300 mb-4")
+
+                    ab_option = {
+                        "yAxis": {"type": "category", "data": [x[0] for x in sorted_vars]},
+                        "xAxis": {"type": "value"},
+                        "series": [{"data": [sum(x[1])/len(x[1]) for x in sorted_vars], "type": "bar", "itemStyle": {"color": "#3b82f6"}}],
+                        "tooltip": {"trigger": "axis"},
+                        "backgroundColor": "transparent",
+                        "grid": {"left": "30%"}
+                    }
+                    ui.echart(ab_option)
+        except Exception:
+             pass
+
         with ui.row().classes("w-full justify-center gap-4 mt-4 mb-12"):
             ui.button(
                 "Esporta CSV", icon="download", on_click=export_analytics_csv

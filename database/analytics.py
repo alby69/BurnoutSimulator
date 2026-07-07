@@ -49,6 +49,26 @@ def init_db():
             count INTEGER,
             FOREIGN KEY (session_id) REFERENCES sessions(id)
         );
+
+        CREATE TABLE IF NOT EXISTS meta_progression (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS questionnaires (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT,
+            q_type TEXT, -- 'PRE' or 'POST'
+            responses TEXT, -- JSON
+            burnout_score REAL,
+            FOREIGN KEY (session_id) REFERENCES sessions(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS session_variants (
+            session_id TEXT PRIMARY KEY,
+            variants_map TEXT, -- JSON mapping event_id -> variant_id
+            FOREIGN KEY (session_id) REFERENCES sessions(id)
+        );
     """)
     conn.commit()
     conn.close()
@@ -59,6 +79,24 @@ def create_session(session_id: str, player_name: str, company_type: str):
     conn.execute(
         "INSERT OR IGNORE INTO sessions (id, player_name, company_type, started_at) VALUES (?, ?, ?, ?)",
         (session_id, player_name, company_type, datetime.now(timezone.utc).isoformat()),
+    )
+    conn.commit()
+    conn.close()
+
+def record_questionnaire(session_id: str, q_type: str, responses: dict, score: float):
+    conn = get_connection()
+    conn.execute(
+        "INSERT INTO questionnaires (session_id, q_type, responses, burnout_score) VALUES (?, ?, ?, ?)",
+        (session_id, q_type, json.dumps(responses), score),
+    )
+    conn.commit()
+    conn.close()
+
+def record_variants(session_id: str, variants: dict):
+    conn = get_connection()
+    conn.execute(
+        "INSERT INTO session_variants (session_id, variants_map) VALUES (?, ?)",
+        (session_id, json.dumps(variants)),
     )
     conn.commit()
     conn.close()
@@ -143,3 +181,15 @@ def get_ending_stats() -> list[dict]:
     """).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+def get_meta_value(key: str, default: str = None) -> str:
+    conn = get_connection()
+    row = conn.execute("SELECT value FROM meta_progression WHERE key = ?", (key,)).fetchone()
+    conn.close()
+    return row["value"] if row else default
+
+def set_meta_value(key: str, value: str):
+    conn = get_connection()
+    conn.execute("INSERT OR REPLACE INTO meta_progression (key, value) VALUES (?, ?)", (key, value))
+    conn.commit()
+    conn.close()
