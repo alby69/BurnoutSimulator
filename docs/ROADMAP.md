@@ -121,22 +121,62 @@ Sbloccati a soglie di tag (yes_man≥10/20, burnout_risk≥5/10, truth_teller≥
 
 ---
 
-## Future
+## v3.5 — Social Physics & HR Intelligence (Completato)
 
-- **CI/CD pipeline** (GitHub Actions)
-- **Test coverage** su engine, player, events, psych_engine, database
-- **Auto-play periodico** per agenti non posseduti (timer 30s)
-- **Conseguenze del salto** (penalità psicologica all'agente lasciato)
-- **Dashboard dedicate** (`dashboard/agent_monitor.py`, `reports.py`, `timeline_viewer.py`, `alert_system.py`)
-- **Multi-utente** (sciame dedicato per sessione, non globale)
+| # | Componente | Descrizione | Stato |
+|---|------------|-------------|-------|
+| S1 | CI/CD Pipeline | GitHub Actions workflow per test e lint automatici | Completato |
+| S2 | Peer Influence Avanzata | Agenti influenzano tratti OCEAN reciproci basati su prossimità di fazioni e stress | Completato |
+| S3 | Pressione Culturale Dinamica | Archetipo aziendale evolve in base alla media OCEAN/Dark Triad degli agenti | Completato |
+| S4 | Dashboard Unificata | 4 moduli: AgentMonitor (risk ranking), AlertSystem (soglie critiche), Reports (HR DSS + turnover risk), TimelineViewer | Completato |
+| S5 | Visualizzazione 3D Collins Cube | Scatter3D ECharts con Stress/Energia/Integrità, colori per profilo, rotazione automatica | Completato |
+| S6 | Test Coverage | 31 nuovi test per tutte le funzionalità v3.5 (peer influence, cultural drift, dashboard, cube) | Completato |
 
-## Miglioramenti Suggeriti (v3.5)
+### S1 — CI/CD Pipeline
+Workflow GitHub Actions in `.github/workflows/test.yml`: esegue `ruff check` + `pytest` su ogni push/PR.
 
-- **Peer Influence Avanzata**: Gli agenti vicini nello sciame si influenzano a vicenda non solo per fazioni ma per singoli tratti OCEAN.
-- **Pressione Culturale Dinamica**: L'archetipo aziendale evolve in base alla media dei profili degli agenti (es. se molti sono Cinici, l'azienda diventa più Burocraticamente Tossica).
-- **Integrazione ML**: Utilizzare i dati delle simulazioni per addestrare un modello predittivo sul rischio di dimissioni di massa.
-- **Visualizzazione 3D dello Sciame**: Rappresentazione spaziale dei profili agentici in un cubo di Collins (Stress, Energia, Integrità).
+### S2 — Peer Influence Avanzata
+In `agents/personality.py`:
+- `peer_influence(other_profiles, proximity_weights)`: accumula delta OCEAN in buffer
+- `apply_peer_influence_buffer()`: applica il buffer modificando i tratti
+In `agents/swarm.py`:
+- `_apply_peer_influence()`: chiamato in ogni `run_simulation_step()`, calcola prossimità basata su similarità fazioni (60%) e differenza stress (40%)
+
+### S3 — Pressione Culturale Dinamica
+In `agents/swarm.py`:
+- `_apply_cultural_drift()`: calcola media OCEAN+DarkTriad, determina archetipo dominante (Startup/Corporate/Familiare/Consulting), modifica HR params ogni 5 turni
+- `_get_cultural_drift_info()`: esposto in `get_laboratory_view()` e mostrato nella UI lab
+
+### S4 — Dashboard Unificata
+In `dashboard/main_dashboard.py`:
+- **MainDashboard**: hub unificato con overview, alert aggregati, top risk ranking
+- **AgentMonitor**: risk ranking con 6 fattori (stress, energia, salute, autostima, rep, vulnerabilità psicologica), trend metric
+- **AlertSystem**: 7 tipi di alert (stress_critico, energia_critica, salute_critica, burnout_imminente, trend_stress_rapido, stress_alto, autostima_critica) con severità critical/warning/info
+- **Reports**: 3 tipi report (summary, hr_dss con raccomandazioni, turnover_risk con ranking), report per singolo agente
+- **TimelineViewer**: timeline decisioni per agente o globale, filtro per giorno
+
+### S5 — Visualizzazione 3D Collins Cube
+In `ui/pages/laboratory_page.py`: ECharts `scatter3D` con assi Stress (x), Energia (y), Integrità (z), colori per profilo psicologico, simboli diamond per agenti posseduti, rotazione automatica.
+
+### S6 — Test Coverage
+31 nuovi test in `tests/test_v3_5.py` che coprono:
+- Peer influence (buffer, applicazione, swarm integration, single-agent edge case)
+- Cultural drift (score generation, HR param modification, lab view exposure)
+- AgentMonitor (risk ranking, sorting, field presence, trend)
+- AlertSystem (evaluation, field presence, severity, history)
+- Reports (summary, hr_dss, turnover_risk, agent report, empty swarm)
+- TimelineViewer (global/agent timeline, events by day)
+- MainDashboard (overview, with/without swarm)
+- Collins Cube (data presence, range validation)
 
 ---
 
-*Documento aggiornato per BurnoutSimulator v3.2 — Introduzione DSS avanzato e visualizzazione dinamica.*
+## Future
+
+- **Multi-utente** (sciame dedicato per sessione, non globale)
+- **Integrazione ML**: Modello predittivo sul rischio di dimissioni di massa
+- **UI dedicata** per i moduli della dashboard (pagine NiceGUI per AlertSystem, Reports, TimelineViewer)
+
+---
+
+*Documento aggiornato per BurnoutSimulator v3.5 — Social Physics & HR Intelligence.*

@@ -288,27 +288,44 @@ class AgentSwarm:
 
         self.turn_counter += 1
 
+        # Peer Influence Avanzata (v3.5): OCEAN trait influence between agents
+        self._apply_peer_influence()
+
+        # Pressione Culturale Dinamica (v3.5): company archetype evolves based on agent profiles
+        self._apply_cultural_drift()
+
         # Salva storia dello sciame per visualizzazione dinamica
         analytics = self.get_swarm_analytics()
 
         # Calculate average personality traits for dynamic evolution chart
         avg_traits = {}
         if self.agents:
-            trait_keys = ["openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism", "narcissism", "machiavellianism", "psychopathy"]
+            trait_keys = [
+                "openness",
+                "conscientiousness",
+                "extraversion",
+                "agreeableness",
+                "neuroticism",
+                "narcissism",
+                "machiavellianism",
+                "psychopathy",
+            ]
             for trait in trait_keys:
                 vals = [getattr(a.profile, trait) for a in self.agents.values()]
                 avg_traits[trait] = sum(vals) / len(vals)
 
-        save_swarm_history({
-            "session_id": self.session_id,
-            "turn_number": self.turn_counter,
-            "profile_distribution": analytics.get("profile_distribution", {}),
-            "avg_stats": {
-                "avg_stress": analytics.get("avg_stress"),
-                "alive_count": analytics.get("alive_count"),
-                "avg_traits": avg_traits
+        save_swarm_history(
+            {
+                "session_id": self.session_id,
+                "turn_number": self.turn_counter,
+                "profile_distribution": analytics.get("profile_distribution", {}),
+                "avg_stats": {
+                    "avg_stress": analytics.get("avg_stress"),
+                    "alive_count": analytics.get("alive_count"),
+                    "avg_traits": avg_traits,
+                },
             }
-        })
+        )
 
         # Aggiorna sessione swarm
         save_swarm_session(
@@ -347,14 +364,16 @@ class AgentSwarm:
                     if outcomes:
                         stress_delta = outcomes[-1].get("stress_delta", 0)
 
-                recent_decisions.append({
-                    "event_id": d.event_id,
-                    "choice_text": d.choice_text,
-                    "category": d.category,
-                    "was_auto": d.was_auto,
-                    "day": d.day,
-                    "stress_delta": stress_delta
-                })
+                recent_decisions.append(
+                    {
+                        "event_id": d.event_id,
+                        "choice_text": d.choice_text,
+                        "category": d.category,
+                        "was_auto": d.was_auto,
+                        "day": d.day,
+                        "stress_delta": stress_delta,
+                    }
+                )
 
             probs = agent.get_choice_probabilities()
             agents_view.append(
@@ -375,26 +394,34 @@ class AgentSwarm:
                     "integrity": p.integrity,
                     "resilience": agent.profile.resilience,
                     "compliance_bias": agent.profile.compliance_bias,
-                    "dominant_faction": max(p.factions, key=p.factions.get) if p.factions else "Nessuna",
+                    "dominant_faction": max(p.factions, key=p.factions.get)
+                    if p.factions
+                    else "Nessuna",
                     "current_event": agent.engine.current_event.id
                     if agent.engine.current_event
                     else None,
-                    "current_event_text": agent.engine.current_event.text if agent.engine.current_event else "",
+                    "current_event_text": agent.engine.current_event.text
+                    if agent.engine.current_event
+                    else "",
                     "current_choices": [
                         {
                             "text": c.text,
                             "category": c.category,
                             "effects": c.effects,
-                            "probability": probs[i] if i < len(probs) else 0
+                            "probability": probs[i] if i < len(probs) else 0,
                         }
                         for i, c in enumerate(agent.engine.current_event.choices)
-                    ] if agent.engine.current_event else [],
+                    ]
+                    if agent.engine.current_event
+                    else [],
                     "match_score": self._calculate_match_score(human_id, agent)
                     if human_id
                     else 50,
-                    "stats_history": agent.engine.stats_history[-6:], # Ultime 6 per ghost trail
-                    "recent_decisions": recent_decisions[::-1], # Dalla più recente
-                    "strategic_report": StrategicAnalyzer.analyze_agent(agent)
+                    "stats_history": agent.engine.stats_history[
+                        -6:
+                    ],  # Ultime 6 per ghost trail
+                    "recent_decisions": recent_decisions[::-1],  # Dalla più recente
+                    "strategic_report": StrategicAnalyzer.analyze_agent(agent),
                 }
             )
 
@@ -410,6 +437,7 @@ class AgentSwarm:
             "human_profile": self.humans[human_id].get_emergent_profile()
             if human_id and human_id in self.humans
             else None,
+            "cultural_drift": self._get_cultural_drift_info(),
         }
 
     def get_agent_detailed_view(self, agent_id: str) -> Dict:
@@ -452,7 +480,11 @@ class AgentSwarm:
                     except Exception:
                         profile_name = da["profile_name"]
                         profile = next(
-                            (p for p in AGENT_PROFILES.values() if p.name == profile_name),
+                            (
+                                p
+                                for p in AGENT_PROFILES.values()
+                                if p.name == profile_name
+                            ),
                             list(AGENT_PROFILES.values())[0],
                         )
                 else:
@@ -509,7 +541,12 @@ class AgentSwarm:
             profile_distribution[p_name] = profile_distribution.get(p_name, 0) + 1
 
             if p_name not in profile_survival:
-                profile_survival[p_name] = {"stress": [], "days": [], "alive": 0, "total": 0}
+                profile_survival[p_name] = {
+                    "stress": [],
+                    "days": [],
+                    "alive": 0,
+                    "total": 0,
+                }
 
             profile_survival[p_name]["total"] += 1
             if a.engine:
@@ -544,13 +581,155 @@ class AgentSwarm:
             "profile_distribution": profile_distribution,
             "profile_impact": {
                 name: {
-                    "avg_stress": round(sum(d["stress"])/len(d["stress"]), 1) if d["stress"] else 0,
-                    "avg_days": round(sum(d["days"])/len(d["days"]), 1) if d["days"] else 0,
-                    "survival_rate": round((d["alive"]/d["total"])*100, 1)
-                } for name, d in profile_survival.items()
+                    "avg_stress": round(sum(d["stress"]) / len(d["stress"]), 1)
+                    if d["stress"]
+                    else 0,
+                    "avg_days": round(sum(d["days"]) / len(d["days"]), 1)
+                    if d["days"]
+                    else 0,
+                    "survival_rate": round((d["alive"] / d["total"]) * 100, 1),
+                }
+                for name, d in profile_survival.items()
             },
             "possessed_count": sum(1 for a in self.agents.values() if a.is_possessed),
             "alive_count": sum(
                 1 for a in self.agents.values() if a.engine and a.engine.player.is_alive
             ),
+            "cultural_drift": self._get_cultural_drift_info(),
+        }
+
+    def _apply_peer_influence(self):
+        """
+        Peer Influence Avanzata (v3.5):
+        Ogni agente influenza i tratti OCEAN degli altri agenti nello sciame.
+        La prossimità è basata sulla similarità di fazione e stress.
+        """
+        agents_alive = [
+            (aid, a)
+            for aid, a in self.agents.items()
+            if a.engine and a.engine.player.is_alive
+        ]
+        if len(agents_alive) < 2:
+            return
+
+        for i, (aid_i, agent_i) in enumerate(agents_alive):
+            other_profiles = []
+            proximity_weights = []
+            p_i = agent_i.engine.player
+
+            for j, (aid_j, agent_j) in enumerate(agents_alive):
+                if i == j:
+                    continue
+                p_j = agent_j.engine.player
+
+                # Prossimità basata su similarità di fazioni
+                faction_sim = 0
+                for fac in p_i.factions:
+                    faction_sim += (
+                        1
+                        - abs(p_i.factions.get(fac, 0) - p_j.factions.get(fac, 0)) / 100
+                    )
+                faction_sim /= max(len(p_i.factions), 1)
+
+                # Prossimità basata su differenza di stress (minor differenza = più vicino)
+                stress_diff = 1 - abs(p_i.stress - p_j.stress) / 100
+
+                # Peso combinato
+                weight = (faction_sim * 0.6 + stress_diff * 0.4) * 0.5  # max 0.5
+                if weight > 0.05:
+                    other_profiles.append(agent_j.profile)
+                    proximity_weights.append(weight)
+
+            if other_profiles:
+                agent_i.profile.peer_influence(other_profiles, proximity_weights)
+
+        # Applica buffer di peer influence
+        for agent in self.agents.values():
+            if agent.profile:
+                agent.profile.apply_peer_influence_buffer()
+
+    def _apply_cultural_drift(self):
+        """
+        Pressione Culturale Dinamica (v3.5):
+        L'archetipo aziendale evolve in base alla media dei profili degli agenti.
+        Calcola un 'cultural score' e lo riflette nei parametri HR degli agenti.
+        """
+        agents_alive = [
+            a for a in self.agents.values() if a.engine and a.engine.player.is_alive
+        ]
+        if not agents_alive:
+            return
+
+        # Media OCEAN dei profili
+        avg_openness = sum(a.profile.openness for a in agents_alive) / len(agents_alive)
+        avg_conscientiousness = sum(
+            a.profile.conscientiousness for a in agents_alive
+        ) / len(agents_alive)
+        avg_extraversion = sum(a.profile.extraversion for a in agents_alive) / len(
+            agents_alive
+        )
+        avg_agreeableness = sum(a.profile.agreeableness for a in agents_alive) / len(
+            agents_alive
+        )
+        avg_neuroticism = sum(a.profile.neuroticism for a in agents_alive) / len(
+            agents_alive
+        )
+        avg_narcissism = sum(a.profile.narcissism for a in agents_alive) / len(
+            agents_alive
+        )
+        avg_mach = sum(a.profile.machiavellianism for a in agents_alive) / len(
+            agents_alive
+        )
+
+        # Determina la deriva culturale
+        # Alta coscienziosità + narcisismo = deriva verso Corporate
+        # Alta apertura + estroversione = deriva verso Startup
+        # Alta gradevolezza = deriva verso Familiare
+        # Alto machiavellismo + nevroticismo = deriva verso Consulting
+        drift_scores = {
+            "Startup Caotica": (
+                avg_openness * 0.4
+                + avg_extraversion * 0.3
+                + (100 - avg_conscientiousness) * 0.3
+            ),
+            "Corporate Tossica": (
+                avg_conscientiousness * 0.3 + avg_narcissism * 0.4 + avg_mach * 0.3
+            ),
+            "Azienda Familiare": (
+                avg_agreeableness * 0.5
+                + (100 - avg_mach) * 0.3
+                + (100 - avg_neuroticism) * 0.2
+            ),
+            "Consulting": (
+                avg_mach * 0.3 + avg_neuroticism * 0.3 + avg_conscientiousness * 0.4
+            ),
+        }
+
+        dominant_culture = max(drift_scores, key=drift_scores.get)
+        self._current_culture = dominant_culture
+        self._culture_drift_scores = drift_scores
+
+        # Applica sottilmente la deriva culturale ai parametri HR degli agenti
+        if self.turn_counter % 5 == 0:  # Ogni 5 turni
+            for agent in agents_alive:
+                hr = agent.engine.hr_params
+                if dominant_culture == "Startup Caotica":
+                    hr["pressure"] = min(100, hr.get("pressure", 50) + 1)
+                    hr["toxicity"] = max(0, hr.get("toxicity", 50) - 0.5)
+                elif dominant_culture == "Corporate Tossica":
+                    hr["toxicity"] = min(100, hr.get("toxicity", 50) + 1)
+                    hr["competition"] = min(100, hr.get("competition", 50) + 0.5)
+                elif dominant_culture == "Azienda Familiare":
+                    hr["cohesion"] = min(100, hr.get("cohesion", 50) + 1)
+                    hr["competition"] = max(0, hr.get("competition", 50) - 0.5)
+                elif dominant_culture == "Consulting":
+                    hr["pressure"] = min(100, hr.get("pressure", 50) + 1)
+                    hr["competition"] = min(100, hr.get("competition", 50) + 1)
+                agent.engine.hr_params = hr
+
+    def _get_cultural_drift_info(self) -> Dict:
+        """Restituisce info sulla deriva culturale corrente."""
+        return {
+            "dominant_culture": getattr(self, "_current_culture", "In fase di calcolo"),
+            "drift_scores": getattr(self, "_culture_drift_scores", {}),
         }

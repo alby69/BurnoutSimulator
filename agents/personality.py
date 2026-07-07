@@ -2,34 +2,36 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 import random
 
+
 @dataclass
 class PsychologicalProfile:
     """
     Profilo psicologico basato su standard internazionali (Big Five e Dark Triad).
     Definisce come un agente reagisce e come interagisce con gli altri.
     """
+
     name: str
     description: str
 
     # --- Modello BIG FIVE (OCEAN) ---
     # 0-100
-    openness: int = 50           # Apertura all'esperienza
+    openness: int = 50  # Apertura all'esperienza
     conscientiousness: int = 50  # Coscienziosità
-    extraversion: int = 50       # Estroversione
-    agreeableness: int = 50      # Gradevolezza (Empatia/Cooperazione)
-    neuroticism: int = 50        # Nevroticismo (Stabilità emotiva inversa)
+    extraversion: int = 50  # Estroversione
+    agreeableness: int = 50  # Gradevolezza (Empatia/Cooperazione)
+    neuroticism: int = 50  # Nevroticismo (Stabilità emotiva inversa)
 
     # --- Modello TRIADE OSCURA ---
     # 0-100
-    narcissism: int = 10         # Narcisismo
-    machiavellianism: int = 10   # Machiavellismo
-    psychopathy: int = 5         # Psicopatia
+    narcissism: int = 10  # Narcisismo
+    machiavellianism: int = 10  # Machiavellismo
+    psychopathy: int = 5  # Psicopatia
 
     # --- Bias categoria scelta (derivati o specifici) ---
-    compliance_bias: int = 50      # Tendenza a COMPLIANCE
-    resistance_bias: int = 30      # Tendenza a RESISTANCE
-    negotiation_bias: int = 40     # Tendenza a NEGOTIATION
-    escape_bias: int = 20          # Tendenza a ESCAPE
+    compliance_bias: int = 50  # Tendenza a COMPLIANCE
+    resistance_bias: int = 30  # Tendenza a RESISTANCE
+    negotiation_bias: int = 40  # Tendenza a NEGOTIATION
+    escape_bias: int = 20  # Tendenza a ESCAPE
 
     # Legacy stats (kept for compatibility, will be linked to OCEAN)
     risk_tolerance: int = 50
@@ -46,6 +48,17 @@ class PsychologicalProfile:
 
     # Trigger emozionali (eventi che attivano reazioni forti)
     emotional_triggers: List[str] = field(default_factory=list)
+
+    # Peer influence accumulatore (quanto altri agenti influenzano questo profilo)
+    _peer_influence_buffer: Dict[str, float] = field(
+        default_factory=lambda: {
+            "openness": 0.0,
+            "conscientiousness": 0.0,
+            "extraversion": 0.0,
+            "agreeableness": 0.0,
+            "neuroticism": 0.0,
+        }
+    )
 
     def __post_init__(self):
         """Sincronizza le statistiche legacy con OCEAN se non specificate diversamente."""
@@ -93,6 +106,38 @@ class PsychologicalProfile:
         # Sincronizza statistiche legacy
         self.__post_init__()
 
+    def peer_influence(
+        self,
+        other_profiles: List["PsychologicalProfile"],
+        proximity_weights: List[float],
+    ):
+        """
+        Peer Influence Avanzata: gli agenti influenzano i tratti OCEAN
+        degli agenti vicini nello sciame.
+        `other_profiles`: lista di profili degli altri agenti
+        `proximity_weights`: quanto ogni agente influenza questo (0-1)
+        """
+        trait_keys = [
+            "openness",
+            "conscientiousness",
+            "extraversion",
+            "agreeableness",
+            "neuroticism",
+        ]
+        for other, weight in zip(other_profiles, proximity_weights):
+            for trait in trait_keys:
+                diff = getattr(other, trait) - getattr(self, trait)
+                influence = diff * weight * 0.02  # max 2% shift per turno
+                self._peer_influence_buffer[trait] += influence
+
+    def apply_peer_influence_buffer(self):
+        """Applica il buffer di peer influence accumulato."""
+        for trait, delta in self._peer_influence_buffer.items():
+            current = getattr(self, trait)
+            setattr(self, trait, max(0, min(100, current + delta)))
+        self._peer_influence_buffer = {k: 0.0 for k in self._peer_influence_buffer}
+        self.__post_init__()
+
     def to_dict(self) -> Dict:
         """Serializza il profilo per la persistenza."""
         return {
@@ -114,15 +159,26 @@ class PsychologicalProfile:
             "loyalty": self.loyalty,
             "assertiveness": self.assertiveness,
             "cynicism": self.cynicism,
-            "preferred_faction": self.preferred_faction
+            "preferred_faction": self.preferred_faction,
+            "_peer_influence_buffer": self._peer_influence_buffer,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'PsychologicalProfile':
+    def from_dict(cls, data: Dict) -> "PsychologicalProfile":
         """Crea un profilo da un dizionario."""
-        return cls(**data)
+        buf = data.pop("_peer_influence_buffer", None)
+        obj = cls(**data)
+        if buf:
+            obj._peer_influence_buffer = buf
+        return obj
 
-    def modulate_stat_change(self, stat: str, value: int, manager_traits: Optional[Dict] = None, hr_params: Optional[Dict] = None) -> int:
+    def modulate_stat_change(
+        self,
+        stat: str,
+        value: int,
+        manager_traits: Optional[Dict] = None,
+        hr_params: Optional[Dict] = None,
+    ) -> int:
         """
         Modula la variazione di una statistica in base ai tratti dell'agente, del manager e parametri HR.
         Implementa la logica "RPG" di scontro tra valori.
@@ -136,19 +192,19 @@ class PsychologicalProfile:
         if hr_params:
             # Se la Tossicità Ambientale è alta, ogni aumento di stress è amplificato
             if stat == "stress" and value > 0:
-                multiplier *= (1 + hr_params.get("toxicity", 0) / 100)
+                multiplier *= 1 + hr_params.get("toxicity", 0) / 100
 
             # Se la Coesione Sociale è alta, le perdite di salute/energia sono ridotte
             if stat in ["health", "energy"] and value < 0:
-                multiplier *= (1 - hr_params.get("cohesion", 0) / 200)
+                multiplier *= 1 - hr_params.get("cohesion", 0) / 200
 
             # Pressione Risorse: aumenta il consumo di energia
             if stat == "energy" and value < 0:
-                multiplier *= (1 + hr_params.get("pressure", 0) / 100)
+                multiplier *= 1 + hr_params.get("pressure", 0) / 100
 
             # Competizione Interna: erode la reputazione nel team e l'autostima
             if stat in ["team_rep", "self_esteem"] and value < 0:
-                multiplier *= (1 + hr_params.get("competition", 0) / 100)
+                multiplier *= 1 + hr_params.get("competition", 0) / 100
 
         # Interazione con Manager (Scontro RPG)
         if manager_traits:
@@ -158,31 +214,35 @@ class PsychologicalProfile:
             # Se il manager è psicopatico, colpi allo stress e integrità sono amplificati
             # specialmente per agenti "Gradevoli" (Empatici)
             if m_psychopathy > 50:
-                if (value > 0 and stat == "stress") or (value < 0 and stat in ["integrity", "self_esteem"]):
-                    multiplier *= (1 + (m_psychopathy / 100) * (self.agreeableness / 100))
+                if (value > 0 and stat == "stress") or (
+                    value < 0 and stat in ["integrity", "self_esteem"]
+                ):
+                    multiplier *= 1 + (m_psychopathy / 100) * (self.agreeableness / 100)
 
             # Machiavellismo del manager erode l'energia se l'agente è molto Coscienzioso (lo sfrutta)
             if m_machiavellianism > 50 and stat == "energy" and value < 0:
-                multiplier *= (1 + (m_machiavellianism / 100) * (self.conscientiousness / 100))
+                multiplier *= 1 + (m_machiavellianism / 100) * (
+                    self.conscientiousness / 100
+                )
 
         # Tratti intrinseci dell'agente
-        if value > 0: # Incremento
+        if value > 0:  # Incremento
             if stat == "stress":
                 # Più alto il nevroticismo, più aumenta lo stress
-                multiplier *= (0.5 + self.neuroticism / 50)
+                multiplier *= 0.5 + self.neuroticism / 50
             if stat == "self_esteem":
                 # Narcisisti guadagnano più autostima da successi/elogi
-                multiplier *= (1 + self.narcissism / 100)
-        else: # Decremento
+                multiplier *= 1 + self.narcissism / 100
+        else:  # Decremento
             if stat == "health" or stat == "energy":
                 # Bassa resilienza (alto nevroticismo) fa perdere più salute/energia
-                multiplier *= (0.5 + self.neuroticism / 50)
+                multiplier *= 0.5 + self.neuroticism / 50
             if stat == "integrity":
                 # Alta gradevolezza soffre di più la perdita di integrità
-                multiplier *= (self.agreeableness / 50)
+                multiplier *= self.agreeableness / 50
             if stat == "self_esteem":
                 # Narcisisti perdono più autostima se colpiti (ferita narcisistica)
-                multiplier *= (1 + self.narcissism / 50)
+                multiplier *= 1 + self.narcissism / 50
 
         return int(value * multiplier)
 
@@ -198,16 +258,33 @@ class PsychologicalProfile:
             if choice.category == "COMPLIANCE":
                 # Alti in Coscienziosità e Gradevolezza tendono a compiacere
                 # Alti in Narcisismo tendono a compiacere se porta visibilità (assunto qui come base)
-                cat_weight = (self.conscientiousness * 0.4 + self.agreeableness * 0.4 + self.compliance_bias * 0.2) / 50
+                cat_weight = (
+                    self.conscientiousness * 0.4
+                    + self.agreeableness * 0.4
+                    + self.compliance_bias * 0.2
+                ) / 50
             elif choice.category == "RESISTANCE":
                 # Bassa Gradevolezza, alta Estroversione (Assertività) e Machiavellismo (se utile)
-                cat_weight = ((100 - self.agreeableness) * 0.3 + self.extraversion * 0.3 + self.machiavellianism * 0.2 + self.resistance_bias * 0.2) / 50
+                cat_weight = (
+                    (100 - self.agreeableness) * 0.3
+                    + self.extraversion * 0.3
+                    + self.machiavellianism * 0.2
+                    + self.resistance_bias * 0.2
+                ) / 50
             elif choice.category == "NEGOTIATION":
                 # Alta Apertura e Gradevolezza
-                cat_weight = (self.openness * 0.4 + self.agreeableness * 0.4 + self.negotiation_bias * 0.2) / 50
+                cat_weight = (
+                    self.openness * 0.4
+                    + self.agreeableness * 0.4
+                    + self.negotiation_bias * 0.2
+                ) / 50
             elif choice.category == "ESCAPE":
                 # Alto Nevroticismo e bassa Estroversione
-                cat_weight = (self.neuroticism * 0.5 + (100 - self.extraversion) * 0.3 + self.escape_bias * 0.2) / 50
+                cat_weight = (
+                    self.neuroticism * 0.5
+                    + (100 - self.extraversion) * 0.3
+                    + self.escape_bias * 0.2
+                ) / 50
             else:
                 cat_weight = 1.0
 
@@ -215,9 +292,9 @@ class PsychologicalProfile:
 
             # 2. Reazione agli effetti (Loss Aversion basata su Neuroticism)
             for stat, val in choice.effects.items():
-                if val < 0: # Effetto negativo
+                if val < 0:  # Effetto negativo
                     # Più alto il nevroticismo, più pesano gli effetti negativi
-                    weight *= (1 - (self.neuroticism / 200))
+                    weight *= 1 - (self.neuroticism / 200)
                 if stat == "integrity" and val < 0:
                     # Persone con alta gradevolezza o bassa psicopatia evitano di perdere integrità
                     weight *= (self.agreeableness / 50) * (1 - self.psychopathy / 100)
@@ -240,9 +317,8 @@ AGENT_PROFILES = {
         narcissism=40,
         machiavellianism=30,
         compliance_bias=70,
-        preferred_faction="Fedelissimi"
+        preferred_faction="Fedelissimi",
     ),
-
     "il_protettore": PsychologicalProfile(
         name="Il Protettore",
         description="Difende il team. Alta gradevolezza e bassa psicopatia.",
@@ -254,9 +330,8 @@ AGENT_PROFILES = {
         narcissism=10,
         machiavellianism=10,
         resistance_bias=70,
-        preferred_faction="Ribelli"
+        preferred_faction="Ribelli",
     ),
-
     "il_sopravvissuto": PsychologicalProfile(
         name="Il Sopravvissuto",
         description="Evita conflitti. Alto nevroticismo, bassa estroversione.",
@@ -266,9 +341,8 @@ AGENT_PROFILES = {
         agreeableness=50,
         neuroticism=75,
         escape_bias=80,
-        preferred_faction="Gruppo Silenzioso"
+        preferred_faction="Gruppo Silenzioso",
     ),
-
     "il_negotiatore": PsychologicalProfile(
         name="Il Negoziatore",
         description="Cerca compromessi. Alta apertura e gradevolezza.",
@@ -277,9 +351,8 @@ AGENT_PROFILES = {
         extraversion=60,
         agreeableness=75,
         neuroticism=35,
-        negotiation_bias=90
+        negotiation_bias=90,
     ),
-
     "il_cinico": PsychologicalProfile(
         name="Il Cinico",
         description="Disilluso e distaccato. Bassa gradevolezza, alto machiavellismo.",
@@ -291,9 +364,8 @@ AGENT_PROFILES = {
         machiavellianism=60,
         psychopathy=30,
         escape_bias=60,
-        preferred_faction="Gruppo Silenzioso"
+        preferred_faction="Gruppo Silenzioso",
     ),
-
     "il_manipolatore": PsychologicalProfile(
         name="Il Manipolatore",
         description="Usa le persone per i propri fini. Triade Oscura elevata.",
@@ -306,18 +378,17 @@ AGENT_PROFILES = {
         machiavellianism=85,
         psychopathy=50,
         negotiation_bias=60,
-        preferred_faction="Fedelissimi"
+        preferred_faction="Fedelissimi",
     ),
-
     "l_idealista": PsychologicalProfile(
         name="L'Idealista",
         description="Valori incrollabili. Alta apertura, bassa gradevolezza verso il male.",
         openness=90,
         conscientiousness=70,
         extraversion=50,
-        agreeableness=60, # Molto gradevole con chi merita, ma...
+        agreeableness=60,  # Molto gradevole con chi merita, ma...
         neuroticism=55,
         resistance_bias=85,
-        preferred_faction="Ribelli"
+        preferred_faction="Ribelli",
     ),
 }

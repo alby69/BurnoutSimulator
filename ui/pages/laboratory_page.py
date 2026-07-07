@@ -104,7 +104,26 @@ def render_laboratory():
                         f"{stats.get('alive_count', 0)}/{len(state.swarm.agents)}"
                     ).classes("text-2xl font-black text-green-400")
 
-            ui.label("LABORATORIO ANTROPOLOGICO v3.2").classes(
+            # Cultural drift indicator (v3.5)
+            cultural_info = lab_view.get("cultural_drift", {})
+            drift_culture = cultural_info.get("dominant_culture", "")
+            if drift_culture:
+                drift_colors = {
+                    "Startup Caotica": "#f97316",
+                    "Corporate Tossica": "#3b82f6",
+                    "Azienda Familiare": "#22c55e",
+                    "Consulting": "#a855f7",
+                }
+                drift_color = drift_colors.get(drift_culture, "#666")
+                with ui.column().classes("items-center gap-0"):
+                    ui.label("DERIVA CULTURALE").classes(
+                        "text-[8px] text-gray-600 font-bold"
+                    )
+                    ui.label(drift_culture.upper()).classes(
+                        f"text-[10px] font-black tracking-wider"
+                    ).style(f"color: {drift_color}")
+
+            ui.label("LABORATORIO ANTROPOLOGICO v3.5").classes(
                 "text-xl font-black tracking-[0.2em] text-white/20 absolute left-1/2 -translate-x-1/2"
             )
 
@@ -216,6 +235,107 @@ def render_laboratory():
                     "backgroundColor": "transparent",
                 }
                 ui.echart(evolution_option).classes("w-full h-80")
+
+        # --- COLLINS CUBE 3D: Visualizzazione Sciame (v3.5) ---
+        if lab_view["agents"]:
+            with ui.card().classes("w-full p-4 vn-card").props("flat"):
+                ui.label("CUBO DI COLLINS 3D (STRESS · ENERGIA · INTEGRITÀ)").classes(
+                    "text-[10px] font-black text-cyan-400 tracking-widest mb-4"
+                )
+                cube_data = []
+                for a in lab_view["agents"]:
+                    cube_data.append(
+                        {
+                            "name": a["name"][:12],
+                            "value": [a["stress"], a["energy"], a["integrity"]],
+                            "profile": a["profile_name"],
+                            "alive": a["alive"],
+                            "possessed": a["is_possessed"],
+                        }
+                    )
+
+                # Mappa profili a colori
+                profile_color_map = {
+                    "Il Performante": "#f97316",
+                    "Il Protettore": "#ef4444",
+                    "Il Sopravvissuto": "#22c55e",
+                    "Il Negoziatore": "#eab308",
+                    "Il Cinico": "#64748b",
+                    "Il Manipolatore": "#ec4899",
+                    "L'Idealista": "#3b82f6",
+                }
+
+                series_data = []
+                for pt in cube_data:
+                    series_data.append(
+                        {
+                            "name": pt["name"],
+                            "value": pt["value"],
+                            "itemStyle": {
+                                "color": profile_color_map.get(
+                                    pt["profile"], "#ffffff"
+                                ),
+                                "opacity": 0.7 if pt["alive"] else 0.2,
+                            },
+                            "symbolSize": 16 if pt["possessed"] else 12,
+                            "symbol": "diamond" if pt["possessed"] else "circle",
+                        }
+                    )
+
+                cube_option = {
+                    "tooltip": {
+                        "trigger": "item",
+                        "formatter": "{b}<br/>Stress: {c0}<br/>Energia: {c1}<br/>Integrità: {c2}",
+                    },
+                    "grid3D": {
+                        "boxWidth": 120,
+                        "boxHeight": 120,
+                        "boxDepth": 120,
+                        "viewControl": {
+                            "distance": 280,
+                            "autoRotate": True,
+                            "autoRotateSpeed": 5,
+                        },
+                        "axisPointer": {"show": False},
+                    },
+                    "xAxis3D": {
+                        "type": "value",
+                        "name": "STRESS",
+                        "nameTextStyle": {"color": "#ef4444", "fontSize": 10},
+                        "axisLabel": {"color": "#666", "fontSize": 8},
+                        "min": 0,
+                        "max": 100,
+                    },
+                    "yAxis3D": {
+                        "type": "value",
+                        "name": "ENERGIA",
+                        "nameTextStyle": {"color": "#22c55e", "fontSize": 10},
+                        "axisLabel": {"color": "#666", "fontSize": 8},
+                        "min": 0,
+                        "max": 100,
+                    },
+                    "zAxis3D": {
+                        "type": "value",
+                        "name": "INTEGRITÀ",
+                        "nameTextStyle": {"color": "#a78bfa", "fontSize": 10},
+                        "axisLabel": {"color": "#666", "fontSize": 8},
+                        "min": 0,
+                        "max": 100,
+                    },
+                    "series": [
+                        {
+                            "type": "scatter3D",
+                            "data": [p["value"] for p in cube_data],
+                            "itemStyle": {
+                                "opacity": 0.8,
+                            },
+                            "symbolSize": 14,
+                            "encode": {"x": 0, "y": 1, "z": 2},
+                        }
+                    ],
+                    "backgroundColor": "transparent",
+                }
+                ui.echart(cube_option).classes("w-full h-96")
 
         # --- HR DSS INSIGHTS (NEW) ---
         if stats.get("profile_impact"):
