@@ -16,16 +16,34 @@ def on_start_cb(name, arch, hr_params, go_to_lab=False, skip_tutorial=False):
             human = state.swarm.register_human("HR_Manager")
             state.current_human_id = human.human_id
         state.screen = "laboratory"
+        ui.navigate.to("/")
     else:
+        # Check if we need to show PRE questionnaire
+        if state.screen == "start":
+            state.temp_start_data = (name, arch, hr_params, skip_tutorial)
+            state.screen = "questionnaire_pre"
+            ui.navigate.to("/")
+            return
+
+        # If we are here, questionnaire is done or skipped
+        if hasattr(state, "temp_start_data"):
+            name, arch, hr_params, skip_tutorial = state.temp_start_data
+            del state.temp_start_data
+
         state.engine = GameEngine(
             name, "game/data/events.json", company_type=arch, hr_params=hr_params
         )
         state.session_id = str(uuid.uuid4())
         create_session(state.session_id, name, arch)
+
+        # Record variants for this session
+        from database.analytics import record_variants
+        record_variants(state.session_id, state.engine.session_variants)
+
         state.screen = "game"
         if not skip_tutorial:
             state._tutorial_active = True
-    ui.navigate.to("/")
+        ui.navigate.to("/")
 
 
 def get_stats_dict(eng) -> dict:
@@ -113,10 +131,16 @@ def make_choice(idx: int, event, choice):
         for k in state.stats_before
         if stats_after[k] != state.stats_before[k]
     }
-    show_choice_feedback(deltas, choice.category)
+    show_choice_feedback(deltas, choice.category, choice.text, getattr(choice, "reflection", None))
 
 
-def show_choice_feedback(deltas, category):
+def show_choice_feedback(deltas, category, choice_text="", reflection_text=None):
+    from ui.pages.game_page import render_reflection_dialog
+
+    # Micro-animation for high stress
+    if deltas.get("stress", 0) > 5:
+        ui.run_javascript("document.body.classList.add('shake'); setTimeout(() => document.body.classList.remove('shake'), 500);")
+
     with (
         ui.dialog().props("persistent scale") as dialog,
         ui.card().classes("p-8 vn-card"),
@@ -152,7 +176,10 @@ def show_choice_feedback(deltas, category):
                     save_agent(state.swarm.agents[state.current_agent_id].to_dict())
             ui.navigate.to("/")
 
-        ui.button("PROSEGUI", on_click=advance).classes("w-full mt-4")
+        with ui.row().classes("w-full gap-2 mt-4"):
+            ui.button("PROSEGUI", on_click=advance).classes("flex-1")
+            ui.button(icon="lightbulb", on_click=lambda: render_reflection_dialog(deltas, category, choice_text, reflection_text)).props("flat color=amber").tooltip("Perché questo effetto? (Riflessione)")
+
     dialog.open()
 
 
@@ -309,6 +336,13 @@ def show_help():
 def show_config():
     with ui.dialog() as d, ui.card().classes("p-8 vn-card"):
         ui.label("IMPOSTAZIONI").classes("text-xl font-bold mb-4")
+
+        ui.label("ACCESSIBILITÀ").classes("text-xs font-black text-blue-300 mb-2")
+        with ui.column().classes("w-full gap-2 mb-4"):
+            ui.label(f"Velocità Lettura:").classes("text-xs text-gray-400")
+            rs = ui.slider(min=0, max=0.1, step=0.01, value=state._reading_speed).props("label-always")
+            rs.on_change(lambda e: setattr(state, "_reading_speed", e.value))
+
         ui.label("SALVATAGGI MULTI-SLOT").classes(
             "text-xs font-black text-blue-300 mb-2"
         )

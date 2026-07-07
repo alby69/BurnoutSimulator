@@ -3,6 +3,8 @@ from game.engine import GameEngine
 from ui.theme import ARCHETYPE_THEMES
 from ui.i18n import t, load_translations
 import game.state as state
+import json
+from database.analytics import get_meta_value
 
 def render_start(on_start_cb, show_help, show_config, go_analytics):
     with ui.column().classes("w-full items-center justify-center min-h-[80vh] fade-in"):
@@ -34,9 +36,30 @@ def render_start(on_start_cb, show_help, show_config, go_analytics):
                         ui.select(
                             arch_options,
                             value="Corporate Tossica",
+                            label="Tipo di azienda",
                         )
                         .classes("w-full")
                         .props("outlined standout dark color=blue")
+                    )
+
+                with ui.column().classes("w-full items-start"):
+                    ui.label("PROFILO GIOCATORE").classes(
+                        "text-[10px] font-black text-purple-400 uppercase tracking-[0.2em] mb-1 ml-1"
+                    )
+                    player_profiles = {
+                        "Standard": "Equilibrato",
+                        "Novizio Idealista": "+15 Integrità, -10 Occupabilità",
+                        "Veterano Cinico": "+15 Occupabilità, -15 Integrità, -10 Stress",
+                        "Workaholic": "+20 Energia, +10 Rep. Manager, +15 Stress"
+                    }
+                    profile_select = (
+                        ui.select(
+                            player_profiles,
+                            value="Standard",
+                            label="Il tuo background",
+                        )
+                        .classes("w-full")
+                        .props("outlined standout dark color=purple")
                     )
 
                 def on_arch_change():
@@ -112,9 +135,30 @@ def render_start(on_start_cb, show_help, show_config, go_analytics):
                     "competition": comp_slider.value,
                     "social_support": supp_slider.value,
                     "transparency": trans_slider.value,
-                    "real_cases": real_cases_toggle.value
+                    "real_cases": real_cases_toggle.value,
+                    "player_profile": profile_select.value
                 }
                 on_start_cb("HR_Manager", arch_select.value, hr_params, go_to_lab=True, skip_tutorial=skip_tutorial_toggle.value)
+
+            def start_game_internal():
+                hr_params = {
+                    "toxicity": tox_slider.value,
+                    "pressure": res_slider.value,
+                    "cohesion": coh_slider.value,
+                    "competition": comp_slider.value,
+                    "social_support": supp_slider.value,
+                    "transparency": trans_slider.value,
+                    "real_cases": real_cases_toggle.value,
+                    "player_profile": profile_select.value
+                }
+                on_start_cb("Player", arch_select.value, hr_params, go_to_lab=False, skip_tutorial=skip_tutorial_toggle.value)
+
+            with ui.button(on_click=start_game_internal).classes(
+                "w-full mt-6 py-6 text-xl font-bold rounded-xl shadow-xl hover:scale-102 transition-transform bg-blue-600 text-white"
+            ):
+                with ui.row().classes("items-center gap-3 no-wrap"):
+                    ui.icon("play_arrow", size="md")
+                    ui.label("INIZIA SIMULAZIONE")
 
             with ui.button(on_click=start_lab_internal).classes(
                 "w-full mt-10 py-6 text-xl font-bold rounded-xl shadow-xl hover:scale-102 transition-transform bg-purple-600 text-white"
@@ -122,6 +166,19 @@ def render_start(on_start_cb, show_help, show_config, go_analytics):
                 with ui.row().classes("items-center gap-3 no-wrap"):
                     ui.icon("psychology", size="md")
                     ui.label("ENTRA NEL LABORATORIO")
+
+            # Meta-progression display
+            try:
+                unlocked_json = get_meta_value("unlocked_endings", "[]")
+                unlocked = json.loads(unlocked_json)
+                if unlocked:
+                    with ui.column().classes("w-full mt-4 p-4 bg-amber-500/5 rounded-xl border border-amber-500/20"):
+                        ui.label("FINALARI SBLOCCATI").classes("text-[10px] font-black text-amber-500 tracking-widest mb-2")
+                        with ui.row().classes("gap-2 flex-wrap justify-center"):
+                            for e in unlocked:
+                                ui.badge(e, color="amber-9").classes("text-[9px] px-2")
+            except:
+                pass
 
             with ui.row().classes(
                 "w-full justify-center mt-6 pt-6 border-t border-white/5 gap-3"

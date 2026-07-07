@@ -18,6 +18,8 @@ _timer_active: bool = False
 _decision_start: float = 0.0
 _layout_mode: str = "desktop"
 _skip_tutorial: bool = False
+_high_contrast: bool = False
+_reading_speed: float = 0.05 # Seconds per character
 
 # Initialize swarm once
 swarm.load_swarm()

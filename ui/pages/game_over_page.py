@@ -1,5 +1,5 @@
 from nicegui import ui
-import base64, io
+import base64, io, json
 from ui.theme import CAT_COLORS, ARCHETYPE_THEMES
 from engine.analysis import StrategicAnalyzer
 from ui.components.common import state_icon
@@ -23,6 +23,17 @@ def render_game_over():
 
     player = engine.player
     ending = determine_ending(player)
+
+    # Meta-progression: record ending
+    try:
+        from database.analytics import get_meta_value, set_meta_value
+        unlocked_json = get_meta_value("unlocked_endings", "[]")
+        unlocked = json.loads(unlocked_json)
+        if ending not in unlocked:
+            unlocked.append(ending)
+            set_meta_value("unlocked_endings", json.dumps(unlocked))
+    except Exception as e:
+        print(f"Error saving meta-progression: {e}")
 
     # Identifica se l'agente si è comportato bene rispetto al suo profilo
     is_top_performer = False
@@ -182,23 +193,24 @@ def render_game_over():
                     f"Tempo medio decisione: {avg_dt:.1f}s · Rapide: {fast} · Lente (>15s): {slow}"
                 ).classes("text-xs text-gray-500 mt-2")
 
-            with ui.row().classes("w-full justify-center gap-6 mt-6"):
+            with ui.row().classes("w-full justify-center mt-6 mb-12 gap-3 flex-wrap"):
                 for key, label, color in [
                     ("energy", "Energia", "#4ade80"),
                     ("stress", "Stress", "#f87171"),
                     ("health", "Salute", "#22d3ee"),
                     ("integrity", "Integrità", "#a78bfa"),
+                    ("self_esteem", "Autostima", "#fbbf24"),
+                    ("employability", "Occupabilità", "#34d399"),
                 ]:
-                    with ui.column().classes("items-center"):
-                        ui.linear_progress(
+                    with ui.column().classes("items-center p-2 bg-white/5 rounded-lg border border-white/5 min-w-[100px]"):
+                        ui.circular_progress(
                             value=stats[key] / 100,
-                            size="md",
+                            size="40px",
                             color=color,
                             show_value=False,
-                        ).classes("w-20")
-                        ui.label(f"{label}: {stats[key]}%").classes(
-                            "text-xs text-gray-400"
-                        )
+                        ).classes("mb-2")
+                        ui.label(label).classes("text-[10px] text-gray-500 uppercase")
+                        ui.label(f"{stats[key]}%").classes("text-sm font-bold")
 
         tags = player.tags
         total_tags = sum(tags.values())
