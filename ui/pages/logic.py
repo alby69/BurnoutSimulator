@@ -38,11 +38,13 @@ def on_start_cb(name, arch, hr_params, go_to_lab=False, skip_tutorial=False):
         state.engine = GameEngine(
             name, "game/data/events.json", company_type=arch, hr_params=hr_params
         )
+        state.engine.next_turn()  # Load first event
         state.session_id = str(uuid.uuid4())
         create_session(state.session_id, name, arch)
 
         # Record variants for this session
         from database.analytics import record_variants
+
         record_variants(state.session_id, state.engine.session_variants)
 
         state.screen = "game"
@@ -136,7 +138,9 @@ def make_choice(idx: int, event, choice):
         for k in state.stats_before
         if stats_after[k] != state.stats_before[k]
     }
-    show_choice_feedback(deltas, choice.category, choice.text, getattr(choice, "reflection", None))
+    show_choice_feedback(
+        deltas, choice.category, choice.text, getattr(choice, "reflection", None)
+    )
 
 
 def show_choice_feedback(deltas, category, choice_text="", reflection_text=None):
@@ -144,7 +148,9 @@ def show_choice_feedback(deltas, category, choice_text="", reflection_text=None)
 
     # Micro-animation for high stress
     if deltas.get("stress", 0) > 5:
-        ui.run_javascript("document.body.classList.add('shake'); setTimeout(() => document.body.classList.remove('shake'), 500);")
+        ui.run_javascript(
+            "document.body.classList.add('shake'); setTimeout(() => document.body.classList.remove('shake'), 500);"
+        )
 
     with (
         ui.dialog().props("persistent scale") as dialog,
@@ -183,7 +189,12 @@ def show_choice_feedback(deltas, category, choice_text="", reflection_text=None)
 
         with ui.row().classes("w-full gap-2 mt-4"):
             ui.button("PROSEGUI", on_click=advance).classes("flex-1")
-            ui.button(icon="lightbulb", on_click=lambda: render_reflection_dialog(deltas, category, choice_text, reflection_text)).props("flat color=amber").tooltip("Perché questo effetto? (Riflessione)")
+            ui.button(
+                icon="lightbulb",
+                on_click=lambda: render_reflection_dialog(
+                    deltas, category, choice_text, reflection_text
+                ),
+            ).props("flat color=amber").tooltip("Perché questo effetto? (Riflessione)")
 
     dialog.open()
 
@@ -345,7 +356,9 @@ def show_config():
         ui.label("ACCESSIBILITÀ").classes("text-xs font-black text-blue-300 mb-2")
         with ui.column().classes("w-full gap-2 mb-4"):
             ui.label("Velocità Lettura:").classes("text-xs text-gray-400")
-            rs = ui.slider(min=0, max=0.1, step=0.01, value=state._reading_speed).props("label-always")
+            rs = ui.slider(min=0, max=0.1, step=0.01, value=state._reading_speed).props(
+                "label-always"
+            )
             rs.on_change(lambda e: setattr(state, "_reading_speed", e.value))
 
         ui.label("SALVATAGGI MULTI-SLOT").classes(
