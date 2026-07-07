@@ -216,7 +216,6 @@ class Agent:
         stats_before = self.engine.player.to_dict()["stats"]
 
         # Evolve personality based on choice
-        stats_after_est = self.engine.player.to_dict()["stats"] # pre-choice estimate
         # Note: evolution happens after handle_choice normally, but here we can record the intent
         self.memory.record_decision(
             event_id=event.id,

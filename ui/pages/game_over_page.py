@@ -1,5 +1,7 @@
 from nicegui import ui
-import base64, io, json
+import base64
+import io
+import json
 from ui.theme import CAT_COLORS, ARCHETYPE_THEMES
 from engine.analysis import StrategicAnalyzer
 from ui.components.common import state_icon
@@ -62,7 +64,7 @@ def render_game_over():
         ):
             # Background effect for game over
             ui.html(
-                f'<div style="position:absolute; top:-50px; right:-50px; width:200px; height:200px; background:var(--theme-accent); opacity:0.1; border-radius:50%; filter:blur(60px);"></div>'
+                '<div style="position:absolute; top:-50px; right:-50px; width:200px; height:200px; background:var(--theme-accent); opacity:0.1; border-radius:50%; filter:blur(60px);"></div>'
             )
 
             ui.label("VALUTAZIONE CARRIERA CONCLUSO").classes(

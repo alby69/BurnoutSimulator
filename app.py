@@ -1,4 +1,9 @@
-import uuid, random, json, sqlite3, os, base64
+import uuid
+import random
+import json
+import sqlite3
+import os
+import base64
 from typing import Optional
 from io import BytesIO
 from nicegui import app, ui

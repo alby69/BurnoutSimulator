@@ -1,5 +1,7 @@
 from nicegui import ui
-import random, uuid, json
+import random
+import uuid
+import json
 from ui.theme import ARCHETYPE_THEMES, CAT_COLORS, NPC_FACTION_COLORS
 from ui.assets import GFX_PATH, EMOTE_ICONS
 from game.engine import NPC_FACTION_MAP, CAREER_PHASES

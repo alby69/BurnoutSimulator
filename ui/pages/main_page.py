@@ -2,6 +2,7 @@ from nicegui import ui
 
 from ui.pages.questionnaire_page import render_questionnaire
 from ui.pages.logic import play_again
+import game.state as state
 
 def page(screen, render_start, render_laboratory, render_game, render_tutorial, render_game_over, render_analytics, on_start_cb, show_help, show_config, go_analytics, _tutorial_active):
     if screen == "start":

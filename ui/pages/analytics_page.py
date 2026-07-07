@@ -1,5 +1,9 @@
 from nicegui import ui
-import sqlite3, os, csv, io
+import sqlite3
+import os
+import csv
+import io
+import json
 from ui.theme import ARCHETYPE_THEMES, CAT_COLORS
 from ui.pages.logic import play_again
 
