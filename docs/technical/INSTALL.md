@@ -139,21 +139,34 @@ python app.py
 ## Prima esecuzione — Social Laboratory
 
 1. Clicca "ENTRA NEL LABORATORIO" nella schermata iniziale
-2. Osserva 6 agenti autonomi con profili psicologici distinti
-3. Clicca "Possiedi" su un agente per prenderne il controllo
+2. Osserva 6 agenti autonomi con profili psicologici distinti (7 profili OCEAN+Dark Triad)
+3. Clicca "POSSIEDI" su un agente per prenderne il controllo
 4. Usa "SALTA" per cambiare agente in qualsiasi momento (il sistema traccia il tuo profilo emergente)
 5. Clicca "Avanti N turni" per far avanzare gli agenti non posseduti
+6. La **Peer Influence** modifica i tratti OCEAN degli agenti in base alla prossimità sociale
+7. La **Cultural Drift** evolve l'archetipo aziendale dominante ogni 5 turni
+8. Il **Collins Cube 3D** mostra gli agenti nello spazio Stress/Energia/Integrità
 
 ---
 
 ## Testing
 
 ```bash
-# Unit test framework agenti
+# Tutti i test (182 totali)
+python -m pytest tests/ -v
+
+# Test v3.5 (Peer Influence, Cultural Drift, Dashboard, Collins Cube)
+python -m pytest tests/test_v3_5.py -v
+
+# Test completi unificati (engine, player, swarm, agenti)
+python -m pytest tests/test_comprehensive.py -v
+
+# Test legacy
 python -m unittest tests/test_agents.py
+python -m pytest tests/test_engine.py
 
 # Verifica integrazione v3.1 (agenti, possesso, DB)
-python tests/verify_v3_1.py
+PYTHONPATH=. python tests/verify_v3_1.py
 
 # Test E2E con Playwright (richiede app in esecuzione su :8080)
 python verify_lab.py

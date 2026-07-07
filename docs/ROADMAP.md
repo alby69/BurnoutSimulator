@@ -176,7 +176,9 @@ In `ui/pages/laboratory_page.py`: ECharts `scatter3D` con assi Stress (x), Energ
 - **Multi-utente** (sciame dedicato per sessione, non globale)
 - **Integrazione ML**: Modello predittivo sul rischio di dimissioni di massa
 - **UI dedicata** per i moduli della dashboard (pagine NiceGUI per AlertSystem, Reports, TimelineViewer)
+- **Localizzazione completa** IT/EN per tutti i contenuti narrativi
+- **Esportazione dati** scientifica (CSV/JSON strutturato per analisi antropologiche)
 
 ---
 
-*Documento aggiornato per BurnoutSimulator v3.5 — Social Physics & HR Intelligence.*
+*Documento aggiornato per BurnoutSimulator v3.5 — Social Physics & HR Intelligence. Ultimo aggiornamento: Luglio 2026.*

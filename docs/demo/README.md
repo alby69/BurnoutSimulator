@@ -1,4 +1,4 @@
-# Burnout Simulator v3.2 — Demo Interattiva
+# Burnout Simulator v3.5 — Social Physics & HR Intelligence
 
 Benvenuto nella demo interattiva di **Burnout Simulator**, un simulatore di antropologia delle organizzazioni che modella le dinamiche tossiche, le strategie di sopravvivenza e l'evoluzione psicologica degli agenti in contesti aziendali.
 
