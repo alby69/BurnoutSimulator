@@ -9,7 +9,7 @@ session_id: Optional[str] = None
 swarm: AgentSwarm = AgentSwarm(num_agents=6)
 current_human_id: Optional[str] = None
 current_agent_id: Optional[str] = None
-client_inspected_agent: Dict[str, str] = {}
+inspected_agent_id: Optional[str] = None
 stats_before: Dict = {}
 choice_history: List = []
 _tutorial_active: bool = False
@@ -19,7 +19,7 @@ _decision_start: float = 0.0
 _layout_mode: str = "desktop"
 _skip_tutorial: bool = False
 _high_contrast: bool = False
-_reading_speed: float = 0.05 # Seconds per character
+_reading_speed: float = 0.05  # Seconds per character
 
 # Initialize swarm once
 swarm.load_swarm()

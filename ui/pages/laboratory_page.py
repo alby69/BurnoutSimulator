@@ -15,8 +15,7 @@ from ui.pages.logic import (
 
 def render_laboratory():
     """Vista principale del laboratorio di agenti migliorata (v3.0)."""
-    client_id = ui.context.client.id
-    inspected_agent_id = state.client_inspected_agent.get(client_id)
+    inspected_agent_id = state.inspected_agent_id
 
     lab_view = state.swarm.get_laboratory_view(state.current_human_id)
     stats = lab_view["analytics"]
@@ -27,7 +26,7 @@ def render_laboratory():
     # Se non c'è un agente ispezionato, scegliamo il primo della lista (spesso quello posseduto)
     if not inspected_agent_id and lab_view["agents"]:
         inspected_agent_id = lab_view["agents"][0]["agent_id"]
-        state.client_inspected_agent[client_id] = inspected_agent_id
+        state.inspected_agent_id = inspected_agent_id
 
     # Cerchiamo i dati dell'agente ispezionato
     inspected_agent = next(
@@ -568,7 +567,7 @@ def render_agent_compact_card(agent, is_selected):
         ui.card()
         .classes(f"w-full p-3 vn-card cursor-pointer {border_class}")
         .style(card_bg)
-        .on("click", lambda _, aid=agent["agent_id"]: inspect_agent(aid))
+        .on("click", lambda aid=agent["agent_id"]: inspect_agent(aid))
     ):
         with ui.row().classes("w-full items-center justify-between no-wrap"):
             with ui.row().classes("items-center gap-2 flex-1 min-w-0"):

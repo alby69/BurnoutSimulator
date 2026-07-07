@@ -826,17 +826,14 @@ class TestLabFlow:
     def test_inspect_agent_sets_state(self, swarm):
         """inspect_agent deve impostare correttamente l'agent_id nello stato."""
         from ui.pages.logic import inspect_agent
-
-        agent_id = list(swarm.agents.keys())[1]
-
-        # Simula il contesto client (mock di ui.context.client)
-        with patch("nicegui.ui.context") as mock_context:
-            mock_context.client.id = "test_client"
-            inspect_agent(agent_id)
-
         import game.state as state
 
-        assert state.client_inspected_agent.get("test_client") == agent_id
+        state.inspected_agent_id = None
+        agent_id = list(swarm.agents.keys())[1]
+
+        inspect_agent(agent_id)
+
+        assert state.inspected_agent_id == agent_id
 
     def test_lab_view_inspected_agent_lookup(self, swarm_with_turns):
         """La vista laboratorio deve poter trovare un agente specifico per ID."""

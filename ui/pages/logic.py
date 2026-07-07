@@ -58,8 +58,7 @@ def get_stats_dict(eng) -> dict:
 
 
 def inspect_agent(agent_id):
-    client_id = ui.context.client.id
-    state.client_inspected_agent[client_id] = agent_id
+    state.inspected_agent_id = agent_id
     ui.navigate.to("/")
 
 
