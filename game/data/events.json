@@ -1,8 +1,29 @@
 [
   {
+    "id": "quiet_quitting_practice",
+    "text": "Senti che il carico di lavoro è diventato insostenibile e non riconosciuto. Decidi di limitarti strettamente alle mansioni descritte nel contratto, senza un minuto di straordinario e senza partecipare a iniziative 'volontarie' del team.",
+    "category": "resistance",
+    "ethnographic_ref": "Giddens (1984) - The Constitution of Society",
+    "choices": [
+      {
+        "id": "quiet_quitting_act",
+        "text": "Applichi l'etica del giusto compenso",
+        "category": "RESISTANCE",
+        "effects": {
+          "energy": 5,
+          "stress": -5,
+          "manager_rep": -5,
+          "integrity": 5
+        },
+        "reflection": "Il 'Quiet Quitting' non è pigrizia, ma una forma di **dialettica del controllo** (Giddens). Ripristinando i confini contrattuali, il lavoratore riafferma la propria agency contro la colonizzazione corporativa della vita privata."
+      }
+    ]
+  },
+  {
     "id": "riunione_inutile",
     "text": "Sono le 18:05. Alle 18:00 avresti dovuto terminare il turno. Ricevi un invito urgente per una riunione: 'Allineamento strategico operativo'. Non contiene agenda. Scopri che il manager vuole semplicemente ascoltare aggiornamenti gi\u00e0 inviati via email.",
     "category": "micromanagement",
+    "ethnographic_ref": "Kunda (1992) - Engineering Culture",
     "variants": [
       {
         "id": "variante_gender_f",
