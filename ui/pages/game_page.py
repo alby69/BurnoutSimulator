@@ -1,8 +1,10 @@
 from nicegui import ui
-import random, uuid
+import random
+import uuid
+import json
 from ui.theme import ARCHETYPE_THEMES, CAT_COLORS, NPC_FACTION_COLORS
 from ui.assets import GFX_PATH, EMOTE_ICONS
-from game.engine import NPC_FACTION_MAP
+from game.engine import NPC_FACTION_MAP, CAREER_PHASES
 from ui.components.sidebar import (
     render_stats_section,
     render_factions_section,
@@ -25,6 +27,17 @@ from ui.pages.logic import (
 def render_game():
     engine = state.engine
     player = engine.player
+
+    # Adaptive Audio (Placeholder logic)
+    stress_level = player.stress
+    audio_file = "ambient_low.mp3"
+    if stress_level > 70:
+        audio_file = "ambient_high.mp3"
+    elif stress_level > 40:
+        audio_file = "ambient_med.mp3"
+
+    # Simple audio element that doesn't block (using a hidden ui.html or similar)
+    # ui.html(f'<audio autoplay loop src="static/audio/{audio_file}" style="display:none"></audio>')
     pdata = player.to_dict()
     event = engine.current_event
     theme = ARCHETYPE_THEMES.get(
@@ -55,6 +68,17 @@ def render_game():
         unique_seen = len(set(engine.history))
         is_repeat = event and event.id in engine.history[:-1]
 
+        # Timeline Visiva (Proposta 2.3)
+        with ui.row().classes("w-full h-2 gap-1 mb-4"):
+            total_days_goal = 60
+            for i in range(total_days_goal):
+                color = "bg-blue-500" if i < player.days_survived else "bg-gray-800"
+                # Milestone markers
+                is_milestone = any(m[0] == i for m in CAREER_PHASES)
+                if is_milestone:
+                    color = "bg-amber-500" if i < player.days_survived else "bg-amber-900"
+                ui.element("div").classes(f"flex-1 h-full {color} rounded-full transition-all")
+
         with ui.row().classes(
             "w-full items-center justify-between mb-6 pb-4 border-b border-white/5"
         ):
@@ -84,6 +108,12 @@ def render_game():
                         'document.querySelector(".stats-sidebar").classList.toggle("open")'
                     ),
                 ).props("flat round color=white").classes("lg:hidden")
+                ui.button(icon="contrast", on_click=lambda: ui.run_javascript('document.body.classList.toggle("light-mode")')).props(
+                    "flat round color=white"
+                ).classes("hover:bg-white/10").tooltip("Toggle Dark/Light Mode")
+                ui.button(icon="visibility", on_click=lambda: ui.run_javascript('document.body.classList.toggle("high-contrast")')).props(
+                    "flat round color=white"
+                ).classes("hover:bg-white/10").tooltip("Toggle High Contrast")
                 ui.button(icon="help", on_click=show_help).props(
                     "flat round color=white"
                 ).classes("hover:bg-white/10")
@@ -367,10 +397,33 @@ def render_game():
                                         ui.image(ev_icon).style(
                                             "width: 48px; height: 48px; border-radius: 8px; flex-shrink: 0"
                                         )
-                                    ui.markdown(event.text).classes(
+                                    narrative_container = ui.markdown("").classes(
                                         "narrative-text prose prose-invert max-w-none flex-1"
-                                        " [&_strong]:text-blue-300 [&_strong]:font-bold"
+                                        " [&_strong]:text-blue-300 [&_strong]:font-bold typewriter-text"
                                     )
+                                    # Typewriter effect
+                                    ui.run_javascript(f"""
+                                        (function() {{
+                                            const text = {json.dumps(event.text)};
+                                            const el = document.querySelector('.typewriter-text');
+                                            if (!el) return;
+                                            el.innerHTML = '';
+                                            let i = 0;
+                                            const speed = {state._reading_speed * 1000};
+                                            if (speed <= 0) {{
+                                                el.innerHTML = text;
+                                                return;
+                                            }}
+                                            function type() {{
+                                                if (i < text.length) {{
+                                                    el.innerHTML = text.substring(0, i+1);
+                                                    i++;
+                                                    setTimeout(type, speed);
+                                                }}
+                                            }}
+                                            type();
+                                        }})();
+                                    """)
 
                     n_choices = len(event.choices)
                     with ui.column().classes("w-full gap-3 mt-2"):
@@ -412,8 +465,8 @@ def render_game():
                             with ui.column().classes("w-full items-start gap-1"):
                                 ui.label(label).classes("text-left")
 
-                                # Effetti sempre visibili (chip)
-                                if choice.effects:
+                                # Effetti sempre visibili (chip) - Nascondi se è una 'grey choice'
+                                if choice.effects and not getattr(choice, 'is_grey', False):
                                     with ui.row().classes("gap-1 mt-1 flex-wrap"):
                                         for ek, ev in list(choice.effects.items())[:4]:
                                             cls = "pos" if ev > 0 else "neg"
@@ -421,6 +474,8 @@ def render_game():
                                             ui.label(
                                                 f"{effect_label(ek)}: {sign}{ev}"
                                             ).classes(f"effect-chip {cls}")
+                                elif getattr(choice, 'is_grey', False):
+                                    ui.label("???").classes("text-[10px] text-gray-600 italic")
 
                             # Timer su scelta critica
                             if i == _timer_choice_idx and n_choices > 1:
@@ -443,15 +498,16 @@ def render_game():
                                     }})();
                                 """)
 
-                            # Tooltip (M3)
-                            with ui.tooltip().classes(
-                                "p-2 bg-gray-800 border border-gray-600 rounded"
-                            ):
-                                for effect_key, effect_val in choice.effects.items():
-                                    sign = "+" if effect_val > 0 else ""
-                                    ui.label(
-                                        f"{effect_label(effect_key)}: {sign}{effect_val}"
-                                    ).classes("text-xs font-mono")
+                            # Tooltip (M3) - Nascondi se è una 'grey choice'
+                            if not getattr(choice, 'is_grey', False):
+                                with ui.tooltip().classes(
+                                    "p-2 bg-gray-800 border border-gray-600 rounded"
+                                ):
+                                    for effect_key, effect_val in choice.effects.items():
+                                        sign = "+" if effect_val > 0 else ""
+                                        ui.label(
+                                            f"{effect_label(effect_key)}: {sign}{effect_val}"
+                                        ).classes("text-xs font-mono")
 
     # Mobile bottom bar
     if state._layout_mode == "mobile":
@@ -491,6 +547,31 @@ def render_game():
                     "flat round color=red dense"
                 )
 
+
+def render_reflection_dialog(deltas, category, choice_text, reflection_text=None):
+    reflections = {
+        "COMPLIANCE": "La **Compliance** (obbedienza) riduce il conflitto immediato ma erode l'integrità. In antropologia organizzativa, questo 'mimetismo' può proteggere nel breve termine ma porta all'alienazione dal proprio sé professionale.",
+        "RESISTANCE": "La **Resistance** (resistenza) protegge l'identità e l'integrità, ma aumenta la visibilità e il rischio di sanzioni. È un atto di riappropriazione del potere individuale in contesti asimmetrici.",
+        "NEGOTIATION": "La **Negotiation** (negoziazione) cerca un equilibrio precario. Richiede alto capitale relazionale e può essere interpretata come debolezza o come competenza politica a seconda della cultura aziendale.",
+        "ESCAPE": "L' **Escape** (fuga/evitamento) è una strategia di preservazione dell'energia. Riduce l'impatto emotivo degli eventi ignorandone la fonte, ma non risolve le cause sistemiche del malessere."
+    }
+
+    with ui.dialog().props("persistent") as dialog, ui.card().classes("p-8 vn-card max-w-lg"):
+        ui.label("MODALITÀ RIFLESSIONE").classes("text-[10px] font-black text-amber-400 tracking-[0.3em] mb-2")
+        ui.label(f"Perché '{choice_text}'?").classes("text-xl font-bold mb-4")
+
+        main_reflection = reflection_text or reflections.get(category, "Ogni scelta modella il tuo percorso nel sistema.")
+        ui.markdown(main_reflection).classes("text-gray-300 italic mb-6")
+
+        ui.label("IMPATTOSULLE STATISTICHE:").classes("text-[10px] font-bold text-gray-500 mb-2")
+        with ui.row().classes("w-full gap-2 flex-wrap"):
+            for key, delta in deltas.items():
+                color = "text-green-400" if delta > 0 else "text-red-400"
+                sign = "+" if delta > 0 else ""
+                ui.badge(f"{effect_label(key)} {sign}{delta}", color="black").classes(f"{color} border border-white/10")
+
+        ui.button("HO CAPITO", on_click=dialog.close).classes("w-full mt-8 bg-amber-600")
+    dialog.open()
 
 def render_tutorial():
     steps = [
