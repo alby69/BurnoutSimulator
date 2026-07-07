@@ -226,18 +226,26 @@ def render_game():
                 # Fenomenologia (Corporeità e Tempo)
                 if engine.active_phenomenology:
                     ui.separator().classes("my-3 bg-gray-700")
-                    ui.label("FENOMENOLOGIA").classes("text-[10px] font-bold text-amber-500 mb-2")
+                    ui.label("FENOMENOLOGIA").classes(
+                        "text-[10px] font-bold text-amber-500 mb-2"
+                    )
                     for k, desc in engine.active_phenomenology.items():
                         with ui.row().classes("items-center gap-2 mb-1"):
                             ui.icon("warning", size="12px", color="amber-5")
-                            ui.label(desc).classes("text-[10px] text-amber-200/70 italic leading-tight")
+                            ui.label(desc).classes(
+                                "text-[10px] text-amber-200/70 italic leading-tight"
+                            )
 
                 # Governance Algoritmica
                 if engine.algo_reports and engine.algo_reports.get("nudges"):
                     ui.separator().classes("my-3 bg-gray-700")
-                    ui.label("ALGORITHM WATCH").classes("text-[10px] font-bold text-red-400 mb-2")
+                    ui.label("ALGORITHM WATCH").classes(
+                        "text-[10px] font-bold text-red-400 mb-2"
+                    )
                     for nudge in engine.algo_reports["nudges"]:
-                        ui.label(nudge).classes("text-[9px] text-red-300/80 bg-red-950/30 p-1 rounded border border-red-900/50 mb-1")
+                        ui.label(nudge).classes(
+                            "text-[9px] text-red-300/80 bg-red-950/30 p-1 rounded border border-red-900/50 mb-1"
+                        )
 
                 # Personalità Manager
                 mp = getattr(engine, "manager_personality", {})
@@ -265,9 +273,16 @@ def render_game():
                 # Manifesto Culturale
                 if engine.cultural_manifesto:
                     ui.separator().classes("my-3 bg-gray-700")
-                    ui.label("MANIFESTO CULTURALE").classes("text-[10px] font-bold text-blue-400 mb-1")
-                    ui.label(engine.cultural_manifesto.get("mitopoiesi", "")).classes("text-[10px] font-bold text-white mb-1")
-                    ui.label(engine.cultural_manifesto.get("manifesto_culturale", "")[:100] + "...").classes("text-[9px] text-gray-400 italic")
+                    ui.label("MANIFESTO CULTURALE").classes(
+                        "text-[10px] font-bold text-blue-400 mb-1"
+                    )
+                    ui.label(engine.cultural_manifesto.get("mitopoiesi", "")).classes(
+                        "text-[10px] font-bold text-white mb-1"
+                    )
+                    ui.label(
+                        engine.cultural_manifesto.get("manifesto_culturale", "")[:100]
+                        + "..."
+                    ).classes("text-[9px] text-gray-400 italic")
 
                 # STATO
                 ui.separator().classes("my-3 bg-gray-700")
@@ -373,13 +388,19 @@ def render_game():
                                 ui.badge(
                                     event.category.replace("_", " ").upper(),
                                     color="amber-9",
-                                ).classes("px-3 py-1 text-[10px] font-bold tracking-widest")
+                                ).classes(
+                                    "px-3 py-1 text-[10px] font-bold tracking-widest"
+                                )
 
-                                if hasattr(event, "ethnographic_ref") and event.ethnographic_ref:
+                                if (
+                                    hasattr(event, "ethnographic_ref")
+                                    and event.ethnographic_ref
+                                ):
                                     ui.badge(
-                                        "REF: " + event.ethnographic_ref,
-                                        color="blue-9"
-                                    ).classes("px-2 py-0.5 text-[8px] font-mono").tooltip("Riferimento Etnografico Reale")
+                                        "REF: " + event.ethnographic_ref, color="blue-9"
+                                    ).classes(
+                                        "px-2 py-0.5 text-[8px] font-mono"
+                                    ).tooltip("Riferimento Etnografico Reale")
 
                             with ui.row().classes("gap-2"):
                                 if engine.real_cases_mode:
@@ -456,6 +477,7 @@ def render_game():
                                             const speed = {state._reading_speed * 1000};
                                             if (speed <= 0) {{
                                                 el.innerHTML = text;
+                                                window._typewriterDone = true;
                                                 return;
                                             }}
                                             function type() {{
@@ -463,6 +485,8 @@ def render_game():
                                                     el.innerHTML = text.substring(0, i+1);
                                                     i++;
                                                     setTimeout(type, speed);
+                                                }} else {{
+                                                    window._typewriterDone = true;
                                                 }}
                                             }}
                                             type();
@@ -525,24 +549,32 @@ def render_game():
                                         "text-[10px] text-gray-600 italic"
                                     )
 
-                            # Timer su scelta critica
+                            # Timer su scelta critica (parte dopo la typewriter)
                             if i == _timer_choice_idx and n_choices > 1:
                                 timer_id = f"timer_{uuid.uuid4().hex[:6]}"
                                 ui.label().classes("timer-ring").props(f"id={timer_id}")
                                 ui.run_javascript(f"""
                                     (function() {{
-                                        let sec = 15;
                                         const el = document.getElementById('{timer_id}');
                                         if (!el) return;
-                                        el.innerHTML = '⏱ ' + sec + 's';
-                                        const iv = setInterval(() => {{
-                                            sec--;
-                                            if (el) el.innerHTML = '⏱ ' + sec + 's';
-                                            if (sec <= 0) {{
-                                                clearInterval(iv);
-                                                el.closest('button')?.click();
+                                        const waitForTypewriter = () => {{
+                                            if (window._typewriterDone) {{
+                                                let sec = 15;
+                                                el.innerHTML = '⏱ ' + sec + 's';
+                                                const iv = setInterval(() => {{
+                                                    sec--;
+                                                    if (el) el.innerHTML = '⏱ ' + sec + 's';
+                                                    if (sec <= 0) {{
+                                                        clearInterval(iv);
+                                                        el.closest('button')?.click();
+                                                    }}
+                                                }}, 1000);
+                                            }} else {{
+                                                el.innerHTML = '⏳ attendi...';
+                                                setTimeout(waitForTypewriter, 200);
                                             }}
-                                        }}, 1000);
+                                        }};
+                                        waitForTypewriter();
                                     }})();
                                 """)
 
