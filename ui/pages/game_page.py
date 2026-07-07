@@ -456,6 +456,7 @@ def render_game():
                                             const speed = {state._reading_speed * 1000};
                                             if (speed <= 0) {{
                                                 el.innerHTML = text;
+                                                window._typewriterDone = true;
                                                 return;
                                             }}
                                             function type() {{
@@ -463,6 +464,8 @@ def render_game():
                                                     el.innerHTML = text.substring(0, i+1);
                                                     i++;
                                                     setTimeout(type, speed);
+                                                }} else {{
+                                                    window._typewriterDone = true;
                                                 }}
                                             }}
                                             type();
@@ -525,24 +528,32 @@ def render_game():
                                         "text-[10px] text-gray-600 italic"
                                     )
 
-                            # Timer su scelta critica
+                            # Timer su scelta critica (parte dopo la typewriter)
                             if i == _timer_choice_idx and n_choices > 1:
                                 timer_id = f"timer_{uuid.uuid4().hex[:6]}"
                                 ui.label().classes("timer-ring").props(f"id={timer_id}")
                                 ui.run_javascript(f"""
                                     (function() {{
-                                        let sec = 15;
                                         const el = document.getElementById('{timer_id}');
                                         if (!el) return;
-                                        el.innerHTML = '⏱ ' + sec + 's';
-                                        const iv = setInterval(() => {{
-                                            sec--;
-                                            if (el) el.innerHTML = '⏱ ' + sec + 's';
-                                            if (sec <= 0) {{
-                                                clearInterval(iv);
-                                                el.closest('button')?.click();
+                                        const waitForTypewriter = () => {{
+                                            if (window._typewriterDone) {{
+                                                let sec = 15;
+                                                el.innerHTML = '⏱ ' + sec + 's';
+                                                const iv = setInterval(() => {{
+                                                    sec--;
+                                                    if (el) el.innerHTML = '⏱ ' + sec + 's';
+                                                    if (sec <= 0) {{
+                                                        clearInterval(iv);
+                                                        el.closest('button')?.click();
+                                                    }}
+                                                }}, 1000);
+                                            }} else {{
+                                                el.innerHTML = '⏳ attendi...';
+                                                setTimeout(waitForTypewriter, 200);
                                             }}
-                                        }}, 1000);
+                                        }};
+                                        waitForTypewriter();
                                     }})();
                                 """)
 

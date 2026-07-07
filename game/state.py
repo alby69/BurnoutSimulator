@@ -19,7 +19,7 @@ _decision_start: float = 0.0
 _layout_mode: str = "desktop"
 _skip_tutorial: bool = False
 _high_contrast: bool = False
-_reading_speed: float = 0.05  # Seconds per character
+_reading_speed: float = 0.015  # Seconds per character (~15ms, 200 chars in 3s)
 
 # Initialize swarm once
 swarm.load_swarm(force_reinit=True)
