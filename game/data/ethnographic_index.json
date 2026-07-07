@@ -1,0 +1,32 @@
+{
+  "riunione_inutile": {
+    "study": "Kunda, G. (1992). Engineering Culture: Control and Commitment in a High-Tech Corporation.",
+    "concept": "Burnout as a social achievement",
+    "description": "Le riunioni inutili come rituali di sottomissione temporale e strumenti di controllo normativo."
+  },
+  "scadenza_impossibile": {
+    "study": "Goffman, E. (1961). Asylums: Essays on the Social Situation of Mental Patients and Other Inmates.",
+    "concept": "Total Institution",
+    "description": "L'annullamento della distinzione tra tempo del sé e tempo dell'istituzione; l'azienda come istituzione totale."
+  },
+  "quiet_quitting_practice": {
+    "study": "Giddens, A. (1984). The Constitution of Society: Outline of the Theory of Structuration.",
+    "concept": "Dialectic of Control",
+    "description": "La resistenza passiva come forma di riappropriazione dell'agency entro strutture di potere asimmetriche."
+  },
+  "algorithmic_surveillance": {
+    "study": "Zuboff, S. (2019). The Age of Surveillance Capitalism.",
+    "concept": "Instrumentarian Power",
+    "description": "Il condizionamento del comportamento attraverso il monitoraggio costante e la governance algoritmica."
+  },
+  "mobbing_logic": {
+    "study": "Leymann, H. (1996). The Content and Development of Mobbing at Work.",
+    "concept": "Psychological Terror",
+    "description": "L'uso sistematico di micro-aggressioni per l'esclusione sociale del soggetto deviante dal gruppo dominante."
+  },
+  "hustle_culture": {
+    "study": "Fisher, M. (2009). Capitalist Realism: Is There No Alternative?",
+    "concept": "Depressive Hedonia",
+    "description": "La performance incessante dell'occupazione come unico orizzonte di senso possibile."
+  }
+}

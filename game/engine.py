@@ -5,6 +5,11 @@ from .events import EventManager, Event, Choice
 from .graph import DecisionGraph
 from .save_manager import SaveManager
 import random
+import json
+import os
+from engine.phenomenology_engine import PhenomenologyEngine
+from engine.cultural_memory import OrganizationalMemory
+from engine.algorithmic_manager import AlgorithmicManager
 
 MINI_EVENTS: List[Tuple[str, Dict[str, int]]] = [
     ("Trovi traffico, arrivi in ufficio già stressato.", {"stress": 3, "energy": -2}),
@@ -255,6 +260,21 @@ class GameEngine:
         ]
         self._last_threshold_triggers: Set[Tuple[str, str]] = set()
         self.session_variants: Dict[str, str] = {}
+        self.cultural_manifesto: Dict[str, Any] = {}
+        self.load_cultural_manifesto(company_type)
+        self.phenomenology_engine = PhenomenologyEngine()
+        self.active_phenomenology: Dict[str, str] = {}
+        self.org_memory = OrganizationalMemory(company_type)
+        self.algo_manager = AlgorithmicManager(enabled=(company_type == CompanyArchetype.CORPORATE.value or self.hr_params.get("algorithmic_governance")))
+        self.algo_reports: Dict[str, Any] = {}
+
+    def load_cultural_manifesto(self, archetype_name: str) -> None:
+        """Carica il manifesto culturale dell'archetipo aziendale."""
+        manifestos_path = "game/data/cultural_manifestos.json"
+        if os.path.exists(manifestos_path):
+            with open(manifestos_path, "r") as f:
+                manifestos = json.load(f)
+                self.cultural_manifesto = manifestos.get(archetype_name, {})
 
     def apply_archetype(self, archetype_name: str) -> None:
         """Applica i parametri iniziali basati sull'archetipo aziendale e sul profilo giocatore."""
@@ -285,10 +305,26 @@ class GameEngine:
         self.player.days_survived += 1
         p = self.player
 
+        # Aggiorna Fenomenologia
+        self.active_phenomenology = self.phenomenology_engine.update_phenomenology(p)
+
+        # Processo Algoritmico
+        self.algo_reports = self.algo_manager.process_turn(p.to_dict()["stats"] | {"energy": p.energy, "stress": p.stress})
+
         # Mini-evento giornaliero
-        self.current_mini_event = random.choice(MINI_EVENTS)
+        # Occasionalmente inserisce un rumor o un rito dalla memoria organizzativa
+        if random.random() < 0.2:
+            rumor = self.org_memory.get_random_rumor()
+            self.current_mini_event = (f"GOSSIP: {rumor}", {"stress": 2, "integrity": -1})
+        else:
+            self.current_mini_event = random.choice(MINI_EVENTS)
+
+        # Modula impatto mini-evento in base alla fenomenologia e governance algoritmica
+        mini_effects = self.phenomenology_engine.modulate_event_impact(p, self.current_mini_event[1])
+        mini_effects = self.algo_manager.modulate_impact(mini_effects)
+
         p.update_stats(
-            self.current_mini_event[1],
+            mini_effects,
             manager_traits=self.manager_personality,
             psych_profile=self.psych_profile,
             hr_params=self.hr_params,
@@ -464,9 +500,13 @@ class GameEngine:
 
         choice = self.current_event.choices[choice_index]
 
+        # Modula impatto scelta in base alla fenomenologia e governance algoritmica
+        modulated_effects = self.phenomenology_engine.modulate_event_impact(self.player, choice.effects)
+        modulated_effects = self.algo_manager.modulate_impact(modulated_effects)
+
         # Update player stats
         self.player.update_stats(
-            choice.effects,
+            modulated_effects,
             manager_traits=self.manager_personality,
             psych_profile=self.psych_profile,
             hr_params=self.hr_params,

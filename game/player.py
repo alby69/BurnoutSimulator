@@ -15,6 +15,13 @@ class Player:
     integrity: int = 50
     employability: int = 50
     health: int = 100
+    # Phenomenological stats
+    insomnia: int = 0
+    muscle_tension: int = 0
+    digestive_issues: int = 0
+    presenteeism: int = 0
+    time_distortion: float = 1.0
+    atmosphere_feeling: int = 50
 
     # Factions: Loyalist, Silent, Rebel
     factions: Dict[str, int] = field(
@@ -196,6 +203,11 @@ class Player:
                 "integrity": self.integrity,
                 "employability": self.employability,
                 "health": self.health,
+                "insomnia": self.insomnia,
+                "muscle_tension": self.muscle_tension,
+                "digestive_issues": self.digestive_issues,
+                "presenteeism": self.presenteeism,
+                "atmosphere_feeling": self.atmosphere_feeling,
             },
             "factions": self.factions,
             "npcs": {name: npc.to_dict() for name, npc in self.npcs.items()},
