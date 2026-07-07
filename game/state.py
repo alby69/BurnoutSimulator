@@ -22,4 +22,4 @@ _high_contrast: bool = False
 _reading_speed: float = 0.05  # Seconds per character
 
 # Initialize swarm once
-swarm.load_swarm()
+swarm.load_swarm(force_reinit=True)
